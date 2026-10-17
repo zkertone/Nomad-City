@@ -57,7 +57,7 @@ export type UnsignedBoardDefinition = Omit<BoardDefinition, 'contentHash'>;
 
 export interface RevealedResourceMarker {
   readonly markerDefinitionId: string;
-  readonly resourceKind: 'orirock' | 'originium' | 'iron';
+  readonly resourceKind: 'orirock' | 'originium' | 'iron' | 'pure-originium';
   readonly harvestAmount: 1 | 2;
 }
 

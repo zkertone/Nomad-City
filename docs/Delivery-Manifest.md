@@ -43,5 +43,7 @@
 
 本次新增事件静态目录，不重写原有 v0.2.0 交付历史。源码位于 `packages/game-core/src/events/`（types.ts、schema.ts、hash.ts、catalog.ts、index.ts、founders-base.json、events.test.ts），编译加载脚本为 `scripts/check-events.mjs`。根包导出、workspace 包导出、根 package.json 与 README 已更新。
 
+同日后续新增最小对局状态：`packages/game-core/src/game/`（types.ts、schema.ts、resources.ts、state.ts、index.ts、game.test.ts）、`scripts/check-game.mjs`、`docs/Game-State-Foundation-2026-10-17.md`、`docs/testing/game-state-validation-2026-10-17.md`；BoardState 资源种类与 Schema 追加已确认的至纯源石。当前最新测试总数为 311。以上均可在仓库继续编辑，尚未包含完整对局执行。
+
 已确认的事件文案与效果表位于 `docs/Event-Card-Text-2026-10-17.md`、`docs/Event-Cards-Review-2026-10-17.md`；规则核对见 `docs/Event-Resolution-Boundaries-2026-10-17.md`；真实测试结果见 `docs/testing/event-catalog-validation-2026-10-17.md`。本轮新增/修改的实际状态以 Git 提交及 DevLog 最新条目为准。
 

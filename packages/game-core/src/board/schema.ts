@@ -61,7 +61,7 @@ export const boardStateSchema = z.strictObject({
   definitionRef: definitionRefSchema,
   resourceMarkerByNode: z.record(resourceNodeIdSchema, z.strictObject({
     markerDefinitionId: externalIdSchema,
-    resourceKind: z.enum(['orirock', 'originium', 'iron']),
+    resourceKind: z.enum(['orirock', 'originium', 'iron', 'pure-originium']),
     harvestAmount: z.union([z.literal(1), z.literal(2)]),
   }).nullable()),
   influenceBySlot: z.record(slotIdSchema, z.strictObject({

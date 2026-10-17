@@ -6,7 +6,8 @@
   "exports": {
     ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
     "./board": { "types": "./dist/board/index.d.ts", "import": "./dist/board/index.js" },
-    "./events": { "types": "./dist/events/index.d.ts", "import": "./dist/events/index.js" }
+    "./events": { "types": "./dist/events/index.d.ts", "import": "./dist/events/index.js" },
+    "./game": { "types": "./dist/game/index.d.ts", "import": "./dist/game/index.js" }
   },
   "dependencies": { "zod": "4.6.7" }
 }

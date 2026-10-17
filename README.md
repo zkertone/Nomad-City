@@ -1,6 +1,6 @@
 # Nomad City Online · v0.2.0
 
-《游城拓荒：铸基者》私人非商业线上桌游项目。已实现可验证的 TypeScript 地图核心，并追加已确认基础事件牌的静态目录、文案及校验。事件结算、UI、联机和完整行动规则引擎尚未实现。
+《游城拓荒：铸基者》私人非商业线上桌游项目。已实现地图核心、基础事件静态目录，以及最小对局状态、资源余额和标记守恒校验。事件结算、UI、联机和完整行动规则引擎尚未实现。
 
 ## 安装与复现
 
@@ -20,6 +20,7 @@ npm test
 npm run build
 npm run check:maps
 npm run check:events
+npm run check:game
 ```
 
 `npm run verify` 合并类型检查、Vitest 和构建。`npm run test:watch` 进入测试监视模式。核心不依赖 React、Three.js、NestJS 或数据库。依赖分别为 Zod 4.6.7、Vitest 5.0.4、TypeScript 5.9.3；`package-lock.json` 固定实际依赖树。
@@ -100,7 +101,7 @@ Record 的键天然唯一；对象中的重复 ID、键/ID 不一致、槽列表
 
 主结构按任务建议保留。另有 `hash.ts`（规范化与摘要）、`state.ts`（空状态及结构引用检查）、`definitions/build.ts`（机械组装）、`verification/verified-catalog.json`（独立基准）、包导出入口、编译加载检查和可选归档脚本。这些补充用于避免循环依赖及分离数据、校验和构建。
 
-`BoardState` 保存城市位置、指示物和影响力槽占用。`validateBoardState` 只检查结构、定义引用、ID 覆盖、城市引用、重复城市/标记及已登记玩家；尚无指示物目录、30 枚全局标记账本或阶段约束，**不能拿它代替完整对局合法性验证**。没有任何客户端权威写状态入口。
+`BoardState` 保存城市位置、指示物和影响力槽占用。`validateBoardState` 本身只检查结构、定义引用、ID 覆盖、城市引用、重复城市/标记及已登记玩家。事件指示物目录匹配及标记库存守恒由后续 game 模块校验；两者均**不能替代完整行动合法性验证**。没有任何客户端权威写状态入口。
 
 原 v0.1.0 文档按历史稿原样保留；当前实现状态以 DevLog 的 v0.2.0 条目、Accepted ADR、源码和真实测试为准。原文中事件系统的设计片段仍未实现。
 
@@ -110,7 +111,7 @@ Record 的键天然唯一；对象中的重复 ID、键/ID 不一致、槽列表
 
 可选重新打包需 Python 3 标准库：`npm run archive`；Windows 也可运行 `python scripts/archive.py`。Python 只用于 ZIP 包装，不是地图核心依赖。
 
-基础事件牌的文本与数值现已由项目负责人确认；角色及城市样式等数据尚未齐备。下一步建立最小 GameState、全局标记账本及事件选择/结算流程，再衔接具体行动。UI、联机、经济执行与完整行动引擎仍未实现。
+基础事件牌的文本与数值现已由项目负责人确认；最小 GameState 与入场前标记守恒已实现。角色及城市样式等数据尚未齐备，后续推进入场选择与事件结算，再衔接具体行动。UI、联机、经济执行与完整行动引擎仍未实现。
 
 ## 事件静态目录增量 · 2026-10-17
 
@@ -137,3 +138,27 @@ console.log(event.choices[0].cost); // { asset: 'columbia-voucher', amount: 4 }
 事件摘要协议 `nco-events-c14n-v1` 按对象键排序，保留所有数组顺序，并包含文案与来源文件摘要；不能复用地图的无序 ID 集合协议。具体字段、结算边界和下一步案例见 [事件说明](docs/Event-Resolution-Boundaries-2026-10-17.md)。
 
 真实验证：strict 类型检查、225/225 Vitest 测试（地图 88、事件 137）、构建与两个编译包加载检查通过。包含从已确认 Markdown 独立读取逐牌、逐选项比对；不把文档或静态数据测试当作事件执行验证。命令及中间失败记录见 [本次验证记录](docs/testing/event-catalog-validation-2026-10-17.md)。
+
+## 最小对局状态增量 · 2026-10-17
+
+```javascript
+import {
+  createPreEntryGame, getMarkerLedger, validateGameState,
+} from '@nomad-city-online/game-core/game';
+
+const { definition, state } = createPreEntryGame('private-game', [
+  { id: 'alice', color: 'red' },
+  { id: 'bob', color: 'blue' },
+]);
+console.log(definition.rulesetId); // founders-base-2p
+console.log(definition.boardDefinitionRef.definitionId); // founders-map-3
+console.log(state.markerSupplyByPlayer.alice.length); // 29：另 1 枚在 0 分处
+console.log(Object.keys(getMarkerLedger(state, definition)).length); // 60
+console.log(validateGameState(state, definition).success); // true
+```
+
+构造器位于决定先手、初始城市/事件和初始资金之前，余额从 0 开始。账本从供应堆、计分标记引用和原有棋盘槽占用推导，不另存第二套标记位置；城市样式用途尚未实现。两人/三人复用同一地图定义，人数规则 ID 分开。
+
+GameDefinition 由服务器持有；快照校验不是允许客户端提交任意余额的接口，也不验证完整行动过程。当前没有网络写入口。模块返回深度冻结副本，费用查询不修改资源余额。
+
+当前最新验证：**311/311 测试**（地图 88、事件 137、对局状态 86）、strict 类型检查及构建通过；`check:game` 和原地图/事件编译包检查通过。说明见 [对局状态基础](docs/Game-State-Foundation-2026-10-17.md) 和 [实际测试记录](docs/testing/game-state-validation-2026-10-17.md)。
