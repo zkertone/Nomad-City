@@ -12,6 +12,7 @@
     "test:watch": "vitest",
     "verify": "npm run typecheck && npm test && npm run build",
     "check:maps": "npm run build && node scripts/check-maps.mjs",
+    "check:events": "npm run build && node scripts/check-events.mjs",
     "archive": "python3 scripts/archive.py"
   },
   "dependencies": { "zod": "4.6.7" },

@@ -1,6 +1,6 @@
 # Nomad City Online · v0.2.0
 
-《游城拓荒：铸基者》私人非商业线上桌游项目。本阶段交付可运行、可验证的 TypeScript 地图核心，尚无 UI、联机、事件系统或完整行动规则引擎。
+《游城拓荒：铸基者》私人非商业线上桌游项目。已实现可验证的 TypeScript 地图核心，并追加已确认基础事件牌的静态目录、文案及校验。事件结算、UI、联机和完整行动规则引擎尚未实现。
 
 ## 安装与复现
 
@@ -19,6 +19,7 @@ npm run typecheck
 npm test
 npm run build
 npm run check:maps
+npm run check:events
 ```
 
 `npm run verify` 合并类型检查、Vitest 和构建。`npm run test:watch` 进入测试监视模式。核心不依赖 React、Three.js、NestJS 或数据库。依赖分别为 Zod 4.6.7、Vitest 5.0.4、TypeScript 5.9.3；`package-lock.json` 固定实际依赖树。
@@ -109,4 +110,30 @@ Record 的键天然唯一；对象中的重复 ID、键/ID 不一致、槽列表
 
 可选重新打包需 Python 3 标准库：`npm run archive`；Windows 也可运行 `python scripts/archive.py`。Python 只用于 ZIP 包装，不是地图核心依赖。
 
-下一阶段建议先取得独立规则解释及基础牌清单，建立带来源的规则数据，再规划最小服务器权威行动流程。UI、联机、经济、事件与完整行动引擎均未在本轮实现；本轮未部署或对外发布。
+基础事件牌的文本与数值现已由项目负责人确认；角色及城市样式等数据尚未齐备。下一步建立最小 GameState、全局标记账本及事件选择/结算流程，再衔接具体行动。UI、联机、经济执行与完整行动引擎仍未实现。
+
+## 事件静态目录增量 · 2026-10-17
+
+目录保留 22 张基础牌、49 个选项的完整描述与对白、资源指示物、四人标识、费用和效果；两张 E 企业扩展牌未混入。项目版本继续保留 0.2.0；事件 Schema/数据版本为 1.0.0，这次没有发布新版本。
+
+```javascript
+import {
+  FOUNDERS_EVENT_CATALOG,
+  getFoundersEventCard,
+  getFoundersEventCards,
+  validateFoundersEventCatalog,
+} from '@nomad-city-online/game-core/events';
+
+console.log(validateFoundersEventCatalog(FOUNDERS_EVENT_CATALOG).success); // true
+console.log(getFoundersEventCards('green').length); // 6
+const event = getFoundersEventCard('Y05');
+console.log(event.description);
+console.log(event.choices[0].narration);
+console.log(event.choices[0].cost); // { asset: 'columbia-voucher', amount: 4 }
+```
+
+返回值嵌套只读且冻结；解析器验证副本，不冻结或改写调用者输入。按颜色查询不替代人数规则/牌堆准备；本模块不会支付费用、发放奖励或改变地图。完整验证还要求固定批准摘要匹配，单独 Schema 通过不等于内容与已确认版本一致。
+
+事件摘要协议 `nco-events-c14n-v1` 按对象键排序，保留所有数组顺序，并包含文案与来源文件摘要；不能复用地图的无序 ID 集合协议。具体字段、结算边界和下一步案例见 [事件说明](docs/Event-Resolution-Boundaries-2026-10-17.md)。
+
+真实验证：strict 类型检查、225/225 Vitest 测试（地图 88、事件 137）、构建与两个编译包加载检查通过。包含从已确认 Markdown 独立读取逐牌、逐选项比对；不把文档或静态数据测试当作事件执行验证。命令及中间失败记录见 [本次验证记录](docs/testing/event-catalog-validation-2026-10-17.md)。

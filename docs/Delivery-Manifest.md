@@ -39,3 +39,9 @@
 共 29 个项目文件。依赖目录 node_modules、构建目录 dist 和 ZIP 归档不纳入 Git 源码提交；按 README 可重建。
 
 原 v0.2.0 归档导入时只调整 README/本清单的链接及追加 DevLog；地图数据、Schema、测试及依赖锁文件不变。
+# 2026-10-17 增量交付说明
+
+本次新增事件静态目录，不重写原有 v0.2.0 交付历史。源码位于 `packages/game-core/src/events/`（types.ts、schema.ts、hash.ts、catalog.ts、index.ts、founders-base.json、events.test.ts），编译加载脚本为 `scripts/check-events.mjs`。根包导出、workspace 包导出、根 package.json 与 README 已更新。
+
+已确认的事件文案与效果表位于 `docs/Event-Card-Text-2026-10-17.md`、`docs/Event-Cards-Review-2026-10-17.md`；规则核对见 `docs/Event-Resolution-Boundaries-2026-10-17.md`；真实测试结果见 `docs/testing/event-catalog-validation-2026-10-17.md`。本轮新增/修改的实际状态以 Git 提交及 DevLog 最新条目为准。
+
