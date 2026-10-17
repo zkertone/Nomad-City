@@ -1,0 +1,11 @@
+{
+  "name": "@nomad-city-online/game-core",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./board": { "types": "./dist/board/index.d.ts", "import": "./dist/board/index.js" }
+  },
+  "dependencies": { "zod": "4.6.7" }
+}

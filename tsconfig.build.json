@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "packages/game-core/src",
+    "outDir": "packages/game-core/dist",
+    "declaration": true,
+    "sourceMap": true
+  },
+  "include": ["packages/game-core/src/**/*.ts"],
+  "exclude": ["**/*.test.ts"]
+}

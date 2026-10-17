@@ -1,0 +1,698 @@
+{
+  "three-player": {
+    "definitionId": "founders-map-3",
+    "schemaVersion": "1.0.0",
+    "definitionVersion": "1.0.0",
+    "regions": {
+      "A": 3,
+      "B": 3,
+      "C": 3,
+      "D": 3,
+      "E": 4,
+      "F": 4,
+      "R": 3
+    },
+    "nodes": {
+      "A-01": {
+        "regionId": "A",
+        "eventDeckColor": "green",
+        "redRestricted": false,
+        "initialCityEligible": true,
+        "slotCount": 2
+      },
+      "A-02": {
+        "regionId": "A",
+        "eventDeckColor": "green",
+        "redRestricted": false,
+        "initialCityEligible": true,
+        "slotCount": 2
+      },
+      "A-03": {
+        "regionId": "A",
+        "eventDeckColor": "yellow",
+        "redRestricted": false,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "B-01": {
+        "regionId": "B",
+        "eventDeckColor": "green",
+        "redRestricted": false,
+        "initialCityEligible": true,
+        "slotCount": 2
+      },
+      "B-02": {
+        "regionId": "B",
+        "eventDeckColor": "green",
+        "redRestricted": false,
+        "initialCityEligible": true,
+        "slotCount": 2
+      },
+      "B-03": {
+        "regionId": "B",
+        "eventDeckColor": "yellow",
+        "redRestricted": false,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "C-01": {
+        "regionId": "C",
+        "eventDeckColor": "green",
+        "redRestricted": false,
+        "initialCityEligible": true,
+        "slotCount": 2
+      },
+      "C-02": {
+        "regionId": "C",
+        "eventDeckColor": "yellow",
+        "redRestricted": false,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "C-03": {
+        "regionId": "C",
+        "eventDeckColor": "yellow",
+        "redRestricted": false,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "D-01": {
+        "regionId": "D",
+        "eventDeckColor": "yellow",
+        "redRestricted": false,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "D-02": {
+        "regionId": "D",
+        "eventDeckColor": "yellow",
+        "redRestricted": false,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "D-03": {
+        "regionId": "D",
+        "eventDeckColor": "yellow",
+        "redRestricted": false,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "E-01": {
+        "regionId": "E",
+        "eventDeckColor": "yellow",
+        "redRestricted": false,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "E-02": {
+        "regionId": "E",
+        "eventDeckColor": "red",
+        "redRestricted": true,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "E-03": {
+        "regionId": "E",
+        "eventDeckColor": "red",
+        "redRestricted": true,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "F-01": {
+        "regionId": "F",
+        "eventDeckColor": "red",
+        "redRestricted": true,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "F-02": {
+        "regionId": "F",
+        "eventDeckColor": "red",
+        "redRestricted": true,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "F-03": {
+        "regionId": "F",
+        "eventDeckColor": "red",
+        "redRestricted": true,
+        "initialCityEligible": false,
+        "slotCount": 2
+      }
+    },
+    "routes": {
+      "F-route-01": {
+        "regionId": "F",
+        "incidentNodeIds": [
+          "F-03",
+          "F-01"
+        ],
+        "slotCount": 1
+      },
+      "F-route-02": {
+        "regionId": "F",
+        "incidentNodeIds": [
+          "F-01",
+          "D-02"
+        ],
+        "slotCount": 1
+      },
+      "F-route-03": {
+        "regionId": "F",
+        "incidentNodeIds": [
+          "F-01",
+          "F-02"
+        ],
+        "slotCount": 1
+      },
+      "E-route-01": {
+        "regionId": "E",
+        "incidentNodeIds": [
+          "E-03",
+          "E-02",
+          "C-03"
+        ],
+        "slotCount": 2
+      },
+      "E-route-02": {
+        "regionId": "E",
+        "incidentNodeIds": [
+          "F-02",
+          "E-02",
+          "E-01"
+        ],
+        "slotCount": 2
+      },
+      "D-route-01": {
+        "regionId": "D",
+        "incidentNodeIds": [
+          "D-02",
+          "D-03",
+          "D-01",
+          "A-03"
+        ],
+        "slotCount": 2
+      },
+      "D-route-02": {
+        "regionId": "D",
+        "incidentNodeIds": [
+          "F-02",
+          "D-02",
+          "D-03"
+        ],
+        "slotCount": 2
+      },
+      "A-route-01": {
+        "regionId": "A",
+        "incidentNodeIds": [
+          "A-01",
+          "A-02"
+        ],
+        "slotCount": 1
+      },
+      "A-route-02": {
+        "regionId": "A",
+        "incidentNodeIds": [
+          "A-02",
+          "A-03",
+          "B-03"
+        ],
+        "slotCount": 2
+      },
+      "B-route-01": {
+        "regionId": "B",
+        "incidentNodeIds": [
+          "A-02",
+          "B-02"
+        ],
+        "slotCount": 1
+      },
+      "B-route-02": {
+        "regionId": "B",
+        "incidentNodeIds": [
+          "B-01",
+          "B-02",
+          "C-01"
+        ],
+        "slotCount": 2
+      },
+      "C-route-01": {
+        "regionId": "C",
+        "incidentNodeIds": [
+          "C-03",
+          "C-02"
+        ],
+        "slotCount": 1
+      },
+      "C-route-02": {
+        "regionId": "C",
+        "incidentNodeIds": [
+          "C-02",
+          "B-02",
+          "B-03",
+          "C-01"
+        ],
+        "slotCount": 2
+      },
+      "R-route-01": {
+        "regionId": "R",
+        "incidentNodeIds": [
+          "D-01",
+          "A-01"
+        ],
+        "slotCount": 1
+      },
+      "R-route-02": {
+        "regionId": "R",
+        "incidentNodeIds": [
+          "A-01",
+          "B-01"
+        ],
+        "slotCount": 1
+      },
+      "R-route-04": {
+        "regionId": "R",
+        "incidentNodeIds": [
+          "F-03",
+          "E-03",
+          "F-02"
+        ],
+        "slotCount": 2
+      },
+      "R-route-06": {
+        "regionId": "R",
+        "incidentNodeIds": [
+          "D-03",
+          "B-03",
+          "E-01"
+        ],
+        "slotCount": 2
+      },
+      "R-route-07": {
+        "regionId": "R",
+        "incidentNodeIds": [
+          "A-02",
+          "B-01"
+        ],
+        "slotCount": 2
+      },
+      "R-route-08": {
+        "regionId": "R",
+        "incidentNodeIds": [
+          "C-03",
+          "E-01"
+        ],
+        "slotCount": 1
+      },
+      "R-route-09": {
+        "regionId": "R",
+        "incidentNodeIds": [
+          "C-02",
+          "E-01"
+        ],
+        "slotCount": 1
+      }
+    },
+    "totals": {
+      "nodes": 18,
+      "routes": 20,
+      "regions": 7,
+      "nodeSlots": 36,
+      "routeSlots": 30,
+      "totalSlots": 66,
+      "controlPoints": 23
+    }
+  },
+  "four-player": {
+    "definitionId": "founders-map-4",
+    "schemaVersion": "1.0.0",
+    "definitionVersion": "1.0.0",
+    "regions": {
+      "A": 3,
+      "B": 3,
+      "C": 3,
+      "D": 3,
+      "E": 4,
+      "F": 4,
+      "G": 3,
+      "R": 3
+    },
+    "nodes": {
+      "A-01": {
+        "regionId": "A",
+        "eventDeckColor": "green",
+        "redRestricted": false,
+        "initialCityEligible": true,
+        "slotCount": 2
+      },
+      "A-02": {
+        "regionId": "A",
+        "eventDeckColor": "green",
+        "redRestricted": false,
+        "initialCityEligible": true,
+        "slotCount": 2
+      },
+      "A-03": {
+        "regionId": "A",
+        "eventDeckColor": "yellow",
+        "redRestricted": false,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "B-01": {
+        "regionId": "B",
+        "eventDeckColor": "green",
+        "redRestricted": false,
+        "initialCityEligible": true,
+        "slotCount": 2
+      },
+      "B-02": {
+        "regionId": "B",
+        "eventDeckColor": "green",
+        "redRestricted": false,
+        "initialCityEligible": true,
+        "slotCount": 2
+      },
+      "B-03": {
+        "regionId": "B",
+        "eventDeckColor": "yellow",
+        "redRestricted": false,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "C-01": {
+        "regionId": "C",
+        "eventDeckColor": "green",
+        "redRestricted": false,
+        "initialCityEligible": true,
+        "slotCount": 2
+      },
+      "C-02": {
+        "regionId": "C",
+        "eventDeckColor": "yellow",
+        "redRestricted": false,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "C-03": {
+        "regionId": "C",
+        "eventDeckColor": "yellow",
+        "redRestricted": false,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "D-01": {
+        "regionId": "D",
+        "eventDeckColor": "yellow",
+        "redRestricted": false,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "D-02": {
+        "regionId": "D",
+        "eventDeckColor": "yellow",
+        "redRestricted": false,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "D-03": {
+        "regionId": "D",
+        "eventDeckColor": "yellow",
+        "redRestricted": false,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "E-01": {
+        "regionId": "E",
+        "eventDeckColor": "yellow",
+        "redRestricted": false,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "E-02": {
+        "regionId": "E",
+        "eventDeckColor": "red",
+        "redRestricted": true,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "E-03": {
+        "regionId": "E",
+        "eventDeckColor": "red",
+        "redRestricted": true,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "F-01": {
+        "regionId": "F",
+        "eventDeckColor": "red",
+        "redRestricted": true,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "F-02": {
+        "regionId": "F",
+        "eventDeckColor": "red",
+        "redRestricted": true,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "F-03": {
+        "regionId": "F",
+        "eventDeckColor": "red",
+        "redRestricted": true,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "G-01": {
+        "regionId": "G",
+        "eventDeckColor": "green",
+        "redRestricted": false,
+        "initialCityEligible": true,
+        "slotCount": 2
+      },
+      "G-02": {
+        "regionId": "G",
+        "eventDeckColor": "yellow",
+        "redRestricted": false,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "G-03": {
+        "regionId": "G",
+        "eventDeckColor": "yellow",
+        "redRestricted": false,
+        "initialCityEligible": false,
+        "slotCount": 2
+      },
+      "G-04": {
+        "regionId": "G",
+        "eventDeckColor": "red",
+        "redRestricted": true,
+        "initialCityEligible": false,
+        "slotCount": 2
+      }
+    },
+    "routes": {
+      "G-route-01": {
+        "regionId": "G",
+        "incidentNodeIds": [
+          "G-03",
+          "G-02"
+        ],
+        "slotCount": 1
+      },
+      "G-route-02": {
+        "regionId": "G",
+        "incidentNodeIds": [
+          "G-03",
+          "G-04"
+        ],
+        "slotCount": 1
+      },
+      "F-route-01": {
+        "regionId": "F",
+        "incidentNodeIds": [
+          "G-04",
+          "F-03",
+          "F-01"
+        ],
+        "slotCount": 2
+      },
+      "F-route-02": {
+        "regionId": "F",
+        "incidentNodeIds": [
+          "F-01",
+          "D-02"
+        ],
+        "slotCount": 1
+      },
+      "F-route-03": {
+        "regionId": "F",
+        "incidentNodeIds": [
+          "F-01",
+          "F-02"
+        ],
+        "slotCount": 1
+      },
+      "E-route-01": {
+        "regionId": "E",
+        "incidentNodeIds": [
+          "E-03",
+          "E-02",
+          "C-03"
+        ],
+        "slotCount": 2
+      },
+      "E-route-02": {
+        "regionId": "E",
+        "incidentNodeIds": [
+          "F-02",
+          "E-02",
+          "E-01"
+        ],
+        "slotCount": 2
+      },
+      "D-route-01": {
+        "regionId": "D",
+        "incidentNodeIds": [
+          "D-02",
+          "D-03",
+          "D-01",
+          "A-03"
+        ],
+        "slotCount": 2
+      },
+      "D-route-02": {
+        "regionId": "D",
+        "incidentNodeIds": [
+          "F-02",
+          "D-02",
+          "D-03"
+        ],
+        "slotCount": 2
+      },
+      "A-route-01": {
+        "regionId": "A",
+        "incidentNodeIds": [
+          "A-01",
+          "A-02"
+        ],
+        "slotCount": 1
+      },
+      "A-route-02": {
+        "regionId": "A",
+        "incidentNodeIds": [
+          "A-02",
+          "A-03",
+          "B-03"
+        ],
+        "slotCount": 2
+      },
+      "B-route-01": {
+        "regionId": "B",
+        "incidentNodeIds": [
+          "A-02",
+          "B-02"
+        ],
+        "slotCount": 1
+      },
+      "B-route-02": {
+        "regionId": "B",
+        "incidentNodeIds": [
+          "B-01",
+          "B-02",
+          "C-01"
+        ],
+        "slotCount": 2
+      },
+      "C-route-01": {
+        "regionId": "C",
+        "incidentNodeIds": [
+          "C-03",
+          "C-02"
+        ],
+        "slotCount": 1
+      },
+      "C-route-02": {
+        "regionId": "C",
+        "incidentNodeIds": [
+          "C-02",
+          "B-02",
+          "B-03",
+          "C-01"
+        ],
+        "slotCount": 2
+      },
+      "R-route-01": {
+        "regionId": "R",
+        "incidentNodeIds": [
+          "G-02",
+          "G-01",
+          "A-01",
+          "D-01"
+        ],
+        "slotCount": 2
+      },
+      "R-route-02": {
+        "regionId": "R",
+        "incidentNodeIds": [
+          "G-01",
+          "A-01",
+          "B-01"
+        ],
+        "slotCount": 2
+      },
+      "R-route-03": {
+        "regionId": "R",
+        "incidentNodeIds": [
+          "G-03",
+          "C-03"
+        ],
+        "slotCount": 1
+      },
+      "R-route-04": {
+        "regionId": "R",
+        "incidentNodeIds": [
+          "F-03",
+          "E-03"
+        ],
+        "slotCount": 1
+      },
+      "R-route-05": {
+        "regionId": "R",
+        "incidentNodeIds": [
+          "E-03",
+          "F-02"
+        ],
+        "slotCount": 1
+      },
+      "R-route-06": {
+        "regionId": "R",
+        "incidentNodeIds": [
+          "D-03",
+          "B-03",
+          "E-01"
+        ],
+        "slotCount": 2
+      },
+      "R-route-07": {
+        "regionId": "R",
+        "incidentNodeIds": [
+          "A-02",
+          "B-01"
+        ],
+        "slotCount": 1
+      }
+    },
+    "totals": {
+      "nodes": 22,
+      "routes": 22,
+      "regions": 8,
+      "nodeSlots": 44,
+      "routeSlots": 33,
+      "totalSlots": 77,
+      "controlPoints": 26
+    }
+  }
+}
