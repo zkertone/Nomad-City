@@ -1,6 +1,6 @@
 # Nomad City Online · v0.2.0
 
-《游城拓荒：铸基者》私人非商业线上桌游项目。已实现地图核心、基础事件静态目录、最小对局状态与标记守恒，以及两人至四人的入场流程和全部基础事件选项的独立结算核心。黄色/红色事件尚未接入探索/城市移动；UI、联机和完整行动规则引擎尚未实现。
+《游城拓荒：铸基者》私人非商业线上桌游项目。已实现地图核心、基础事件静态目录、最小对局状态与标记守恒，以及两人至四人的入场流程和全部基础事件选项的独立结算核心。已接入探索行动的付费、揭牌、事件和末尾放置链路。城市移动、完整回合调度、UI 和联机尚未实现。
 
 ## 安装与复现
 
@@ -23,6 +23,7 @@ npm run check:events
 npm run check:game
 npm run check:entry
 npm run check:settlement
+npm run check:exploration
 ```
 
 `npm run verify` 合并类型检查、Vitest 和构建。`npm run test:watch` 进入测试监视模式。核心不依赖 React、Three.js、NestJS 或数据库。依赖分别为 Zod 4.6.7、Vitest 5.0.4、TypeScript 5.9.3；`package-lock.json` 固定实际依赖树。
@@ -113,7 +114,7 @@ Record 的键天然唯一；对象中的重复 ID、键/ID 不一致、槽列表
 
 可选重新打包需 Python 3 标准库：`npm run archive`；Windows 也可运行 `python scripts/archive.py`。Python 只用于 ZIP 包装，不是地图核心依赖。
 
-基础事件牌的文本与数值现已由项目负责人确认；最小状态、标记守恒、入场选择与绿色奖励已实现。角色及城市样式等数据尚未齐备，全部基础事件的独立结算核心已完成，后续接入黄色/红色事件的待结算行动流程。UI、联机与完整回合仍未实现。
+基础事件牌的文本与数值现已由项目负责人确认；最小状态、标记守恒、入场选择与绿色奖励已实现。角色及城市样式等数据尚未齐备，全部基础事件的独立结算核心已完成，探索现已接入黄色/红色事件，后续推进城市移动和完整回合调度。UI、联机与完整回合仍未实现。
 
 ## 事件静态目录增量 · 2026-10-17
 
@@ -209,6 +210,19 @@ const result = settleEventChoice(position, definition, context, playerChoice);
 // 行动调用方验证 pending/version 后，只应用一次 result.position 并继续行动。
 ```
 
-`context = {gameId, actorId, nodeId, cardId}` 必须与已揭示标记一致。玩家请求仅含 `choiceId`、需要时的 `costDecision` 和 `influenceSlotId`。独立核心不处理身份认证、抽牌、路费、行动末尾放置或防重放；黄色/红色的可信行动调用方尚未实现，不能将此接口直接开放为网络请求。
+`context = {gameId, actorId, nodeId, cardId}` 必须与已揭示标记一致。玩家请求仅含 `choiceId`、需要时的 `costDecision` 和 `influenceSlotId`。独立核心不处理身份认证、抽牌、路费、行动末尾放置或防重放；探索已通过后续增量提供可信行动调用方；城市移动仍待完成，不能将独立核心直接开放为网络请求。
 
-当前最新验证：**473/473 测试**（新增结算 94）、strict 类型检查、构建及五项编译包检查通过。运行 `npm run verify` 与 `npm run check:settlement` 可复现；规则映射和信任边界见 [结算说明](docs/Event-Settlement-2026-10-18.md)，真实执行历史见 [验证记录](docs/testing/event-settlement-validation-2026-10-18.md)。项目版本仍为 0.2.0，未发布或部署。
+事件结算增量验收时：**473/473 测试**（新增结算 94）、strict 类型检查、构建及五项编译包检查通过。运行 `npm run verify` 与 `npm run check:settlement` 可复现；规则映射和信任边界见 [结算说明](docs/Event-Settlement-2026-10-18.md)，真实执行历史见 [验证记录](docs/testing/event-settlement-validation-2026-10-18.md)。项目版本仍为 0.2.0，未发布或部署。
+
+
+## 探索行动链路增量 · 2026-10-18
+
+已实现一次探索的完整执行：服务器校验实际城市起点、目标和航道路径，支付路费，揭示对应事件并等待玩家选择，结算事件后独立处理目标点末尾影响力。支持实际 2/3/4 人入场后探索黄色/红色及剩余绿色点，JSON 恢复不会重新收费/抽牌/发奖。
+
+新增 `openExplorationWindow`、`applyExplorationCommand`、`getExplorationTollQuote`、`getPendingExplorationChoiceRequirements` 和 `getExplorationFinalSlotIds`，从根包与 `/game` 导出。玩家选择路线、必要的路费收款人、事件选项和合法槽；不能指定回合、身份、牌序或奖励。
+
+`openExplorationWindow` 是可信服务端授予一次探索机会的集成入口；完整回合模块尚未实现，必须由未来调用方负责实际回合、角色阶段和主要行动额度，不能把这个函数开放为玩家请求。探索 complete 不自动跳过快速行动或推进整轮。
+
+进入探索时明确转换到 GameState **1.2.0**，保存进度、剩余牌序及实际入场的顺时针/起始顺序；旧 1.0.0/1.1.0 入场快照仍兼容。隐藏牌序仍不可直接广播。项目版本、地图/事件内容版本与摘要保持不变，没有部署或发布。
+
+最新真实验证：**553/553 测试**（新增探索 80），strict 类型检查、构建及六项编译包检查通过。`npm run check:exploration` 实际完成两人、三人、四人的“入场 → 黄色探索 → 红色探索”，含事件额外放置与末尾放置、JSON 恢复和旧版本重放拒绝。见 [探索说明](docs/Exploration-Flow-2026-10-18.md) 和 [实际验证记录](docs/testing/exploration-validation-2026-10-18.md)。

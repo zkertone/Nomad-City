@@ -5,7 +5,7 @@ import type { GameDefinition, GameState } from './types.js';
 /** Progress consistency, not authentication of a submitted snapshot or its reward history. */
 export function entryProgressIssues(state: GameState, definition: GameDefinition, board: BoardDefinition): ValidationIssue[] {
   const entry = state.entry;
-  if (!entry) return [];
+  if (state.phase !== 'entry' || !entry) return [];
   const issues: ValidationIssue[] = [];
   const report = (path: string, message: string): void => { issues.push({ code: 'ENTRY_PROGRESS', path, message }); };
   const ids = definition.players.map(player => player.id).sort();

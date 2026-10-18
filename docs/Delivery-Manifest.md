@@ -56,3 +56,10 @@
 新增可编辑源码 `packages/game-core/src/game/settlement.ts`、`settlement.test.ts`、`influence.ts`；修改同目录 schema.ts、types.ts、state.ts、entry-rules.ts、entry.ts、index.ts 以共用局面校验与绿色结算。新增 `scripts/check-settlement.mjs` 和对应 package.json 命令，README 与进度文档同步更新。
 
 说明：[Event-Settlement-2026-10-18.md](Event-Settlement-2026-10-18.md)；实际测试：[event-settlement-validation-2026-10-18.md](testing/event-settlement-validation-2026-10-18.md)。当前最新测试 473/473，其中新增结算 94。全部 49 个基础选项可独立执行，黄色/红色的待结算行动调用方仍待完成。GameState 持久化格式、原地图/事件数据、用户确认文档、ADR 和依赖锁未改动。
+
+
+## 2026-10-18 探索行动增量
+
+新增源码 `packages/game-core/src/game/exploration.ts`、`exploration-rules.ts`、`exploration-invariants.ts`、`exploration.test.ts`，新增 `scripts/check-exploration.mjs` 和 package.json 运行命令；修改 game 的 schema.ts、types.ts、state.ts、entry-invariants.ts、index.ts。
+
+说明：[Exploration-Flow-2026-10-18.md](Exploration-Flow-2026-10-18.md)；实际测试：[exploration-validation-2026-10-18.md](testing/exploration-validation-2026-10-18.md)。README、DevLog 和相关进度说明已同步。当前最新 553/553，其中新增探索 80；状态格式 1.2.0 支持明确的探索进度，兼容原入场格式；不改变 GameDefinition、地图/事件定义、已确认文案、ADR 或依赖。源码继续保存到仓库，无部署或发布。

@@ -49,15 +49,36 @@ export const gamePositionSchema = z.strictObject({
   })),
   markerSupplyByPlayer: z.record(gameEntityIdSchema, z.array(gameEntityIdSchema).max(30)),
 });
+export const eventDeckStateSchema = z.strictObject({
+  green: z.array(z.string().regex(/^G\d{2}$/)).max(6),
+  yellow: z.array(z.string().regex(/^Y\d{2}$/)).max(10),
+  red: z.array(z.string().regex(/^R\d{2}$/)).max(6),
+});
+export const explorationProgressSchema = z.strictObject({
+  actorId: gameEntityIdSchema,
+  roundNumber: z.number().int().min(1).max(8),
+  status: z.enum(['ready', 'event-choice', 'final-influence', 'complete']),
+  targetNodeId: resourceNodeIdSchema.nullable(),
+  cardId: z.string().regex(/^[GYR]\d{2}$/).nullable(),
+  resolvedChoiceId: z.string().regex(/^[GYR]\d{2}:[1-3]$/).nullable(),
+});
 export const gameStateSchema = z.strictObject({
-  schemaVersion: z.enum(['1.0.0', '1.1.0']),
+  schemaVersion: z.enum(['1.0.0', '1.1.0', '1.2.0']),
   stateVersion: balance,
-  // Only the entry-phase foundation is implemented, not the round/action machine.
-  phase: z.literal('entry'),
+  // A trusted caller grants one exploration; round scheduling is not implemented.
+  phase: z.enum(['entry', 'exploration']),
   ...gamePositionSchema.shape,
   entry: entryProgressSchema.optional(),
+  exploration: explorationProgressSchema.optional(),
+  eventDecks: eventDeckStateSchema.optional(),
+  playerOrder: z.array(gameEntityIdSchema).min(2).max(4).optional(),
 }).superRefine((state, ctx) => {
   if ((state.schemaVersion === '1.1.0') !== (state.entry !== undefined)) {
     ctx.addIssue({ code: 'custom', path: ['entry'], message: 'Entry progress requires snapshot format 1.1.0; legacy 1.0.0 has no progress' });
+  }
+  if ((state.schemaVersion === '1.2.0') !== (state.phase === 'exploration') ||
+      (state.schemaVersion === '1.2.0') !== (state.exploration !== undefined && state.eventDecks !== undefined && state.playerOrder !== undefined) ||
+      (state.schemaVersion !== '1.2.0' && (state.exploration !== undefined || state.eventDecks !== undefined || state.playerOrder !== undefined))) {
+    ctx.addIssue({ code: 'custom', path: ['exploration'], message: 'Exploration requires format 1.2.0, exploration phase, progress, decks and preserved player order together' });
   }
 });

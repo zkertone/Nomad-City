@@ -5,6 +5,7 @@ import { FOUNDERS_EVENT_CATALOG, FOUNDERS_EVENT_CATALOG_HASH } from '../events/i
 import { gameDefinitionSchema, gameStateSchema, gamePositionSchema, playerSetupsSchema } from './schema.js';
 import type { GameDefinition, GameState, GamePosition, MarkerLedgerEntry, PlayerSetup } from './types.js';
 import { entryProgressIssues } from './entry-invariants.js';
+import { explorationProgressIssues } from './exploration-invariants.js';
 
 /** Player-count setup rule; it is deliberately outside BoardDefinition. */
 export function getFoundersMapSide(playerCount: number): MapSide {
@@ -142,7 +143,8 @@ export function validateGameState(input: unknown, definition: GameDefinition): V
   if (!parsed.success) return { success: false, issues: schemaIssues(parsed.error) };
   const position = validateGamePosition(positionFields(parsed.data), definition);
   if (!position.success) return position;
-  const issues = entryProgressIssues(parsed.data, definition, loadFoundersBoard(getFoundersMapSide(definition.players.length)));
+  const board = loadFoundersBoard(getFoundersMapSide(definition.players.length));
+  const issues = [...entryProgressIssues(parsed.data, definition, board), ...explorationProgressIssues(parsed.data, definition, board)];
   return issues.length ? { success: false, issues } : { success: true, data: deepFreeze(parsed.data) };
 }
 

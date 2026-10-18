@@ -16,6 +16,7 @@
     "check:game": "npm run build && node scripts/check-game.mjs",
     "check:entry": "npm run build && node scripts/check-entry.mjs",
     "check:settlement": "npm run build && node scripts/check-settlement.mjs",
+    "check:exploration": "npm run build && node scripts/check-exploration.mjs",
     "archive": "python3 scripts/archive.py"
   },
   "dependencies": { "zod": "4.6.7" },

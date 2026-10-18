@@ -13,6 +13,8 @@ export type GameDefinition = DeepReadonly<z.infer<typeof gameDefinitionSchema>>;
 export type GamePosition = DeepReadonly<z.infer<typeof gamePositionSchema>>;
 export type GameState = DeepReadonly<z.infer<typeof gameStateSchema>>;
 export type EntryProgress = NonNullable<GameState['entry']>;
+export type ExplorationProgress = NonNullable<GameState['exploration']>;
+export type EventDeckState = NonNullable<GameState['eventDecks']>;
 export type MarkerLocation =
   | { readonly kind: 'supply'; readonly playerId: string }
   | { readonly kind: 'score'; readonly playerId: string }
