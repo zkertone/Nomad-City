@@ -15,6 +15,7 @@ export type GameState = DeepReadonly<z.infer<typeof gameStateSchema>>;
 export type EntryProgress = NonNullable<GameState['entry']>;
 export type ExplorationProgress = NonNullable<GameState['exploration']>;
 export type CityMoveProgress = NonNullable<GameState['cityMove']>;
+export type InfluenceActionProgress = NonNullable<GameState['influenceAction']>;
 export type EventDeckState = NonNullable<GameState['eventDecks']>;
 export type MarkerLocation =
   | { readonly kind: 'supply'; readonly playerId: string }

@@ -70,3 +70,10 @@
 新增 `packages/game-core/src/game/city-move.ts`、`city-move-invariants.ts`、`city-move.test.ts`，以及内部共用的 `action-window.ts`、`action-invariants.ts`。修改同目录 schema.ts、types.ts、state.ts、index.ts、influence.ts、exploration.ts、exploration-rules.ts、exploration-invariants.ts。新增 `scripts/check-city-move.mjs` 和 package.json 命令。
 
 说明：[City-Move-Flow-2026-10-18.md](City-Move-Flow-2026-10-18.md)；实际验证：[city-move-validation-2026-10-18.md](testing/city-move-validation-2026-10-18.md)。README、DevLog 与进度说明已同步。最新 631/631（新增 78）；GameState 1.3.0 支持城市移动和之后的探索，原格式保留。地图/事件数据、已确认文案、ADR、锁文件和项目版本不变，未部署或发布。
+
+
+## 2026-10-18 部署与调度增量
+
+新增 `packages/game-core/src/game/influence-actions.ts`、`influence-action-invariants.ts`、`influence-actions.test.ts`，以及 `scripts/check-influence.mjs` 和 package.json 命令。修改 schema.ts、types.ts、state.ts、index.ts、influence.ts、action-window.ts、exploration.ts、city-move.ts 以支持 1.4.0 和现有行动衔接。
+
+说明：[Influence-Actions-2026-10-18.md](Influence-Actions-2026-10-18.md)；实际验证：[influence-actions-validation-2026-10-18.md](testing/influence-actions-validation-2026-10-18.md)。README、DevLog 与进度说明已同步。最新 687/687，其中新增 56；原格式保留兼容。未改地图、事件数据/文案、ADR、依赖或项目版本，未部署软件或发布项目。

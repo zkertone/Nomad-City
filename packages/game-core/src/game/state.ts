@@ -8,6 +8,7 @@ import { entryProgressIssues } from './entry-invariants.js';
 import { explorationProgressIssues } from './exploration-invariants.js';
 import { actionPositionIssues } from './action-invariants.js';
 import { cityMoveProgressIssues } from './city-move-invariants.js';
+import { influenceActionIssues } from './influence-action-invariants.js';
 
 /** Player-count setup rule; it is deliberately outside BoardDefinition. */
 export function getFoundersMapSide(playerCount: number): MapSide {
@@ -146,7 +147,7 @@ export function validateGameState(input: unknown, definition: GameDefinition): V
   const position = validateGamePosition(positionFields(parsed.data), definition);
   if (!position.success) return position;
   const board = loadFoundersBoard(getFoundersMapSide(definition.players.length));
-  const issues = [...actionPositionIssues(parsed.data, definition), ...entryProgressIssues(parsed.data, definition, board), ...explorationProgressIssues(parsed.data, definition, board), ...cityMoveProgressIssues(parsed.data, definition, board)];
+  const issues = [...actionPositionIssues(parsed.data, definition), ...entryProgressIssues(parsed.data, definition, board), ...explorationProgressIssues(parsed.data, definition, board), ...cityMoveProgressIssues(parsed.data, definition, board), ...influenceActionIssues(parsed.data, definition, board)];
   return issues.length ? { success: false, issues } : { success: true, data: deepFreeze(parsed.data) };
 }
 

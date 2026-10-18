@@ -6,4 +6,5 @@ export * from './entry.js';
 export * from './settlement.js';
 export * from './exploration.js';
 export * from './city-move.js';
+export * from './influence-actions.js';
 export { redExplorationOpeningRound } from './exploration-rules.js';

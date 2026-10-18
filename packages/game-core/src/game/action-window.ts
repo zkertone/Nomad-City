@@ -30,7 +30,7 @@ export function prepareActionWindow(input: GameState, definition: GameDefinition
   if (options.expectedVersion !== state.stateVersion) return reject('STALE_VERSION', 'Expected state version is stale');
   if (!definition.players.some(player => player.id === options.actorId)) return reject('ACTOR_REFERENCE', 'Unknown granted actor');
   const initializing = state.phase === 'entry';
-  const previous = state.phase === 'exploration' ? state.exploration : state.cityMove;
+  const previous = state.phase === 'exploration' ? state.exploration : state.phase === 'city-move' ? state.cityMove : state.influenceAction;
   if (initializing ? state.entry?.status !== 'complete' : previous?.status !== 'complete') {
     return reject('ACTION_PENDING', 'Finish entry or the existing action before granting another');
   }

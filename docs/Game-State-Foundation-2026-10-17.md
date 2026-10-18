@@ -69,3 +69,6 @@ GameDefinition 必须来自服务器持有的可信对局配置；不能让客�
 
 
 [城市移动增量](City-Move-Flow-2026-10-18.md) 再追加 1.3.0，支持当前城市移动或探索两种行动阶段，各只保存一种进度。共同准备和位置校验已抽取到 action-window.ts / action-invariants.ts；原 GamePosition/棋盘/余额/供应结构不变，库存仍逐枚守恒。旧入场与探索格式保留兼容，不新增第二份权威账本。
+
+
+[部署与调度](Influence-Actions-2026-10-18.md) 再追加 1.4.0，记录当前 kind/actor/round/status/operationsCompleted，并支持之后的探索或城市移动。棋盘、余额、供给及 markerId 位置继续保持唯一。调度使用现存棋盘标记，因此目标空槽检查与“供给中是否有标记”分开；部署/事件/末尾放置仍要求实际供给。

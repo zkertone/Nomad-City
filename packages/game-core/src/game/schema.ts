@@ -73,15 +73,23 @@ export const cityMoveProgressSchema = z.strictObject({
   cardId: z.string().regex(/^[GYR]\d{2}$/).nullable(),
   resolvedChoiceId: z.string().regex(/^[GYR]\d{2}:[1-3]$/).nullable(),
 });
+export const influenceActionProgressSchema = z.strictObject({
+  kind: z.enum(['deploy', 'dispatch']),
+  actorId: gameEntityIdSchema,
+  roundNumber: z.number().int().min(1).max(8),
+  status: z.enum(['ready', 'complete']),
+  operationsCompleted: z.number().int().min(0).max(2),
+});
 export const gameStateSchema = z.strictObject({
-  schemaVersion: z.enum(['1.0.0', '1.1.0', '1.2.0', '1.3.0']),
+  schemaVersion: z.enum(['1.0.0', '1.1.0', '1.2.0', '1.3.0', '1.4.0']),
   stateVersion: balance,
   // A trusted caller grants one implemented action; round scheduling is not implemented.
-  phase: z.enum(['entry', 'exploration', 'city-move']),
+  phase: z.enum(['entry', 'exploration', 'city-move', 'influence-action']),
   ...gamePositionSchema.shape,
   entry: entryProgressSchema.optional(),
   exploration: explorationProgressSchema.optional(),
   cityMove: cityMoveProgressSchema.optional(),
+  influenceAction: influenceActionProgressSchema.optional(),
   eventDecks: eventDeckStateSchema.optional(),
   playerOrder: z.array(gameEntityIdSchema).min(2).max(4).optional(),
 }).superRefine((state, ctx) => {
@@ -89,14 +97,16 @@ export const gameStateSchema = z.strictObject({
     ctx.addIssue({ code: 'custom', path: ['entry'], message: 'Entry progress requires snapshot format 1.1.0; legacy 1.0.0 has no progress' });
   }
   if (state.phase === 'entry') {
-    if (!['1.0.0', '1.1.0'].includes(state.schemaVersion) || state.exploration !== undefined || state.cityMove !== undefined || state.eventDecks !== undefined || state.playerOrder !== undefined) {
+    if (!['1.0.0', '1.1.0'].includes(state.schemaVersion) || state.exploration !== undefined || state.cityMove !== undefined || state.influenceAction !== undefined || state.eventDecks !== undefined || state.playerOrder !== undefined) {
       ctx.addIssue({ code: 'custom', path: ['phase'], message: 'Entry uses format 1.0.0/1.1.0 without action fields' });
     }
   } else {
-    const compatible = state.phase === 'exploration' ? ['1.2.0', '1.3.0'].includes(state.schemaVersion) : state.schemaVersion === '1.3.0';
+    const compatible = state.phase === 'exploration' ? ['1.2.0', '1.3.0', '1.4.0'].includes(state.schemaVersion)
+      : state.phase === 'city-move' ? ['1.3.0', '1.4.0'].includes(state.schemaVersion) : state.schemaVersion === '1.4.0';
     if (!compatible || !state.eventDecks || !state.playerOrder ||
         (state.phase === 'exploration') !== (state.exploration !== undefined) ||
-        (state.phase === 'city-move') !== (state.cityMove !== undefined)) {
+        (state.phase === 'city-move') !== (state.cityMove !== undefined) ||
+        (state.phase === 'influence-action') !== (state.influenceAction !== undefined)) {
       ctx.addIssue({ code: 'custom', path: ['phase'], message: 'Action format, phase, unique progress, decks and preserved order must agree' });
     }
   }
