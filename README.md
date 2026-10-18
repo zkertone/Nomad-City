@@ -1,6 +1,6 @@
 # Nomad City Online · v0.2.0
 
-《游城拓荒：铸基者》私人非商业线上桌游项目。已实现地图核心、基础事件静态目录，以及最小对局状态、资源余额和标记守恒校验。事件结算、UI、联机和完整行动规则引擎尚未实现。
+《游城拓荒：铸基者》私人非商业线上桌游项目。已实现地图核心、基础事件静态目录、最小对局状态与标记守恒，以及两人至四人的入场和绿色事件奖励。黄色/红色事件执行、UI、联机和完整行动规则引擎尚未实现。
 
 ## 安装与复现
 
@@ -21,6 +21,7 @@ npm run build
 npm run check:maps
 npm run check:events
 npm run check:game
+npm run check:entry
 ```
 
 `npm run verify` 合并类型检查、Vitest 和构建。`npm run test:watch` 进入测试监视模式。核心不依赖 React、Three.js、NestJS 或数据库。依赖分别为 Zod 4.6.7、Vitest 5.0.4、TypeScript 5.9.3；`package-lock.json` 固定实际依赖树。
@@ -111,7 +112,7 @@ Record 的键天然唯一；对象中的重复 ID、键/ID 不一致、槽列表
 
 可选重新打包需 Python 3 标准库：`npm run archive`；Windows 也可运行 `python scripts/archive.py`。Python 只用于 ZIP 包装，不是地图核心依赖。
 
-基础事件牌的文本与数值现已由项目负责人确认；最小 GameState 与入场前标记守恒已实现。角色及城市样式等数据尚未齐备，后续推进入场选择与事件结算，再衔接具体行动。UI、联机、经济执行与完整行动引擎仍未实现。
+基础事件牌的文本与数值现已由项目负责人确认；最小状态、标记守恒、入场选择与绿色奖励已实现。角色及城市样式等数据尚未齐备，后续推进黄色/红色事件和具体行动。UI、联机与完整回合仍未实现。
 
 ## 事件静态目录增量 · 2026-10-17
 
@@ -161,4 +162,32 @@ console.log(validateGameState(state, definition).success); // true
 
 GameDefinition 由服务器持有；快照校验不是允许客户端提交任意余额的接口，也不验证完整行动过程。当前没有网络写入口。模块返回深度冻结副本，费用查询不修改资源余额。
 
-当前最新验证：**311/311 测试**（地图 88、事件 137、对局状态 86）、strict 类型检查及构建通过；`check:game` 和原地图/事件编译包检查通过。说明见 [对局状态基础](docs/Game-State-Foundation-2026-10-17.md) 和 [实际测试记录](docs/testing/game-state-validation-2026-10-17.md)。
+最小状态增量验收时：**311/311 测试**（地图 88、事件 137、对局状态 86）、strict 类型检查及构建通过；`check:game` 和原地图/事件编译包检查通过。说明见 [对局状态基础](docs/Game-State-Foundation-2026-10-17.md) 和 [实际测试记录](docs/testing/game-state-validation-2026-10-17.md)。
+
+## 入场与绿色事件执行增量 · 2026-10-18
+
+```javascript
+import { createPreEntryGame, beginEntry, applyEntryCommand } from '@nomad-city-online/game-core/game';
+
+const game = createPreEntryGame('demo', [
+  { id: 'alice', color: 'red' }, { id: 'bob', color: 'blue' }, { id: 'carol', color: 'green' },
+]);
+// 可信服务端传入实际顺时针座位和玩家选定的先手；绿色牌自动洗牌。
+let state = beginEntry(game.state, game.definition, {
+  startingPlayerId: 'alice', clockwisePlayerIds: ['alice', 'bob', 'carol'], expectedVersion: 0,
+});
+state = applyEntryCommand(state, game.definition, { authenticatedPlayerId: 'alice' }, {
+  gameId: 'demo', expectedVersion: state.stateVersion, type: 'select-initial-node', nodeId: 'A-01',
+});
+// 示例玩家选择选项 1；实际产品由玩家作出选择，服务器校验并执行。
+const choiceId = `${state.entry.pendingEvent.cardId}:1`;
+state = applyEntryCommand(state, game.definition, { authenticatedPlayerId: 'alice' }, {
+  gameId: 'demo', expectedVersion: state.stateVersion, type: 'choose-green-event', choiceId,
+});
+```
+
+玩家请求不能指定身份、抽牌或奖励。B-01 需要明确选择 claim/decline；两人禁选 B-01，后手额外影响力可选择放置或跳过。初始资金和两人后手 3 分只在对应流程完成后发放一次。
+
+旧 1.0.0 入场前快照可兼容；启动入场后使用 1.1.0 格式保存顺序、剩余绿色牌堆和待选事件。权威快照含隐藏牌序，不能直接作为未来客户端广播数据；公开状态投影与网络服务尚未实现。
+
+当前最新验证：**379/379 测试**（地图 88、事件静态目录 137、原状态 86、入场 68）、strict 类型检查、构建及四项编译包检查通过。见 [入场说明](docs/Entry-Flow-2026-10-18.md) 与 [真实测试记录](docs/testing/entry-validation-2026-10-18.md)。项目没有发布新版本或部署；入场 complete 也不代表完整回合已经实现。

@@ -45,5 +45,7 @@
 
 同日后续新增最小对局状态：`packages/game-core/src/game/`（types.ts、schema.ts、resources.ts、state.ts、index.ts、game.test.ts）、`scripts/check-game.mjs`、`docs/Game-State-Foundation-2026-10-17.md`、`docs/testing/game-state-validation-2026-10-17.md`；BoardState 资源种类与 Schema 追加已确认的至纯源石。当前最新测试总数为 311。以上均可在仓库继续编辑，尚未包含完整对局执行。
 
+2026-10-18 再追加可执行入场流程：`packages/game-core/src/game/entry.ts`、`entry-rules.ts`、`entry-invariants.ts`、`entry.test.ts`，以及 `scripts/check-entry.mjs`、`docs/Entry-Flow-2026-10-18.md`、`docs/testing/entry-validation-2026-10-18.md`。状态 Schema/类型/校验和 game 导出已更新，兼容旧快照并支持入场进度格式 1.1.0；最新测试为 379。黄色/红色事件和完整回合仍未实现。
+
 已确认的事件文案与效果表位于 `docs/Event-Card-Text-2026-10-17.md`、`docs/Event-Cards-Review-2026-10-17.md`；规则核对见 `docs/Event-Resolution-Boundaries-2026-10-17.md`；真实测试结果见 `docs/testing/event-catalog-validation-2026-10-17.md`。本轮新增/修改的实际状态以 Git 提交及 DevLog 最新条目为准。
 

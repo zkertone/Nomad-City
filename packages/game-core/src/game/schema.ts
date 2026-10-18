@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { boardStateSchema, definitionRefSchema } from '../board/schema.js';
+import { boardStateSchema, definitionRefSchema, resourceNodeIdSchema } from '../board/schema.js';
 
 export const gameEntityIdSchema = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9:_./-]{0,99}$/);
 export const playerSetupSchema = z.strictObject({
@@ -28,8 +28,18 @@ export const gameDefinitionSchema = z.strictObject({
   markerDefinitions: z.array(z.strictObject({ id: gameEntityIdSchema, ownerPlayerId: gameEntityIdSchema }))
     .min(60).max(120),
 });
+export const entryProgressSchema = z.strictObject({
+  status: z.enum(['selecting-node', 'resolving-event', 'bonus-influence', 'complete']),
+  playerOrder: z.array(gameEntityIdSchema).min(2).max(4),
+  completedPlayerCount: z.number().int().min(0).max(4),
+  remainingGreenEventIds: z.array(z.string().regex(/^G\d{2}$/)).max(6),
+  pendingEvent: z.strictObject({
+    playerId: gameEntityIdSchema, nodeId: resourceNodeIdSchema,
+    cardId: z.string().regex(/^G\d{2}$/),
+  }).nullable(),
+});
 export const gameStateSchema = z.strictObject({
-  schemaVersion: z.literal('1.0.0'), gameId: gameEntityIdSchema,
+  schemaVersion: z.enum(['1.0.0', '1.1.0']), gameId: gameEntityIdSchema,
   stateVersion: balance,
   // Only the entry-phase foundation is implemented, not the round/action machine.
   phase: z.literal('entry'),
@@ -40,4 +50,9 @@ export const gameStateSchema = z.strictObject({
     scoreMarkerId: gameEntityIdSchema,
   })),
   markerSupplyByPlayer: z.record(gameEntityIdSchema, z.array(gameEntityIdSchema).max(30)),
+  entry: entryProgressSchema.optional(),
+}).superRefine((state, ctx) => {
+  if ((state.schemaVersion === '1.1.0') !== (state.entry !== undefined)) {
+    ctx.addIssue({ code: 'custom', path: ['entry'], message: 'Entry progress requires snapshot format 1.1.0; legacy 1.0.0 has no progress' });
+  }
 });

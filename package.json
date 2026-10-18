@@ -14,6 +14,7 @@
     "check:maps": "npm run build && node scripts/check-maps.mjs",
     "check:events": "npm run build && node scripts/check-events.mjs",
     "check:game": "npm run build && node scripts/check-game.mjs",
+    "check:entry": "npm run build && node scripts/check-entry.mjs",
     "archive": "python3 scripts/archive.py"
   },
   "dependencies": { "zod": "4.6.7" },

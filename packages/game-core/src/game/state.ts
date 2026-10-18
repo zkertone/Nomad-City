@@ -4,6 +4,7 @@ import type { MapSide, ValidationIssue, ValidationResult } from '../board/types.
 import { FOUNDERS_EVENT_CATALOG, FOUNDERS_EVENT_CATALOG_HASH } from '../events/index.js';
 import { gameDefinitionSchema, gameStateSchema, playerSetupsSchema } from './schema.js';
 import type { GameDefinition, GameState, MarkerLedgerEntry, PlayerSetup } from './types.js';
+import { entryProgressIssues } from './entry-invariants.js';
 
 /** Player-count setup rule; it is deliberately outside BoardDefinition. */
 export function getFoundersMapSide(playerCount: number): MapSide {
@@ -122,6 +123,7 @@ export function validateGameState(input: unknown, inputDefinition: GameDefinitio
       report('RESOURCE_MARKER_DATA', nodeId, 'Resource kind/amount must match the approved card');
     }
   }
+  issues.push(...entryProgressIssues(state, definition, board));
   return issues.length ? { success: false, issues } : { success: true, data: deepFreeze(state) };
 }
 
