@@ -6,14 +6,16 @@ import { eligibleBaseEventIds } from './exploration-rules.js';
 import type { DeepReadonly, GameDefinition, GameState } from './types.js';
 
 // Internal preparation shared by implemented actions; not a turn scheduler or player endpoint.
-const optionsSchema = z.strictObject({
-  actorId: gameEntityIdSchema, roundNumber: z.number().int().min(1).max(8),
+const phaseOptionsSchema = z.strictObject({
+  roundNumber: z.number().int().min(1).max(8),
   expectedVersion: z.number().int().nonnegative().safe(),
   deckOrder: z.strictObject({
     yellow: z.array(z.string().regex(/^Y\d{2}$/)).max(10),
     red: z.array(z.string().regex(/^R\d{2}$/)).max(6),
   }).optional(),
 });
+const optionsSchema = phaseOptionsSchema.extend({ actorId: gameEntityIdSchema });
+export type OpenPhaseWindowOptions = DeepReadonly<z.infer<typeof phaseOptionsSchema>>;
 export type OpenActionWindowOptions = DeepReadonly<z.infer<typeof optionsSchema>>;
 type Reject = (code: string, message: string) => never;
 function shuffle(ids: string[]): string[] {
@@ -22,19 +24,18 @@ function shuffle(ids: string[]): string[] {
 }
 const sameIds = (a: readonly string[], b: readonly string[]) => JSON.stringify([...a].sort()) === JSON.stringify([...b].sort());
 
-export function prepareActionWindow(input: GameState, definition: GameDefinition, rawOptions: OpenActionWindowOptions, reject: Reject) {
+export function preparePhaseWindow(input: GameState, definition: GameDefinition, rawOptions: OpenPhaseWindowOptions, reject: Reject) {
   const state = parseGameState(input, definition);
-  const parsed = optionsSchema.safeParse(rawOptions);
+  const parsed = phaseOptionsSchema.safeParse(rawOptions);
   if (!parsed.success) return reject('WINDOW_SCHEMA', parsed.error.message);
   const options = parsed.data;
   if (options.expectedVersion !== state.stateVersion) return reject('STALE_VERSION', 'Expected state version is stale');
-  if (!definition.players.some(player => player.id === options.actorId)) return reject('ACTOR_REFERENCE', 'Unknown granted actor');
   const initializing = state.phase === 'entry';
-  const previous = state.phase === 'exploration' ? state.exploration : state.phase === 'city-move' ? state.cityMove : state.influenceAction;
+  const previous = state.phase === 'exploration' ? state.exploration : state.phase === 'city-move' ? state.cityMove : state.phase === 'influence-action' ? state.influenceAction : state.harvest;
   if (initializing ? state.entry?.status !== 'complete' : previous?.status !== 'complete') {
     return reject('ACTION_PENDING', 'Finish entry or the existing action before granting another');
   }
-  if (!initializing && (options.deckOrder !== undefined || options.roundNumber < previous!.roundNumber)) {
+  if (!initializing && (options.deckOrder !== undefined || options.roundNumber < previous!.roundNumber || (state.phase === 'harvest' && options.roundNumber === previous!.roundNumber))) {
     return reject('WINDOW_RESET', 'Cannot reset decks or move the round backwards');
   }
   if (state.stateVersion === Number.MAX_SAFE_INTEGER) return reject('VERSION_OVERFLOW', 'State version exhausted');
@@ -49,4 +50,12 @@ export function prepareActionWindow(input: GameState, definition: GameDefinition
   }
   return { position: getGamePosition(state, definition), eventDecks: decks!, playerOrder: initializing ? state.entry!.playerOrder : state.playerOrder!,
     stateVersion: state.stateVersion + 1, options, previousFormat: state.schemaVersion };
+}
+
+export function prepareActionWindow(input: GameState, definition: GameDefinition, rawOptions: OpenActionWindowOptions, reject: Reject) {
+  const parsed = optionsSchema.safeParse(rawOptions);
+  if (!parsed.success) return reject('WINDOW_SCHEMA', parsed.error.message);
+  const { actorId, ...phaseOptions } = parsed.data;
+  if (!definition.players.some(player => player.id === actorId)) return reject('ACTOR_REFERENCE', 'Unknown granted actor');
+  return { ...preparePhaseWindow(input, definition, phaseOptions, reject), options: parsed.data };
 }

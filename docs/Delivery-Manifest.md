@@ -77,3 +77,10 @@
 新增 `packages/game-core/src/game/influence-actions.ts`、`influence-action-invariants.ts`、`influence-actions.test.ts`，以及 `scripts/check-influence.mjs` 和 package.json 命令。修改 schema.ts、types.ts、state.ts、index.ts、influence.ts、action-window.ts、exploration.ts、city-move.ts 以支持 1.4.0 和现有行动衔接。
 
 说明：[Influence-Actions-2026-10-18.md](Influence-Actions-2026-10-18.md)；实际验证：[influence-actions-validation-2026-10-18.md](testing/influence-actions-validation-2026-10-18.md)。README、DevLog 与进度说明已同步。最新 687/687，其中新增 56；原格式保留兼容。未改地图、事件数据/文案、ADR、依赖或项目版本，未部署软件或发布项目。
+
+
+## 2026-10-18 同时采集增量
+
+新增 game/harvest.ts、harvest-rules.ts、harvest-invariants.ts、harvest.test.ts、route-tolls.ts（均位于 `packages/game-core/src/game/`），新增 `scripts/check-harvest.mjs` 和 package.json 命令。修改 game/schema.ts、types.ts、state.ts、index.ts、action-window.ts、exploration.ts、city-move.ts、influence-actions.ts 以支持同时采集、共用航道计价与 1.5.0。
+
+说明：[Harvest-Phase-2026-10-18.md](Harvest-Phase-2026-10-18.md)；实际验证：[harvest-validation-2026-10-18.md](testing/harvest-validation-2026-10-18.md)。README、DevLog 和部署/调度当前进度同步。最新 **749/749**，其中采集 62；9 项编译检查通过。静态规则数据/文案、Accepted ADR、依赖锁和项目版本不变。完整可编辑文件保存至同一 GitHub 仓库，无部署或发布。

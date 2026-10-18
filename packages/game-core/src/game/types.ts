@@ -26,3 +26,5 @@ export interface MarkerLedgerEntry {
   readonly ownerPlayerId: string;
   readonly location: MarkerLocation;
 }
+
+export type HarvestPlan = NonNullable<NonNullable<GameState['harvest']>['plansByPlayer'][string]>;

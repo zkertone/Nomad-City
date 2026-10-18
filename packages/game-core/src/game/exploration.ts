@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { deepFreeze } from '../board/hash.js';
+import { quoteRouteTolls } from './route-tolls.js';
+import type { RouteTollLeg } from './route-tolls.js';
 import { loadFoundersBoard } from '../board/index.js';
 import { resourceNodeIdSchema, routeIdSchema, slotIdSchema } from '../board/schema.js';
 import { getFoundersEventCard } from '../events/index.js';
@@ -30,12 +31,7 @@ export const explorationPlayerCommandSchema = z.discriminatedUnion('type', [
 ]);
 export type ExplorationPlayerCommand = z.infer<typeof explorationPlayerCommandSchema>;
 export interface ExplorationActorContext { readonly authenticatedPlayerId: string }
-export interface ExplorationTollLeg {
-  readonly routeId: string;
-  readonly amount: 0 | 2;
-  readonly recipientPlayerIds: readonly string[];
-  readonly toSupply: boolean;
-}
+export type ExplorationTollLeg = RouteTollLeg;
 export interface ExplorationTollQuote { readonly total: number; readonly legs: readonly ExplorationTollLeg[] }
 
 function nextVersion(version: number): number {
@@ -49,7 +45,7 @@ function nextVersion(version: number): number {
  */
 export function openExplorationWindow(input: GameState, definition: GameDefinition, rawOptions: OpenExplorationWindowOptions): GameState {
   const prepared = prepareActionWindow(input, definition, rawOptions, reject);
-  return parseGameState({ ...prepared.position, schemaVersion: prepared.previousFormat === '1.4.0' ? '1.4.0' : prepared.previousFormat === '1.3.0' ? '1.3.0' : '1.2.0',
+  return parseGameState({ ...prepared.position, schemaVersion: prepared.previousFormat === '1.5.0' ? '1.5.0' : prepared.previousFormat === '1.4.0' ? '1.4.0' : prepared.previousFormat === '1.3.0' ? '1.3.0' : '1.2.0',
     stateVersion: prepared.stateVersion, phase: 'exploration', eventDecks: prepared.eventDecks, playerOrder: prepared.playerOrder,
     exploration: { actorId: prepared.options.actorId, roundNumber: prepared.options.roundNumber, status: 'ready',
       targetNodeId: null, cardId: null, resolvedChoiceId: null } }, definition);
@@ -73,25 +69,17 @@ export function getExplorationTollQuote(input: GameState, definition: GameDefini
   if (!parsed.success) return reject('PATH_SCHEMA', parsed.error.message);
   let current = state.board.cityNodeByPlayer[actorId]!;
   const used = new Set<string>();
-  const legs: ExplorationTollLeg[] = [];
   for (const step of parsed.data) {
     const route = Object.hasOwn(board.routes, step.routeId) ? board.routes[step.routeId] : undefined;
     if (!route || !route.incidentNodeIds.includes(current) || !route.incidentNodeIds.includes(step.toNodeId) || current === step.toNodeId) {
       return reject('PATH_CONNECTION', 'Every step must use one route incident to both consecutive nodes');
     }
     // A route remains ONE identity even when revisited in the selected walk.
-    if (!used.has(route.id)) {
-      used.add(route.id);
-      const owners = [...new Set(route.influenceSlotIds.flatMap(id => {
-        const marker = state.board.influenceBySlot[id]; return marker ? [marker.ownerPlayerId] : [];
-      }))];
-      const own = owners.includes(actorId);
-      legs.push({ routeId: route.id, amount: own ? 0 : 2, recipientPlayerIds: own ? [] : owners, toSupply: !owners.length });
-    }
+    used.add(route.id);
     current = step.toNodeId;
   }
   if (current !== nodeId) return reject('PATH_TARGET', 'Path must end at the selected target');
-  return deepFreeze({ total: legs.reduce((total, leg) => total + leg.amount, 0), legs });
+  return quoteRouteTolls(state, board, actorId, [...used]);
 }
 
 export function getExplorationFinalSlotIds(input: GameState, definition: GameDefinition, actorId: string): readonly string[] {
