@@ -11,3 +11,10 @@ export function availableInfluenceSlots(position: GamePosition, board: BoardDefi
       !Object.entries(position.board.cityNodeByPlayer).some(([other, nodeId]) => other !== playerId && nodeId === location.nodeId);
   }).map(([slotId]) => slotId);
 }
+
+export function availableTargetInfluenceSlots(position: GamePosition, board: BoardDefinition, playerId: string, nodeId: string): string[] {
+  return availableInfluenceSlots(position, board, playerId).filter(id => {
+    const slot = board.influenceSlots[id]!;
+    return slot.kind === 'resource-node' && slot.nodeId === nodeId;
+  });
+}

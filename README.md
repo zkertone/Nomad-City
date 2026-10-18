@@ -1,6 +1,6 @@
 # Nomad City Online · v0.2.0
 
-《游城拓荒：铸基者》私人非商业线上桌游项目。已实现地图核心、基础事件静态目录、最小对局状态与标记守恒，以及两人至四人的入场流程和全部基础事件选项的独立结算核心。已接入探索行动的付费、揭牌、事件和末尾放置链路。城市移动、完整回合调度、UI 和联机尚未实现。
+《游城拓荒：铸基者》私人非商业线上桌游项目。已实现地图核心、基础事件静态目录、最小对局状态与标记守恒，以及两人至四人的入场流程和全部基础事件选项的独立结算核心。已接入探索行动的付费、揭牌、事件和末尾放置链路。城市移动也已接入付费、精确清除、必要事件及末尾放置。完整回合调度、UI 和联机尚未实现。
 
 ## 安装与复现
 
@@ -24,6 +24,7 @@ npm run check:game
 npm run check:entry
 npm run check:settlement
 npm run check:exploration
+npm run check:city-move
 ```
 
 `npm run verify` 合并类型检查、Vitest 和构建。`npm run test:watch` 进入测试监视模式。核心不依赖 React、Three.js、NestJS 或数据库。依赖分别为 Zod 4.6.7、Vitest 5.0.4、TypeScript 5.9.3；`package-lock.json` 固定实际依赖树。
@@ -114,7 +115,7 @@ Record 的键天然唯一；对象中的重复 ID、键/ID 不一致、槽列表
 
 可选重新打包需 Python 3 标准库：`npm run archive`；Windows 也可运行 `python scripts/archive.py`。Python 只用于 ZIP 包装，不是地图核心依赖。
 
-基础事件牌的文本与数值现已由项目负责人确认；最小状态、标记守恒、入场选择与绿色奖励已实现。角色及城市样式等数据尚未齐备，全部基础事件的独立结算核心已完成，探索现已接入黄色/红色事件，后续推进城市移动和完整回合调度。UI、联机与完整回合仍未实现。
+基础事件牌的文本与数值现已由项目负责人确认；最小状态、标记守恒、入场选择与绿色奖励已实现。角色及城市样式等数据尚未齐备，全部基础事件的独立结算核心已完成，探索现已接入黄色/红色事件，城市移动已随后完成，后续推进其他行动和完整回合调度。UI、联机与完整回合仍未实现。
 
 ## 事件静态目录增量 · 2026-10-17
 
@@ -210,7 +211,7 @@ const result = settleEventChoice(position, definition, context, playerChoice);
 // 行动调用方验证 pending/version 后，只应用一次 result.position 并继续行动。
 ```
 
-`context = {gameId, actorId, nodeId, cardId}` 必须与已揭示标记一致。玩家请求仅含 `choiceId`、需要时的 `costDecision` 和 `influenceSlotId`。独立核心不处理身份认证、抽牌、路费、行动末尾放置或防重放；探索已通过后续增量提供可信行动调用方；城市移动仍待完成，不能将独立核心直接开放为网络请求。
+`context = {gameId, actorId, nodeId, cardId}` 必须与已揭示标记一致。玩家请求仅含 `choiceId`、需要时的 `costDecision` 和 `influenceSlotId`。独立核心不处理身份认证、抽牌、路费、行动末尾放置或防重放；探索已通过后续增量提供可信行动调用方；城市移动也已接入，不能将独立核心直接开放为网络请求。
 
 事件结算增量验收时：**473/473 测试**（新增结算 94）、strict 类型检查、构建及五项编译包检查通过。运行 `npm run verify` 与 `npm run check:settlement` 可复现；规则映射和信任边界见 [结算说明](docs/Event-Settlement-2026-10-18.md)，真实执行历史见 [验证记录](docs/testing/event-settlement-validation-2026-10-18.md)。项目版本仍为 0.2.0，未发布或部署。
 
@@ -225,4 +226,15 @@ const result = settleEventChoice(position, definition, context, playerChoice);
 
 进入探索时明确转换到 GameState **1.2.0**，保存进度、剩余牌序及实际入场的顺时针/起始顺序；旧 1.0.0/1.1.0 入场快照仍兼容。隐藏牌序仍不可直接广播。项目版本、地图/事件内容版本与摘要保持不变，没有部署或发布。
 
-最新真实验证：**553/553 测试**（新增探索 80），strict 类型检查、构建及六项编译包检查通过。`npm run check:exploration` 实际完成两人、三人、四人的“入场 → 黄色探索 → 红色探索”，含事件额外放置与末尾放置、JSON 恢复和旧版本重放拒绝。见 [探索说明](docs/Exploration-Flow-2026-10-18.md) 和 [实际验证记录](docs/testing/exploration-validation-2026-10-18.md)。
+探索增量验收时：**553/553 测试**（新增探索 80），strict 类型检查、构建及六项编译包检查通过。`npm run check:exploration` 实际完成两人、三人、四人的“入场 → 黄色探索 → 红色探索”，含事件额外放置与末尾放置、JSON 恢复和旧版本重放拒绝。见 [探索说明](docs/Exploration-Flow-2026-10-18.md) 和 [实际验证记录](docs/testing/exploration-validation-2026-10-18.md)。
+
+
+## 城市移动增量 · 2026-10-18
+
+`openCityMoveWindow` / `applyCityMoveCommand` 已实现城市移动完整链路：先支付 3 源石、不收路费，沿玩家指定的单航道移动，清除该航道和目标点全部对手影响力并归还；目标未探索才揭牌/结算事件，最后独立放置影响力。保留本人、源点及分叉其他端点上的影响力；已探索目标不重复触发原事件。
+
+新增只读查询 `getCityMoveOptions`、`getPendingCityMoveChoiceRequirements`、`getCityMoveFinalSlotIds`。一次可信授权、身份/对局/版本/阶段检查继续执行。玩家不能指定源点、费用、清除清单、牌号或奖励。
+
+GameState **1.3.0** 支持城市移动及之后的探索，行动间保留同一牌堆、实际玩家顺序和全局版本，不降回旧格式；1.0.0/1.1.0/1.2.0 原有行为保留。完整回合/角色/主要行动额度仍需未来可信调用方校验，授予机会的函数不能作为玩家请求开放。项目版本仍为 0.2.0，没有部署或发布。
+
+最新真实验证：**631/631 测试**（新增城市移动 78），strict 类型检查、构建及七项编译包检查通过。`npm run check:city-move` 实际执行 2/3/4 人“入场 → 未探索点城市移动 → 探索 → 已探索点城市移动”，验证费用、恢复、重放拒绝与库存守恒。规则、格式及边界见 [城市移动说明](docs/City-Move-Flow-2026-10-18.md)，实际失败/修复和最终结果见 [验证记录](docs/testing/city-move-validation-2026-10-18.md)。

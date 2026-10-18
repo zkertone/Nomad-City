@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { boardStateSchema, definitionRefSchema, resourceNodeIdSchema } from '../board/schema.js';
+import { boardStateSchema, definitionRefSchema, resourceNodeIdSchema, routeIdSchema } from '../board/schema.js';
 
 export const gameEntityIdSchema = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9:_./-]{0,99}$/);
 export const playerSetupSchema = z.strictObject({
@@ -62,23 +62,42 @@ export const explorationProgressSchema = z.strictObject({
   cardId: z.string().regex(/^[GYR]\d{2}$/).nullable(),
   resolvedChoiceId: z.string().regex(/^[GYR]\d{2}:[1-3]$/).nullable(),
 });
+export const cityMoveProgressSchema = z.strictObject({
+  actorId: gameEntityIdSchema,
+  roundNumber: z.number().int().min(1).max(8),
+  status: z.enum(['ready', 'event-choice', 'final-influence', 'complete']),
+  sourceNodeId: resourceNodeIdSchema.nullable(),
+  targetNodeId: resourceNodeIdSchema.nullable(),
+  routeId: routeIdSchema.nullable(),
+  // Null when moving to an already explored target: that event must not trigger again.
+  cardId: z.string().regex(/^[GYR]\d{2}$/).nullable(),
+  resolvedChoiceId: z.string().regex(/^[GYR]\d{2}:[1-3]$/).nullable(),
+});
 export const gameStateSchema = z.strictObject({
-  schemaVersion: z.enum(['1.0.0', '1.1.0', '1.2.0']),
+  schemaVersion: z.enum(['1.0.0', '1.1.0', '1.2.0', '1.3.0']),
   stateVersion: balance,
-  // A trusted caller grants one exploration; round scheduling is not implemented.
-  phase: z.enum(['entry', 'exploration']),
+  // A trusted caller grants one implemented action; round scheduling is not implemented.
+  phase: z.enum(['entry', 'exploration', 'city-move']),
   ...gamePositionSchema.shape,
   entry: entryProgressSchema.optional(),
   exploration: explorationProgressSchema.optional(),
+  cityMove: cityMoveProgressSchema.optional(),
   eventDecks: eventDeckStateSchema.optional(),
   playerOrder: z.array(gameEntityIdSchema).min(2).max(4).optional(),
 }).superRefine((state, ctx) => {
   if ((state.schemaVersion === '1.1.0') !== (state.entry !== undefined)) {
     ctx.addIssue({ code: 'custom', path: ['entry'], message: 'Entry progress requires snapshot format 1.1.0; legacy 1.0.0 has no progress' });
   }
-  if ((state.schemaVersion === '1.2.0') !== (state.phase === 'exploration') ||
-      (state.schemaVersion === '1.2.0') !== (state.exploration !== undefined && state.eventDecks !== undefined && state.playerOrder !== undefined) ||
-      (state.schemaVersion !== '1.2.0' && (state.exploration !== undefined || state.eventDecks !== undefined || state.playerOrder !== undefined))) {
-    ctx.addIssue({ code: 'custom', path: ['exploration'], message: 'Exploration requires format 1.2.0, exploration phase, progress, decks and preserved player order together' });
+  if (state.phase === 'entry') {
+    if (!['1.0.0', '1.1.0'].includes(state.schemaVersion) || state.exploration !== undefined || state.cityMove !== undefined || state.eventDecks !== undefined || state.playerOrder !== undefined) {
+      ctx.addIssue({ code: 'custom', path: ['phase'], message: 'Entry uses format 1.0.0/1.1.0 without action fields' });
+    }
+  } else {
+    const compatible = state.phase === 'exploration' ? ['1.2.0', '1.3.0'].includes(state.schemaVersion) : state.schemaVersion === '1.3.0';
+    if (!compatible || !state.eventDecks || !state.playerOrder ||
+        (state.phase === 'exploration') !== (state.exploration !== undefined) ||
+        (state.phase === 'city-move') !== (state.cityMove !== undefined)) {
+      ctx.addIssue({ code: 'custom', path: ['phase'], message: 'Action format, phase, unique progress, decks and preserved order must agree' });
+    }
   }
 });

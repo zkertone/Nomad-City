@@ -17,6 +17,7 @@
     "check:entry": "npm run build && node scripts/check-entry.mjs",
     "check:settlement": "npm run build && node scripts/check-settlement.mjs",
     "check:exploration": "npm run build && node scripts/check-exploration.mjs",
+    "check:city-move": "npm run build && node scripts/check-city-move.mjs",
     "archive": "python3 scripts/archive.py"
   },
   "dependencies": { "zod": "4.6.7" },

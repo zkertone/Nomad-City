@@ -63,3 +63,10 @@
 新增源码 `packages/game-core/src/game/exploration.ts`、`exploration-rules.ts`、`exploration-invariants.ts`、`exploration.test.ts`，新增 `scripts/check-exploration.mjs` 和 package.json 运行命令；修改 game 的 schema.ts、types.ts、state.ts、entry-invariants.ts、index.ts。
 
 说明：[Exploration-Flow-2026-10-18.md](Exploration-Flow-2026-10-18.md)；实际测试：[exploration-validation-2026-10-18.md](testing/exploration-validation-2026-10-18.md)。README、DevLog 和相关进度说明已同步。当前最新 553/553，其中新增探索 80；状态格式 1.2.0 支持明确的探索进度，兼容原入场格式；不改变 GameDefinition、地图/事件定义、已确认文案、ADR 或依赖。源码继续保存到仓库，无部署或发布。
+
+
+## 2026-10-18 城市移动增量
+
+新增 `packages/game-core/src/game/city-move.ts`、`city-move-invariants.ts`、`city-move.test.ts`，以及内部共用的 `action-window.ts`、`action-invariants.ts`。修改同目录 schema.ts、types.ts、state.ts、index.ts、influence.ts、exploration.ts、exploration-rules.ts、exploration-invariants.ts。新增 `scripts/check-city-move.mjs` 和 package.json 命令。
+
+说明：[City-Move-Flow-2026-10-18.md](City-Move-Flow-2026-10-18.md)；实际验证：[city-move-validation-2026-10-18.md](testing/city-move-validation-2026-10-18.md)。README、DevLog 与进度说明已同步。最新 631/631（新增 78）；GameState 1.3.0 支持城市移动和之后的探索，原格式保留。地图/事件数据、已确认文案、ADR、锁文件和项目版本不变，未部署或发布。

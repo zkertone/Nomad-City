@@ -1,4 +1,3 @@
-import { randomInt } from 'node:crypto';
 import { z } from 'zod';
 import { deepFreeze } from '../board/hash.js';
 import { loadFoundersBoard } from '../board/index.js';
@@ -6,24 +5,18 @@ import { resourceNodeIdSchema, routeIdSchema, slotIdSchema } from '../board/sche
 import { getFoundersEventCard } from '../events/index.js';
 import { gameEntityIdSchema, gamePositionSchema, gameStateSchema } from './schema.js';
 import { getFoundersMapSide, getGamePosition, parseGameState } from './state.js';
-import { eligibleBaseEventIds, finalExplorationSlots, redExplorationOpeningRound } from './exploration-rules.js';
+import { finalExplorationSlots, redExplorationOpeningRound } from './exploration-rules.js';
 import { eventSettlementChoiceSchema, getEventChoiceRequirements, settleEventChoice, EventSettlementError } from './settlement.js';
 import type { DeepReadonly, GameDefinition, GameState } from './types.js';
+import { prepareActionWindow } from './action-window.js';
+import type { OpenActionWindowOptions } from './action-window.js';
 
 export class ExplorationCommandError extends Error {
   constructor(readonly code: string, message: string) { super(message); this.name = 'ExplorationCommandError'; }
 }
 const reject = (code: string, message: string): never => { throw new ExplorationCommandError(code, message); };
 const versionSchema = z.number().int().nonnegative().safe();
-const windowOptionsSchema = z.strictObject({
-  actorId: gameEntityIdSchema, roundNumber: z.number().int().min(1).max(8), expectedVersion: versionSchema,
-  // Trusted deterministic initialization only. Never accept this from a player.
-  deckOrder: z.strictObject({
-    yellow: z.array(z.string().regex(/^Y\d{2}$/)).max(10),
-    red: z.array(z.string().regex(/^R\d{2}$/)).max(6),
-  }).optional(),
-});
-export type OpenExplorationWindowOptions = DeepReadonly<z.infer<typeof windowOptionsSchema>>;
+export type OpenExplorationWindowOptions = OpenActionWindowOptions;
 export const explorationPathStepSchema = z.strictObject({
   routeId: routeIdSchema, toNodeId: resourceNodeIdSchema, payeePlayerId: gameEntityIdSchema.optional(),
 });
@@ -49,44 +42,16 @@ function nextVersion(version: number): number {
   if (version === Number.MAX_SAFE_INTEGER) return reject('VERSION_OVERFLOW', 'State version exhausted');
   return version + 1;
 }
-function shuffle(ids: string[]): string[] {
-  for (let i = ids.length - 1; i > 0; i--) { const j = randomInt(i + 1); [ids[i], ids[j]] = [ids[j]!, ids[i]!]; }
-  return ids;
-}
-function sameIds(a: readonly string[], b: readonly string[]): boolean { return JSON.stringify([...a].sort()) === JSON.stringify([...b].sort()); }
-
 /**
  * TRUSTED orchestration boundary granting exactly one exploration. The future round owner must
  * authorize the actor/round/major-action slot before calling. This is not a player command or
  * an implementation of role placement, clockwise turns, quick actions or two action cycles.
  */
 export function openExplorationWindow(input: GameState, definition: GameDefinition, rawOptions: OpenExplorationWindowOptions): GameState {
-  const state = parseGameState(input, definition);
-  const parsed = windowOptionsSchema.safeParse(rawOptions);
-  if (!parsed.success) return reject('WINDOW_SCHEMA', parsed.error.message);
-  const options = parsed.data;
-  if (options.expectedVersion !== state.stateVersion) return reject('STALE_VERSION', 'Expected state version is stale');
-  if (!definition.players.some(player => player.id === options.actorId)) return reject('ACTOR_REFERENCE', 'Unknown granted actor');
-  const initializing = state.phase === 'entry';
-  if (initializing ? state.entry?.status !== 'complete' : state.exploration?.status !== 'complete') {
-    return reject('ACTION_PENDING', 'Finish entry or the existing exploration before granting another action');
-  }
-  if (!initializing && (options.deckOrder !== undefined || options.roundNumber < state.exploration!.roundNumber)) {
-    return reject('WINDOW_RESET', 'Cannot reset decks or move the round backwards');
-  }
-  let decks = state.eventDecks;
-  if (initializing) {
-    const yellow = options.deckOrder?.yellow ?? shuffle(eligibleBaseEventIds(definition.players.length, 'yellow'));
-    const red = options.deckOrder?.red ?? shuffle(eligibleBaseEventIds(definition.players.length, 'red'));
-    if (!sameIds(yellow, eligibleBaseEventIds(definition.players.length, 'yellow')) || !sameIds(red, eligibleBaseEventIds(definition.players.length, 'red'))) {
-      return reject('EVENT_DECK', 'Initial decks must be exact eligible-card permutations');
-    }
-    decks = { green: state.entry!.remainingGreenEventIds, yellow, red };
-  }
-  const position = getGamePosition(state, definition);
-  return parseGameState({ ...position, schemaVersion: '1.2.0', stateVersion: nextVersion(state.stateVersion), phase: 'exploration',
-    eventDecks: decks, playerOrder: initializing ? state.entry!.playerOrder : state.playerOrder,
-    exploration: { actorId: options.actorId, roundNumber: options.roundNumber, status: 'ready',
+  const prepared = prepareActionWindow(input, definition, rawOptions, reject);
+  return parseGameState({ ...prepared.position, schemaVersion: prepared.previousFormat === '1.3.0' ? '1.3.0' : '1.2.0',
+    stateVersion: prepared.stateVersion, phase: 'exploration', eventDecks: prepared.eventDecks, playerOrder: prepared.playerOrder,
+    exploration: { actorId: prepared.options.actorId, roundNumber: prepared.options.roundNumber, status: 'ready',
       targetNodeId: null, cardId: null, resolvedChoiceId: null } }, definition);
 }
 
