@@ -84,3 +84,10 @@
 新增 game/harvest.ts、harvest-rules.ts、harvest-invariants.ts、harvest.test.ts、route-tolls.ts（均位于 `packages/game-core/src/game/`），新增 `scripts/check-harvest.mjs` 和 package.json 命令。修改 game/schema.ts、types.ts、state.ts、index.ts、action-window.ts、exploration.ts、city-move.ts、influence-actions.ts 以支持同时采集、共用航道计价与 1.5.0。
 
 说明：[Harvest-Phase-2026-10-18.md](Harvest-Phase-2026-10-18.md)；实际验证：[harvest-validation-2026-10-18.md](testing/harvest-validation-2026-10-18.md)。README、DevLog 和部署/调度当前进度同步。最新 **749/749**，其中采集 62；9 项编译检查通过。静态规则数据/文案、Accepted ADR、依赖锁和项目版本不变。完整可编辑文件保存至同一 GitHub 仓库，无部署或发布。
+
+
+## 2026-10-18 基础计分预览增量
+
+新增 `packages/game-core/src/game/scoring.ts`、`scoring.test.ts`，修改同目录 index.ts 导出；新增 `scripts/check-scoring.mjs` 与 package.json 命令。说明：[Base-Scoring-2026-10-18.md](Base-Scoring-2026-10-18.md)；实际验证：[base-scoring-validation-2026-10-18.md](testing/base-scoring-validation-2026-10-18.md)。更新 README、DevLog、采集后续进度和本清单。
+
+新增 56 项计分测试，总计 **805/805**，十项编译检查通过。仅提供只读派生查询，没有更改 GameState/存档格式、地图/事件数据及摘要、已确认文案、Accepted ADR、依赖锁或项目版本。正式收尾/终局执行、UI 与联机仍待完成。可编辑源文件继续保存在现有 GitHub 仓库，无部署或发布。

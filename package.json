@@ -20,6 +20,7 @@
     "check:city-move": "npm run build && node scripts/check-city-move.mjs",
     "check:influence": "npm run build && node scripts/check-influence.mjs",
     "check:harvest": "npm run build && node scripts/check-harvest.mjs",
+    "check:scoring": "npm run build && node scripts/check-scoring.mjs",
     "archive": "python3 scripts/archive.py"
   },
   "dependencies": { "zod": "4.6.7" },
