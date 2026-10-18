@@ -1,6 +1,6 @@
 # Nomad City Online · v0.2.0
 
-《游城拓荒：铸基者》私人非商业线上桌游项目。已实现地图核心、基础事件静态目录、最小对局状态与标记守恒，以及两人至四人的入场和绿色事件奖励。黄色/红色事件执行、UI、联机和完整行动规则引擎尚未实现。
+《游城拓荒：铸基者》私人非商业线上桌游项目。已实现地图核心、基础事件静态目录、最小对局状态与标记守恒，以及两人至四人的入场流程和全部基础事件选项的独立结算核心。黄色/红色事件尚未接入探索/城市移动；UI、联机和完整行动规则引擎尚未实现。
 
 ## 安装与复现
 
@@ -22,6 +22,7 @@ npm run check:maps
 npm run check:events
 npm run check:game
 npm run check:entry
+npm run check:settlement
 ```
 
 `npm run verify` 合并类型检查、Vitest 和构建。`npm run test:watch` 进入测试监视模式。核心不依赖 React、Three.js、NestJS 或数据库。依赖分别为 Zod 4.6.7、Vitest 5.0.4、TypeScript 5.9.3；`package-lock.json` 固定实际依赖树。
@@ -104,7 +105,7 @@ Record 的键天然唯一；对象中的重复 ID、键/ID 不一致、槽列表
 
 `BoardState` 保存城市位置、指示物和影响力槽占用。`validateBoardState` 本身只检查结构、定义引用、ID 覆盖、城市引用、重复城市/标记及已登记玩家。事件指示物目录匹配及标记库存守恒由后续 game 模块校验；两者均**不能替代完整行动合法性验证**。没有任何客户端权威写状态入口。
 
-原 v0.1.0 文档按历史稿原样保留；当前实现状态以 DevLog 的 v0.2.0 条目、Accepted ADR、源码和真实测试为准。原文中事件系统的设计片段仍未实现。
+原 v0.1.0 文档按历史稿原样保留；当前实现状态以 DevLog 的 v0.2.0 条目、Accepted ADR、源码和真实测试为准。原文中的设计片段不能当作实现依据，当前事件结算进度见后续增量章节。
 
 ## 文件交付与后续
 
@@ -112,7 +113,7 @@ Record 的键天然唯一；对象中的重复 ID、键/ID 不一致、槽列表
 
 可选重新打包需 Python 3 标准库：`npm run archive`；Windows 也可运行 `python scripts/archive.py`。Python 只用于 ZIP 包装，不是地图核心依赖。
 
-基础事件牌的文本与数值现已由项目负责人确认；最小状态、标记守恒、入场选择与绿色奖励已实现。角色及城市样式等数据尚未齐备，后续推进黄色/红色事件和具体行动。UI、联机与完整回合仍未实现。
+基础事件牌的文本与数值现已由项目负责人确认；最小状态、标记守恒、入场选择与绿色奖励已实现。角色及城市样式等数据尚未齐备，全部基础事件的独立结算核心已完成，后续接入黄色/红色事件的待结算行动流程。UI、联机与完整回合仍未实现。
 
 ## 事件静态目录增量 · 2026-10-17
 
@@ -190,4 +191,24 @@ state = applyEntryCommand(state, game.definition, { authenticatedPlayerId: 'alic
 
 旧 1.0.0 入场前快照可兼容；启动入场后使用 1.1.0 格式保存顺序、剩余绿色牌堆和待选事件。权威快照含隐藏牌序，不能直接作为未来客户端广播数据；公开状态投影与网络服务尚未实现。
 
-当前最新验证：**379/379 测试**（地图 88、事件静态目录 137、原状态 86、入场 68）、strict 类型检查、构建及四项编译包检查通过。见 [入场说明](docs/Entry-Flow-2026-10-18.md) 与 [真实测试记录](docs/testing/entry-validation-2026-10-18.md)。项目没有发布新版本或部署；入场 complete 也不代表完整回合已经实现。
+入场增量验收时：**379/379 测试**（地图 88、事件静态目录 137、原状态 86、入场 68）、strict 类型检查、构建及四项编译包检查通过。见 [入场说明](docs/Entry-Flow-2026-10-18.md) 与 [真实测试记录](docs/testing/entry-validation-2026-10-18.md)。项目没有发布新版本或部署；入场 complete 也不代表完整回合已经实现。
+
+
+## 基础事件结算增量 · 2026-10-18
+
+`settleEventChoice` 已实现全部 49 个基础选项，处理费用决定、资源/金券/分数、每名对手奖励和三种影响力放置范围。Y05:1 允许明确放弃费用；支付后无法放置不退款。R06:3 无法放置仍保留先前金券；有可执行的放置时必须由玩家选择合法目标。红牌 ×2 不翻倍即时奖励。
+
+`GamePosition` 是既有棋盘、玩家、供应字段的工作视图，共用原守恒/引用校验；不另存第二份局面。绿色入场奖励已复用结算核心，GameState 1.0.0/1.1.0 格式保持兼容。
+
+核心调用接口（均从 `/game` 或根包导出）：
+
+```typescript
+// position 和 context 均由可信行动调用方准备，不能取自客户端整份状态。
+const requirements = getEventChoiceRequirements(position, definition, context, selectedChoiceId);
+const result = settleEventChoice(position, definition, context, playerChoice);
+// 行动调用方验证 pending/version 后，只应用一次 result.position 并继续行动。
+```
+
+`context = {gameId, actorId, nodeId, cardId}` 必须与已揭示标记一致。玩家请求仅含 `choiceId`、需要时的 `costDecision` 和 `influenceSlotId`。独立核心不处理身份认证、抽牌、路费、行动末尾放置或防重放；黄色/红色的可信行动调用方尚未实现，不能将此接口直接开放为网络请求。
+
+当前最新验证：**473/473 测试**（新增结算 94）、strict 类型检查、构建及五项编译包检查通过。运行 `npm run verify` 与 `npm run check:settlement` 可复现；规则映射和信任边界见 [结算说明](docs/Event-Settlement-2026-10-18.md)，真实执行历史见 [验证记录](docs/testing/event-settlement-validation-2026-10-18.md)。项目版本仍为 0.2.0，未发布或部署。

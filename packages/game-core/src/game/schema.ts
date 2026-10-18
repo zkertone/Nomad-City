@@ -38,11 +38,9 @@ export const entryProgressSchema = z.strictObject({
     cardId: z.string().regex(/^G\d{2}$/),
   }).nullable(),
 });
-export const gameStateSchema = z.strictObject({
-  schemaVersion: z.enum(['1.0.0', '1.1.0']), gameId: gameEntityIdSchema,
-  stateVersion: balance,
-  // Only the entry-phase foundation is implemented, not the round/action machine.
-  phase: z.literal('entry'),
+/** Shared authoritative facts; not a second persisted state or a turn phase. */
+export const gamePositionSchema = z.strictObject({
+  gameId: gameEntityIdSchema,
   board: boardStateSchema,
   players: z.record(gameEntityIdSchema, z.strictObject({
     balances: resourceBalancesSchema,
@@ -50,6 +48,13 @@ export const gameStateSchema = z.strictObject({
     scoreMarkerId: gameEntityIdSchema,
   })),
   markerSupplyByPlayer: z.record(gameEntityIdSchema, z.array(gameEntityIdSchema).max(30)),
+});
+export const gameStateSchema = z.strictObject({
+  schemaVersion: z.enum(['1.0.0', '1.1.0']),
+  stateVersion: balance,
+  // Only the entry-phase foundation is implemented, not the round/action machine.
+  phase: z.literal('entry'),
+  ...gamePositionSchema.shape,
   entry: entryProgressSchema.optional(),
 }).superRefine((state, ctx) => {
   if ((state.schemaVersion === '1.1.0') !== (state.entry !== undefined)) {

@@ -3,8 +3,9 @@ import { z } from 'zod';
 import { loadFoundersBoard } from '../board/index.js';
 import { resourceNodeIdSchema, slotIdSchema } from '../board/schema.js';
 import { getFoundersEventCard } from '../events/index.js';
-import { gameEntityIdSchema, gameStateSchema } from './schema.js';
-import { getFoundersMapSide, parseGameState } from './state.js';
+import { gameEntityIdSchema, gameStateSchema, gamePositionSchema } from './schema.js';
+import { getFoundersMapSide, getGamePosition, parseGameState } from './state.js';
+import { settleEventChoice, EventSettlementError } from './settlement.js';
 import { eligibleEntryGreenIds, initialEntryFunds, entryInfluenceSlots } from './entry-rules.js';
 import type { DeepReadonly, GameDefinition, GameState } from './types.js';
 
@@ -139,11 +140,14 @@ export function applyEntryCommand(input: GameState, definition: GameDefinition, 
       const choice = card.choices.find(item => item.id === command.choiceId);
       if (!choice) return reject('EVENT_CHOICE', 'Choice does not belong to the revealed event');
       if (choice.cost !== null || choice.effects.some(effect => effect.kind !== 'gain' || effect.recipient !== 'actor')) return reject('UNSUPPORTED_GREEN_EFFECT', 'Entry supports confirmed green actor gains only');
-      for (const effect of choice.effects) {
-        if (effect.kind !== 'gain') return reject('UNSUPPORTED_GREEN_EFFECT', 'Unsupported effect');
-        const player = state.players[actor!]!;
-        if (effect.asset === 'point') player.score = checkedAdd(player.score, effect.amount);
-        else player.balances[effect.asset] = checkedAdd(player.balances[effect.asset], effect.amount);
+      try {
+        const settled = settleEventChoice(getGamePosition(current, definition), definition,
+          { gameId: current.gameId, actorId: actor!, nodeId: entry.pendingEvent.nodeId, cardId: card.id },
+          { choiceId: choice.id });
+        state.players = gamePositionSchema.parse(settled.position).players;
+      } catch (error) {
+        if (error instanceof EventSettlementError) return reject(error.code, error.message);
+        throw error;
       }
       progress.pendingEvent = null; progress.completedPlayerCount++;
       if (progress.completedPlayerCount < progress.playerOrder.length) progress.status = 'selecting-node';

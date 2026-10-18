@@ -2,8 +2,8 @@ import { deepFreeze } from '../board/hash.js';
 import { loadFoundersBoard, createEmptyBoardState, validateBoardState, validateDefinitionRef } from '../board/index.js';
 import type { MapSide, ValidationIssue, ValidationResult } from '../board/types.js';
 import { FOUNDERS_EVENT_CATALOG, FOUNDERS_EVENT_CATALOG_HASH } from '../events/index.js';
-import { gameDefinitionSchema, gameStateSchema, playerSetupsSchema } from './schema.js';
-import type { GameDefinition, GameState, MarkerLedgerEntry, PlayerSetup } from './types.js';
+import { gameDefinitionSchema, gameStateSchema, gamePositionSchema, playerSetupsSchema } from './schema.js';
+import type { GameDefinition, GameState, GamePosition, MarkerLedgerEntry, PlayerSetup } from './types.js';
 import { entryProgressIssues } from './entry-invariants.js';
 
 /** Player-count setup rule; it is deliberately outside BoardDefinition. */
@@ -58,7 +58,7 @@ export function parseGameDefinition(input: unknown): GameDefinition {
 }
 
 /** Single authoritative usage facts: supply arrays, score refs, and existing board slots. */
-function markerUsages(state: GameState): MarkerLedgerEntry[] {
+function markerUsages(state: GamePosition): MarkerLedgerEntry[] {
   const result: MarkerLedgerEntry[] = [];
   for (const [playerId, markerIds] of Object.entries(state.markerSupplyByPlayer)) {
     for (const markerId of markerIds) result.push({ markerId, ownerPlayerId: playerId, location: { kind: 'supply', playerId } });
@@ -72,12 +72,12 @@ function markerUsages(state: GameState): MarkerLedgerEntry[] {
   return result;
 }
 
-/** Cross-object snapshot checks. This is not the complete turn/action legality validator. */
-export function validateGameState(input: unknown, inputDefinition: GameDefinition): ValidationResult<GameState> {
+/** Phase-independent shared facts; never an authorization to perform an action. */
+export function validateGamePosition(input: unknown, inputDefinition: GameDefinition): ValidationResult<GamePosition> {
   const setup = validateGameDefinition(inputDefinition);
   if (!setup.success) return setup;
   const definition = setup.data;
-  const parsed = gameStateSchema.safeParse(input);
+  const parsed = gamePositionSchema.safeParse(input);
   if (!parsed.success) return { success: false, issues: schemaIssues(parsed.error) };
   const state = parsed.data;
   const issues: ValidationIssue[] = [];
@@ -123,8 +123,32 @@ export function validateGameState(input: unknown, inputDefinition: GameDefinitio
       report('RESOURCE_MARKER_DATA', nodeId, 'Resource kind/amount must match the approved card');
     }
   }
-  issues.push(...entryProgressIssues(state, definition, board));
   return issues.length ? { success: false, issues } : { success: true, data: deepFreeze(state) };
+}
+
+export function parseGamePosition(input: unknown, definition: GameDefinition): GamePosition {
+  const result = validateGamePosition(input, definition);
+  if (!result.success) throw new Error(result.issues.map(issue => `${issue.code}: ${issue.message}`).join('; '));
+  return result.data;
+}
+
+function positionFields(state: GamePosition): GamePosition {
+  return { gameId: state.gameId, board: state.board, players: state.players, markerSupplyByPlayer: state.markerSupplyByPlayer };
+}
+
+/** Cross-object snapshot checks. This is not the complete turn/action legality validator. */
+export function validateGameState(input: unknown, definition: GameDefinition): ValidationResult<GameState> {
+  const parsed = gameStateSchema.safeParse(input);
+  if (!parsed.success) return { success: false, issues: schemaIssues(parsed.error) };
+  const position = validateGamePosition(positionFields(parsed.data), definition);
+  if (!position.success) return position;
+  const issues = entryProgressIssues(parsed.data, definition, loadFoundersBoard(getFoundersMapSide(definition.players.length)));
+  return issues.length ? { success: false, issues } : { success: true, data: deepFreeze(parsed.data) };
+}
+
+/** Extract a validated working view; callers must not persist it alongside GameState. */
+export function getGamePosition(input: GameState, definition: GameDefinition): GamePosition {
+  return parseGamePosition(positionFields(parseGameState(input, definition)), definition);
 }
 
 export function parseGameState(input: unknown, definition: GameDefinition): GameState {
