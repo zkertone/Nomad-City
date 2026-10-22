@@ -274,6 +274,17 @@ GameState 1.5.0 保留旧格式兼容；采集 complete 后拒绝重放和同轮
 
 getFacilityCopyCountRecords() 默认仅返回基础版 18 种设施、48 个实体数量，排除 E 标企业办事处、O 标临时聚居点和罗德岛办事处。核心指挥塔为虹色 4 张。原始混合报告不删减，扩展仅记录版别和数量，当前不执行扩展玩法。
 
-设施静态格式 2.0.0 拒绝旧 colorCellCounts 字段；数量/版别已确认，totalsReconciled=true。完整费用、效果和摆放定义仍待实现，readyForDeckSetup=false，尚未生成实际设施牌库。游戏状态、地图、事件格式及依赖不变。
+设施静态格式 2.0.0 拒绝旧 colorCellCounts 字段；数量/版别已确认，totalsReconciled=true。新增卡面转录模块已记录照片中 18 种基础设施的分数、16 种普通设施的两套费用及可读效果；部分说明/风味文字、跨颜色版本核对和摆放定义仍待完成。readyForDeckSetup=false，尚未生成实际设施牌库。游戏状态、地图、事件格式及依赖不变。
 
 [逐项数量和版别](docs/Facility-Colors-2026-10-22.md)、[卡面接收](docs/Card-Image-Intake-2026-10-22.md)、[实际验证](docs/testing/facility-colors-validation-2026-10-22.md)。历史测试通过不代表先前错误格数解释正确。`npm run check:facilities` 验证修正后的数量和版本过滤。
+
+
+## 基础设施卡面转录 · 2026-10-22
+
+`FOUNDERS_FACILITY_FACES` / `getFoundersFacilityFace(id)` 提供图片中可见卡面的分数、费用、入场/唯一标识、文字及图标序列；与实体数量目录分离。新增转录为 `ai-transcribed-awaiting-review`，适用范围 `pictured-face-only`，不将一种颜色照片推为所有颜色版本的确认规则。
+
+`getFacilityFaceTranscriptionProgress()` 明确报告 18 个分数、16 套资源组合/金券替代费用、2 张未印普通费用；效果完整转录 16、部分 2，风味完整 1、部分 4、待辨认 13。部分文本保留片段和缺失原因；未印费用不等于免费建设。模块只提供静态转录和校验，`executionReady=false`；没有接入建设、计分或入场效果执行。
+
+可用 `npm test -- packages/game-core/src/facilities` 运行数量和卡面测试；`npm run check:facilities` 构建后检查根/子路径导出、基准摘要、版别过滤和缺失字段状态。完整回归运行 `npm run verify`。
+
+[逐项分数、费用、效果、风味及缺失字段](docs/Facility-Faces-Review-2026-10-22.md)；[实际验证](docs/testing/facility-faces-validation-2026-10-22.md)。SHA-256 覆盖全部数据与来源，以独立固定基准验证；它证明转录内容一致，不替代规则事实核对。

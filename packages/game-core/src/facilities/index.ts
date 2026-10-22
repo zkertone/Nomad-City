@@ -3,3 +3,6 @@ export * from './schema.js';
 export * from './hash.js';
 export * from './catalog.js';
 export * from './inventory.js';
+export * from './faces-schema.js';
+export * from './faces-hash.js';
+export * from './faces.js';

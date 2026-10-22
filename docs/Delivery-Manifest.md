@@ -113,3 +113,20 @@
 
 
 用户最终确认 E=企业扩展、O=DLC《感染者》。此前 O 未定/数量差额结论撤回，数量为基础 48 + 企业 3 + 感染者 6 = 57。新增 getFacilityCopyCountRecords 默认基础版过滤，混合原始报告完整保留；只识别扩展资料，不启用扩展规则。totalsReconciled=true，完整设施执行/实际牌库仍未实现。
+
+
+## 2026-10-22 基础版设施卡面转录增量
+
+新增可编辑源文件（相对于仓库根目录）：
+
+- `packages/game-core/src/facilities/founders-faces.json`：18 种可见基础版卡面的字段及来源。
+- `packages/game-core/src/facilities/faces-schema.ts`：Zod Schema 与只读类型。
+- `packages/game-core/src/facilities/faces-hash.ts`：规范化与 SHA-256。
+- `packages/game-core/src/facilities/faces.ts`：校验、不可变加载、查询与进度。
+- `packages/game-core/src/facilities/faces.test.ts`：新增 47 项测试。
+- `docs/Facility-Faces-Review-2026-10-22.md`：逐项分数/成本/效果/风味和缺失字段。
+- `docs/testing/facility-faces-validation-2026-10-22.md`：真实命令和结果。
+
+修改 `packages/game-core/src/facilities/index.ts`、`scripts/check-facilities.mjs`、`README.md`、`docs/Card-Image-Intake-2026-10-22.md`、`docs/Facility-Colors-2026-10-22.md`、`docs/DevLog.md` 和本清单。原数量 JSON、Schema 与摘要不变，未复制整套卡面图。
+
+实际最终 verify：strict 类型、**905/905（12 个文件）**、构建通过；四项相关编译包检查退出 0，初次 99/100 的失败与修正已记录。新转录状态为待复核，2 处效果及 17 份风味仍未完整，图片适用范围不推到其他颜色版本；没有设施执行器、UI、联网、部署或发布。

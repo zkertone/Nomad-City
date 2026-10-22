@@ -1,0 +1,53 @@
+import data from './founders-faces.json' with { type: 'json' };
+import { deepFreeze } from '../board/hash.js';
+import { getFacilityCopyCountRecords } from './inventory.js';
+import { facilityFacesCatalogSchema } from './faces-schema.js';
+import type { FacilityFaceTranscription, FacilityFacesCatalog } from './faces-schema.js';
+import { computeFacilityFacesHash } from './faces-hash.js';
+
+export const FOUNDERS_FACILITY_FACES_HASH = 'sha256:2b8220fa4df10ad8c949b43720d38bd61b27269e4179b021e7bcdcbd32cc9e21';
+export type FacilityFacesValidationResult =
+  | { readonly success: true; readonly catalog: FacilityFacesCatalog }
+  | { readonly success: false; readonly issues: readonly string[] };
+
+/** Validates a transcription against inventory identities and a pinned image-reading baseline, not game legality. */
+export function validateFoundersFacilityFaces(input: unknown): FacilityFacesValidationResult {
+  const parsed = facilityFacesCatalogSchema.safeParse(input);
+  if (!parsed.success) return { success: false, issues: parsed.error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`) };
+  const issues: string[] = [];
+  const inventory = getFacilityCopyCountRecords();
+  for (const face of parsed.data.facilities) {
+    const record = inventory.find(row => row.id === face.id);
+    if (!record || record.name !== face.name) issues.push(`Unknown base facility identity: ${face.id}`);
+    else if (record.copyCountsByColor[face.observedColor] < 1) issues.push(`Unreported pictured color: ${face.id}`);
+  }
+  const actual = computeFacilityFacesHash(parsed.data);
+  if (actual !== parsed.data.contentHash) issues.push('Facility faces hash mismatch');
+  if (actual !== FOUNDERS_FACILITY_FACES_HASH) issues.push('Facility faces differ from pinned image transcription');
+  return issues.length ? { success: false, issues } : { success: true, catalog: deepFreeze(parsed.data) };
+}
+export function parseFoundersFacilityFaces(input: unknown): FacilityFacesCatalog {
+  const result = validateFoundersFacilityFaces(input);
+  if (!result.success) throw new Error(`Invalid facility faces: ${result.issues.join('; ')}`);
+  return result.catalog;
+}
+export const FOUNDERS_FACILITY_FACES: FacilityFacesCatalog = parseFoundersFacilityFaces(data);
+export function getFoundersFacilityFace(id: string): FacilityFaceTranscription {
+  const face = FOUNDERS_FACILITY_FACES.facilities.find(row => row.id === id);
+  if (!face) throw new RangeError(`Unknown base facility face: ${id}`);
+  return face;
+}
+/** Explicit progress prevents stored partial/unknown text from being reported as completed rules. */
+export function getFacilityFaceTranscriptionProgress() {
+  const faces = FOUNDERS_FACILITY_FACES.facilities;
+  const count = (field: 'flavor' | 'effect', status: 'transcribed' | 'partial' | 'unreadable') => faces.filter(face =>
+    (field === 'flavor' ? face.flavor : face.effect.transcription).status === status).length;
+  return deepFreeze({
+    totalPicturedFaces: faces.length, printedScores: faces.length,
+    printedCostAlternatives: faces.filter(face => face.constructionCost.kind === 'printed-alternatives').length,
+    costNotPrinted: faces.filter(face => face.constructionCost.kind === 'not-printed').length,
+    effects: { transcribed: count('effect', 'transcribed'), partial: count('effect', 'partial'), unreadable: count('effect', 'unreadable') },
+    flavor: { transcribed: count('flavor', 'transcribed'), partial: count('flavor', 'partial'), unreadable: count('flavor', 'unreadable') },
+    executionReady: false as const, reviewStatus: FOUNDERS_FACILITY_FACES.reviewStatus,
+  });
+}

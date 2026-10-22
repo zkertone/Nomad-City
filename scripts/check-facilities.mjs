@@ -28,3 +28,17 @@ assert.deepEqual(inventory.baseBreakdown, { ordinary: 41, coreCommandTower: 4, e
 assert.equal(inventory.totalsReconciled, true); assert.equal(inventory.readyForDeckSetup, false);
 assert.equal(facilities.getFacilityCopyCountRecords().some(record => record.edition !== 'base'), false);
 assert.equal(facilities.getFacilityCopyCountRecords().length, 18);
+
+assert.equal(core.FOUNDERS_FACILITY_FACES, facilities.FOUNDERS_FACILITY_FACES);
+assert.equal(core.getFoundersFacilityFace, facilities.getFoundersFacilityFace);
+assert.equal(facilities.validateFoundersFacilityFaces(facilities.FOUNDERS_FACILITY_FACES).success, true);
+assert.equal(facilities.getFoundersFacilityFace('FAC-018').printedScore, -1);
+assert.deepEqual(facilities.getFoundersFacilityFace('FAC-CORE-COMMAND-TOWER').constructionCost, { kind: 'not-printed' });
+assert.throws(() => facilities.getFoundersFacilityFace('FAC-020'), RangeError);
+const faces = JSON.parse(JSON.stringify(facilities.FOUNDERS_FACILITY_FACES));
+faces.facilities[0].printedScore++;
+faces.contentHash = facilities.computeFacilityFacesHash(faces);
+assert.equal(facilities.validateFoundersFacilityFaces(faces).success, false);
+assert.equal(facilities.getFacilityInventoryReconciliation().readyForDeckSetup, false);
+console.log(JSON.stringify({ faceTranscription: facilities.getFacilityFaceTranscriptionProgress(), faceContentHash: facilities.FOUNDERS_FACILITY_FACES.contentHash }));
+console.log('PASS: compiled face exports, source transcription, negative score, missing-cost distinction, partial-text progress, base filtering and tamper rejection');

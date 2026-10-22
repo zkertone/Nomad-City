@@ -1,0 +1,849 @@
+{
+  "catalogId": "founders-facility-face-transcriptions",
+  "schemaVersion": "1.0.0",
+  "scope": "base-pictured-faces",
+  "reviewStatus": "ai-transcribed-awaiting-review",
+  "executionReady": false,
+  "sources": [
+    {
+      "id": "facility-image-1",
+      "filename": "image(1).png",
+      "attachmentId": "libfile_35a1fb9b4b208191be898939b83995df",
+      "sha256": "5a9566cc41f0db71732dbbe5bccfa7808502a26415cde78643ae8359197dca84"
+    },
+    {
+      "id": "facility-image-3",
+      "filename": "image(3).png",
+      "attachmentId": "libfile_8cb6e8f35d1c8191acc39328a5c7e523",
+      "sha256": "c06c98d27f158312a54d3f3dfc068e6e755dad95fd63ee3cb4629c60ad9f0c3e"
+    },
+    {
+      "id": "facility-image-4",
+      "filename": "image(4).png",
+      "attachmentId": "libfile_5ee6f638cb5481918d2b7e3fa9767704",
+      "sha256": "cc9a922c55948106cf9a7d17a2e3cbee00e6fe0cb4a48b9f10b0de3000715280"
+    }
+  ],
+  "facilities": [
+    {
+      "id": "FAC-001",
+      "name": "载具仓库",
+      "edition": "base",
+      "observedColor": "red",
+      "appliesTo": "pictured-face-only",
+      "sourceRef": "facility-image-1",
+      "location": "row-1-col-5",
+      "printedScore": 0,
+      "constructionCost": {
+        "kind": "printed-alternatives",
+        "resourcePayment": {
+          "orirock": 1,
+          "originium": 2,
+          "iron": 0,
+          "pureOriginium": 0,
+          "vouchers": 0
+        },
+        "voucherPayment": 9
+      },
+      "effect": {
+        "entryMarker": true,
+        "uniqueMarker": false,
+        "transcription": {
+          "status": "transcribed",
+          "segments": [
+            {
+              "kind": "icon",
+              "icon": "red-up-cube"
+            },
+            {
+              "kind": "text",
+              "text": "、"
+            },
+            {
+              "kind": "icon",
+              "icon": "blue-right-cube"
+            },
+            {
+              "kind": "text",
+              "text": " 或 进行1次 探索。"
+            }
+          ]
+        }
+      },
+      "flavor": {
+        "status": "unreadable",
+        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+      }
+    },
+    {
+      "id": "FAC-002",
+      "name": "护航调度中心",
+      "edition": "base",
+      "observedColor": "red",
+      "appliesTo": "pictured-face-only",
+      "sourceRef": "facility-image-1",
+      "location": "row-1-col-6",
+      "printedScore": 0,
+      "constructionCost": {
+        "kind": "printed-alternatives",
+        "resourcePayment": {
+          "orirock": 2,
+          "originium": 2,
+          "iron": 2,
+          "pureOriginium": 0,
+          "vouchers": 0
+        },
+        "voucherPayment": 18
+      },
+      "effect": {
+        "entryMarker": true,
+        "uniqueMarker": false,
+        "transcription": {
+          "status": "transcribed",
+          "segments": [
+            {
+              "kind": "icon",
+              "icon": "green-down-cube"
+            },
+            {
+              "kind": "icon",
+              "icon": "green-down-cube"
+            }
+          ]
+        }
+      },
+      "flavor": {
+        "status": "unreadable",
+        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+      }
+    },
+    {
+      "id": "FAC-003",
+      "name": "佣兵指挥部",
+      "edition": "base",
+      "observedColor": "red",
+      "appliesTo": "pictured-face-only",
+      "sourceRef": "facility-image-1",
+      "location": "row-2-col-5",
+      "printedScore": 1,
+      "constructionCost": {
+        "kind": "printed-alternatives",
+        "resourcePayment": {
+          "orirock": 2,
+          "originium": 0,
+          "iron": 2,
+          "pureOriginium": 0,
+          "vouchers": 4
+        },
+        "voucherPayment": 18
+      },
+      "effect": {
+        "entryMarker": true,
+        "uniqueMarker": false,
+        "transcription": {
+          "status": "transcribed",
+          "segments": [
+            {
+              "kind": "icon",
+              "icon": "red-up-cube"
+            },
+            {
+              "kind": "text",
+              "text": " 或 "
+            },
+            {
+              "kind": "icon",
+              "icon": "green-down-cube"
+            }
+          ]
+        }
+      },
+      "flavor": {
+        "status": "unreadable",
+        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+      }
+    },
+    {
+      "id": "FAC-004",
+      "name": "物流枢纽",
+      "edition": "base",
+      "observedColor": "blue",
+      "appliesTo": "pictured-face-only",
+      "sourceRef": "facility-image-1",
+      "location": "row-2-col-1",
+      "printedScore": 2,
+      "constructionCost": {
+        "kind": "printed-alternatives",
+        "resourcePayment": {
+          "orirock": 0,
+          "originium": 0,
+          "iron": 0,
+          "pureOriginium": 1,
+          "vouchers": 2
+        },
+        "voucherPayment": 24
+      },
+      "effect": {
+        "entryMarker": true,
+        "uniqueMarker": true,
+        "transcription": {
+          "status": "transcribed",
+          "segments": [
+            {
+              "kind": "text",
+              "text": "可从余下的 延伸枢纽 中选择1张建造。"
+            }
+          ]
+        }
+      },
+      "flavor": {
+        "status": "unreadable",
+        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+      }
+    },
+    {
+      "id": "FAC-005",
+      "name": "城市化区域",
+      "edition": "base",
+      "observedColor": "blue",
+      "appliesTo": "pictured-face-only",
+      "sourceRef": "facility-image-1",
+      "location": "row-1-col-4",
+      "printedScore": 1,
+      "constructionCost": {
+        "kind": "printed-alternatives",
+        "resourcePayment": {
+          "orirock": 3,
+          "originium": 0,
+          "iron": 2,
+          "pureOriginium": 0,
+          "vouchers": 0
+        },
+        "voucherPayment": 16
+      },
+      "effect": {
+        "entryMarker": true,
+        "uniqueMarker": false,
+        "transcription": {
+          "status": "transcribed",
+          "segments": [
+            {
+              "kind": "text",
+              "text": "每有一个与 核心指挥塔 十字相邻的设施，获得4"
+            },
+            {
+              "kind": "icon",
+              "icon": "voucher"
+            },
+            {
+              "kind": "text",
+              "text": "。"
+            }
+          ]
+        }
+      },
+      "flavor": {
+        "status": "unreadable",
+        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+      }
+    },
+    {
+      "id": "FAC-006",
+      "name": "贸易街区",
+      "edition": "base",
+      "observedColor": "blue",
+      "appliesTo": "pictured-face-only",
+      "sourceRef": "facility-image-1",
+      "location": "row-2-col-3",
+      "printedScore": 0,
+      "constructionCost": {
+        "kind": "printed-alternatives",
+        "resourcePayment": {
+          "orirock": 1,
+          "originium": 0,
+          "iron": 1,
+          "pureOriginium": 0,
+          "vouchers": 0
+        },
+        "voucherPayment": 6
+      },
+      "effect": {
+        "entryMarker": true,
+        "uniqueMarker": false,
+        "transcription": {
+          "status": "transcribed",
+          "segments": [
+            {
+              "kind": "text",
+              "text": "将任意资源按以下单价出售："
+            },
+            {
+              "kind": "icon",
+              "icon": "orirock"
+            },
+            {
+              "kind": "text",
+              "text": "：3"
+            },
+            {
+              "kind": "icon",
+              "icon": "voucher"
+            },
+            {
+              "kind": "text",
+              "text": "；"
+            },
+            {
+              "kind": "icon",
+              "icon": "originium"
+            },
+            {
+              "kind": "text",
+              "text": "：3"
+            },
+            {
+              "kind": "icon",
+              "icon": "voucher"
+            },
+            {
+              "kind": "text",
+              "text": "；"
+            },
+            {
+              "kind": "icon",
+              "icon": "iron"
+            },
+            {
+              "kind": "text",
+              "text": "：4"
+            },
+            {
+              "kind": "icon",
+              "icon": "voucher"
+            },
+            {
+              "kind": "text",
+              "text": "；"
+            },
+            {
+              "kind": "icon",
+              "icon": "pure-originium"
+            },
+            {
+              "kind": "text",
+              "text": "：15"
+            },
+            {
+              "kind": "icon",
+              "icon": "voucher"
+            },
+            {
+              "kind": "text",
+              "text": "。"
+            }
+          ]
+        }
+      },
+      "flavor": {
+        "status": "unreadable",
+        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+      }
+    },
+    {
+      "id": "FAC-007",
+      "name": "高性能动力系统",
+      "edition": "base",
+      "observedColor": "yellow",
+      "appliesTo": "pictured-face-only",
+      "sourceRef": "facility-image-1",
+      "location": "row-1-col-3",
+      "printedScore": 0,
+      "constructionCost": {
+        "kind": "printed-alternatives",
+        "resourcePayment": {
+          "orirock": 0,
+          "originium": 4,
+          "iron": 2,
+          "pureOriginium": 0,
+          "vouchers": 0
+        },
+        "voucherPayment": 20
+      },
+      "effect": {
+        "entryMarker": true,
+        "uniqueMarker": false,
+        "transcription": {
+          "status": "transcribed",
+          "segments": [
+            {
+              "kind": "text",
+              "text": "免费"
+            },
+            {
+              "kind": "icon",
+              "icon": "city-right-arrow"
+            },
+            {
+              "kind": "text",
+              "text": "，并在通过的航道上放置1个影响力。"
+            }
+          ]
+        }
+      },
+      "flavor": {
+        "status": "unreadable",
+        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+      }
+    },
+    {
+      "id": "FAC-008",
+      "name": "开采电铲",
+      "edition": "base",
+      "observedColor": "yellow",
+      "appliesTo": "pictured-face-only",
+      "sourceRef": "facility-image-1",
+      "location": "row-2-col-2",
+      "printedScore": 0,
+      "constructionCost": {
+        "kind": "printed-alternatives",
+        "resourcePayment": {
+          "orirock": 0,
+          "originium": 2,
+          "iron": 1,
+          "pureOriginium": 0,
+          "vouchers": 0
+        },
+        "voucherPayment": 10
+      },
+      "effect": {
+        "entryMarker": true,
+        "uniqueMarker": false,
+        "transcription": {
+          "status": "transcribed",
+          "segments": [
+            {
+              "kind": "text",
+              "text": "获得合计5个："
+            },
+            {
+              "kind": "icon",
+              "icon": "orirock"
+            },
+            {
+              "kind": "text",
+              "text": "，"
+            },
+            {
+              "kind": "icon",
+              "icon": "originium"
+            },
+            {
+              "kind": "text",
+              "text": "，"
+            },
+            {
+              "kind": "icon",
+              "icon": "iron"
+            },
+            {
+              "kind": "text",
+              "text": "。"
+            }
+          ]
+        }
+      },
+      "flavor": {
+        "status": "unreadable",
+        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+      }
+    },
+    {
+      "id": "FAC-009",
+      "name": "城邦工业区",
+      "edition": "base",
+      "observedColor": "yellow",
+      "appliesTo": "pictured-face-only",
+      "sourceRef": "facility-image-1",
+      "location": "row-2-col-6",
+      "printedScore": 2,
+      "constructionCost": {
+        "kind": "printed-alternatives",
+        "resourcePayment": {
+          "orirock": 4,
+          "originium": 3,
+          "iron": 0,
+          "pureOriginium": 0,
+          "vouchers": 2
+        },
+        "voucherPayment": 24
+      },
+      "effect": {
+        "entryMarker": false,
+        "uniqueMarker": false,
+        "transcription": {
+          "status": "transcribed",
+          "segments": [
+            {
+              "kind": "text",
+              "text": "你的设施面板上每有1种非彩色设施颜色，建设此设施时少支付1"
+            },
+            {
+              "kind": "icon",
+              "icon": "orirock"
+            },
+            {
+              "kind": "text",
+              "text": "。"
+            }
+          ]
+        }
+      },
+      "flavor": {
+        "status": "unreadable",
+        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+      }
+    },
+    {
+      "id": "FAC-010",
+      "name": "异铁冶炼厂",
+      "edition": "base",
+      "observedColor": "red",
+      "appliesTo": "pictured-face-only",
+      "sourceRef": "facility-image-3",
+      "location": "row-2-col-3",
+      "printedScore": 1,
+      "constructionCost": {
+        "kind": "printed-alternatives",
+        "resourcePayment": {
+          "orirock": 2,
+          "originium": 2,
+          "iron": 1,
+          "pureOriginium": 0,
+          "vouchers": 0
+        },
+        "voucherPayment": 15
+      },
+      "effect": {
+        "entryMarker": true,
+        "uniqueMarker": false,
+        "transcription": {
+          "status": "transcribed",
+          "segments": [
+            {
+              "kind": "text",
+              "text": "获得4"
+            },
+            {
+              "kind": "icon",
+              "icon": "iron"
+            }
+          ]
+        }
+      },
+      "flavor": {
+        "status": "partial",
+        "fragments": [
+          "承受在这片大地的苦难而不变质。"
+        ],
+        "reason": "照片中的部分字形或标点无法可靠辨认；不补全缺字。"
+      }
+    },
+    {
+      "id": "FAC-011",
+      "name": "源石精炼厂",
+      "edition": "base",
+      "observedColor": "blue",
+      "appliesTo": "pictured-face-only",
+      "sourceRef": "facility-image-3",
+      "location": "row-2-col-1",
+      "printedScore": 0,
+      "constructionCost": {
+        "kind": "printed-alternatives",
+        "resourcePayment": {
+          "orirock": 1,
+          "originium": 1,
+          "iron": 1,
+          "pureOriginium": 0,
+          "vouchers": 0
+        },
+        "voucherPayment": 10
+      },
+      "effect": {
+        "entryMarker": true,
+        "uniqueMarker": false,
+        "transcription": {
+          "status": "transcribed",
+          "segments": [
+            {
+              "kind": "text",
+              "text": "获得6"
+            },
+            {
+              "kind": "icon",
+              "icon": "originium"
+            }
+          ]
+        }
+      },
+      "flavor": {
+        "status": "transcribed",
+        "text": "现在，移动城市有了跳动的心脏。"
+      }
+    },
+    {
+      "id": "FAC-012",
+      "name": "固源岩提纯厂",
+      "edition": "base",
+      "observedColor": "yellow",
+      "appliesTo": "pictured-face-only",
+      "sourceRef": "facility-image-3",
+      "location": "row-2-col-2",
+      "printedScore": 0,
+      "constructionCost": {
+        "kind": "printed-alternatives",
+        "resourcePayment": {
+          "orirock": 1,
+          "originium": 1,
+          "iron": 1,
+          "pureOriginium": 0,
+          "vouchers": 0
+        },
+        "voucherPayment": 10
+      },
+      "effect": {
+        "entryMarker": true,
+        "uniqueMarker": false,
+        "transcription": {
+          "status": "transcribed",
+          "segments": [
+            {
+              "kind": "text",
+              "text": "获得7"
+            },
+            {
+              "kind": "icon",
+              "icon": "orirock"
+            }
+          ]
+        }
+      },
+      "flavor": {
+        "status": "partial",
+        "fragments": [
+          "源石是移动城市不断流动的血液"
+        ],
+        "reason": "照片中的部分字形或标点无法可靠辨认；不补全缺字。"
+      }
+    },
+    {
+      "id": "FAC-013",
+      "name": "城邦行政区",
+      "edition": "base",
+      "observedColor": "rainbow",
+      "appliesTo": "pictured-face-only",
+      "sourceRef": "facility-image-3",
+      "location": "row-1-col-1",
+      "printedScore": 3,
+      "constructionCost": {
+        "kind": "printed-alternatives",
+        "resourcePayment": {
+          "orirock": 3,
+          "originium": 3,
+          "iron": 3,
+          "pureOriginium": 0,
+          "vouchers": 0
+        },
+        "voucherPayment": 30
+      },
+      "effect": {
+        "entryMarker": false,
+        "uniqueMarker": true,
+        "transcription": {
+          "status": "transcribed",
+          "segments": []
+        }
+      },
+      "flavor": {
+        "status": "unreadable",
+        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+      }
+    },
+    {
+      "id": "FAC-014",
+      "name": "附属能源设施",
+      "edition": "base",
+      "observedColor": "rainbow",
+      "appliesTo": "pictured-face-only",
+      "sourceRef": "facility-image-3",
+      "location": "row-2-col-4",
+      "printedScore": 1,
+      "constructionCost": {
+        "kind": "printed-alternatives",
+        "resourcePayment": {
+          "orirock": 2,
+          "originium": 2,
+          "iron": 3,
+          "pureOriginium": 0,
+          "vouchers": 0
+        },
+        "voucherPayment": 23
+      },
+      "effect": {
+        "entryMarker": true,
+        "uniqueMarker": true,
+        "transcription": {
+          "status": "transcribed",
+          "segments": [
+            {
+              "kind": "text",
+              "text": "选择1个十字相邻的非彩色设施，结算其入场效果。"
+            }
+          ]
+        }
+      },
+      "flavor": {
+        "status": "partial",
+        "fragments": [
+          "日以继夜地运作着，一刻不停。"
+        ],
+        "reason": "照片中的部分字形或标点无法可靠辨认；不补全缺字。"
+      }
+    },
+    {
+      "id": "FAC-015",
+      "name": "联邦理事处",
+      "edition": "base",
+      "observedColor": "rainbow",
+      "appliesTo": "pictured-face-only",
+      "sourceRef": "facility-image-1",
+      "location": "row-2-col-4",
+      "printedScore": 0,
+      "constructionCost": {
+        "kind": "printed-alternatives",
+        "resourcePayment": {
+          "orirock": 4,
+          "originium": 2,
+          "iron": 0,
+          "pureOriginium": 0,
+          "vouchers": 0
+        },
+        "voucherPayment": 17
+      },
+      "effect": {
+        "entryMarker": true,
+        "uniqueMarker": true,
+        "transcription": {
+          "status": "partial",
+          "fragments": [
+            "本回合收尾阶段传递起始玩家标记时，由你获得该标记。"
+          ],
+          "reason": "照片中的部分字形或标点无法可靠辨认；不补全缺字。"
+        }
+      },
+      "flavor": {
+        "status": "unreadable",
+        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+      }
+    },
+    {
+      "id": "FAC-016",
+      "name": "简陋工程营",
+      "edition": "base",
+      "observedColor": "rainbow",
+      "appliesTo": "pictured-face-only",
+      "sourceRef": "facility-image-3",
+      "location": "row-1-col-2",
+      "printedScore": -1,
+      "constructionCost": {
+        "kind": "printed-alternatives",
+        "resourcePayment": {
+          "orirock": 2,
+          "originium": 1,
+          "iron": 0,
+          "pureOriginium": 0,
+          "vouchers": 0
+        },
+        "voucherPayment": 8
+      },
+      "effect": {
+        "entryMarker": true,
+        "uniqueMarker": true,
+        "transcription": {
+          "status": "transcribed",
+          "segments": [
+            {
+              "kind": "icon",
+              "icon": "construction-crane"
+            }
+          ]
+        }
+      },
+      "flavor": {
+        "status": "partial",
+        "fragments": [
+          "并维护工人的个人利益。"
+        ],
+        "reason": "照片中的部分字形或标点无法可靠辨认；不补全缺字。"
+      }
+    },
+    {
+      "id": "FAC-018",
+      "name": "延伸枢纽",
+      "edition": "base",
+      "observedColor": "yellow",
+      "appliesTo": "pictured-face-only",
+      "sourceRef": "facility-image-4",
+      "location": "foreground-card",
+      "printedScore": -1,
+      "constructionCost": {
+        "kind": "not-printed"
+      },
+      "effect": {
+        "entryMarker": false,
+        "uniqueMarker": false,
+        "transcription": {
+          "status": "transcribed",
+          "segments": [
+            {
+              "kind": "text",
+              "text": "延伸枢纽只能通过物流枢纽的效果建造。"
+            }
+          ]
+        }
+      },
+      "flavor": {
+        "status": "unreadable",
+        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+      }
+    },
+    {
+      "id": "FAC-CORE-COMMAND-TOWER",
+      "name": "核心指挥塔",
+      "edition": "base",
+      "observedColor": "rainbow",
+      "appliesTo": "pictured-face-only",
+      "sourceRef": "facility-image-1",
+      "location": "row-1-col-1",
+      "printedScore": 0,
+      "constructionCost": {
+        "kind": "not-printed"
+      },
+      "effect": {
+        "entryMarker": false,
+        "uniqueMarker": false,
+        "transcription": {
+          "status": "partial",
+          "fragments": [
+            "放置在设施面板的初始位置上。"
+          ],
+          "reason": "照片中的部分字形或标点无法可靠辨认；不补全缺字。"
+        }
+      },
+      "flavor": {
+        "status": "unreadable",
+        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+      }
+    }
+  ],
+  "contentHash": "sha256:2b8220fa4df10ad8c949b43720d38bd61b27269e4179b021e7bcdcbd32cc9e21"
+}
