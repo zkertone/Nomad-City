@@ -1,0 +1,90 @@
+{
+  "definitionId": "founders-player-panel",
+  "definitionVersion": "1.0.0",
+  "rows": 4,
+  "columns": 3,
+  "initialCoreCellId": "CP-3-2",
+  "cells": [
+    {
+      "id": "CP-1-1",
+      "row": 0,
+      "column": 0
+    },
+    {
+      "id": "CP-1-2",
+      "row": 0,
+      "column": 1
+    },
+    {
+      "id": "CP-1-3",
+      "row": 0,
+      "column": 2
+    },
+    {
+      "id": "CP-2-1",
+      "row": 1,
+      "column": 0
+    },
+    {
+      "id": "CP-2-2",
+      "row": 1,
+      "column": 1
+    },
+    {
+      "id": "CP-2-3",
+      "row": 1,
+      "column": 2
+    },
+    {
+      "id": "CP-3-1",
+      "row": 2,
+      "column": 0
+    },
+    {
+      "id": "CP-3-2",
+      "row": 2,
+      "column": 1
+    },
+    {
+      "id": "CP-3-3",
+      "row": 2,
+      "column": 2
+    },
+    {
+      "id": "CP-4-1",
+      "row": 3,
+      "column": 0
+    },
+    {
+      "id": "CP-4-2",
+      "row": 3,
+      "column": 1
+    },
+    {
+      "id": "CP-4-3",
+      "row": 3,
+      "column": 2
+    }
+  ],
+  "sources": [
+    {
+      "id": "player-panel-image-2026-10-23",
+      "kind": "user-photo",
+      "filename": "image(5).png",
+      "attachmentId": "libfile_18a07e3ee5a08191ac872b03436808ca",
+      "sha256": "fcc7a3d215e414dd06bddeccd969325071e49124906fdc431d0fe656877b8d0f"
+    },
+    {
+      "id": "rules-20230803-p03-p07-p09",
+      "kind": "rulebook",
+      "filename": "游城拓荒铸基者-规则书20230803.pdf",
+      "sha256": "6b87c026e317606de2324276ff117480b8e104f5b925a21d43b95af176ddbf42",
+      "printedPages": [
+        3,
+        7,
+        9
+      ]
+    }
+  ],
+  "contentHash": "sha256:138c13fd41068830138c5111c3212b3a9f3bf2fda30dd12835e9166f6bdef904"
+}

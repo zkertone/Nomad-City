@@ -300,3 +300,12 @@ getFacilityCopyCountRecords() 默认仅返回基础版 18 种设施、48 个实�
 `validateFacilitySupplyState` 验证逐张守恒与正确分区；`replenishFacilitySupply` 是内部补牌原语，支持版本冲突检查，牌堆不足返回明确结果，不自行发明耗尽规则；`getFacilitySupplyPublicView` 仅公开暗牌数量，隐藏牌序。牌归属和补牌通过不代表某次建设已合法或入场效果已执行。该状态尚未接入 GameState，原对局/存档格式不变。
 
 `npm test -- packages/game-core/src/facilities` 运行全部设施测试；`npm run check:facilities` 构建并检查新模块导入；`npm run verify` 执行全量回归、strict 类型及构建。[模块说明与服务器随机源示例](docs/Facility-Supply-2026-10-22.md)，[实际验证](docs/testing/facility-supply-validation-2026-10-22.md)。建设/摆放/费用和入场执行、两人角色阶段选择移牌、整局编排仍待完成。
+
+
+## 玩家建造面板与位置预检 · 2026-10-23
+
+根据新提供的玩家面板照片，记录 **3列×4行、12格**，核心指挥塔在第3行中列 `CP-3-2`，开局空位11。右侧记录/资源区域不计为建设格。规则书允许在任意空位建设，没有加设相邻已有建筑的要求。
+
+`FOUNDERS_FACILITY_PANEL` / `createInitialFacilityPanels` 提供带来源摘要的格位定义及2/3/4人起始面板。`validateFacilityPanelState` / `validateFacilityPanelSet` 将实体牌归属与格位交叉核对；空位和十字邻接从逻辑格派生，不依赖显示坐标。`previewFacilityPanelPlacement` 校验空位、候选牌来源、操作者和版本，返回只读位置预检结果；不拿牌、扣费或授权建设。
+
+面板模块与原 GameState 分开，完整建设和入场执行仍待接入。[格位表、来源、API与边界](docs/Player-Panel-2026-10-23.md)，[实际测试](docs/testing/player-panel-validation-2026-10-23.md)。使用现有 `npm test -- packages/game-core/src/facilities`、`npm run verify` 和 `npm run check:facilities` 验证。

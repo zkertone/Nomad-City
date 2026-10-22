@@ -8,3 +8,5 @@ export * from './faces-hash.js';
 export * from './faces.js';
 export * from './stock.js';
 export * from './supply.js';
+export * from './panel-definition.js';
+export * from './panel-state.js';

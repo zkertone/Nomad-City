@@ -77,3 +77,23 @@ assert.equal(filled.status, 'replenished'); assert.equal(filled.state.supply.len
 assert.equal(filled.state.drawPile.length, 34); assert.equal(filled.state.revision, 1);
 console.log(JSON.stringify({ stockHash: facilities.FOUNDERS_FACILITY_STOCK.contentHash, physicalCards: 48, ordinary: 41, initialSupply: 6, initialDrawPile: 35, extensionReserve: 3 }));
 console.log('PASS: compiled physical stock, 2/3/4-player allocation, injected shuffle, conservation, public projection and internal refill');
+
+assert.equal(core.FOUNDERS_FACILITY_PANEL, facilities.FOUNDERS_FACILITY_PANEL);
+assert.equal(core.previewFacilityPanelPlacement, facilities.previewFacilityPanelPlacement);
+assert.equal(facilities.validateFoundersFacilityPanel(facilities.FOUNDERS_FACILITY_PANEL).success, true);
+assert.equal(facilities.FOUNDERS_FACILITY_PANEL.cells.length, 12);
+assert.equal(facilities.FOUNDERS_FACILITY_PANEL.initialCoreCellId, 'CP-3-2');
+assert.deepEqual(facilities.getFacilityPanelOrthogonalNeighbors('CP-3-2').map(cell => cell.id), ['CP-2-2', 'CP-3-1', 'CP-3-3', 'CP-4-2']);
+assert.equal(facilities.areFacilityPanelCellsAdjacent('CP-2-1', 'CP-3-2'), false);
+for (const count of [2, 3, 4]) {
+  const panelSupply = facilities.createFoundersFacilitySupply({ gameId: `panel-check-${count}`, playerIds: Array.from({ length: count }, (_, n) => `p${n + 1}`), deckOrder: order });
+  const cityPanels = facilities.createInitialFacilityPanels(panelSupply);
+  assert.equal(facilities.validateFacilityPanelSet(cityPanels, panelSupply).success, true);
+  assert.equal(cityPanels.length, count); assert.equal(facilities.getEmptyFacilityPanelCells(cityPanels[0], panelSupply).length, 11);
+  const previewRequest = { actorId: 'p1', cardId: panelSupply.supply[0], cellId: 'CP-1-1', expectedPanelRevision: 0, expectedSupplyRevision: 0 };
+  assert.equal(facilities.previewFacilityPanelPlacement(cityPanels[0], panelSupply, previewRequest).status, 'position-available');
+  assert.equal(facilities.previewFacilityPanelPlacement(cityPanels[0], panelSupply, { ...previewRequest, cellId: 'CP-3-2' }).status, 'position-unavailable');
+  assert.equal(panelSupply.supply.length, 6); assert.equal(cityPanels[0].placements.length, 1);
+}
+console.log(JSON.stringify({ panelHash: facilities.FOUNDERS_FACILITY_PANEL.contentHash, columns: 3, rows: 4, cells: 12, initialCoreCell: 'CP-3-2' }));
+console.log('PASS: compiled player panel, 2/3/4-player core positions, empty-cell preflight, orthogonal neighbors and no preview mutation');

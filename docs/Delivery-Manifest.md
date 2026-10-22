@@ -160,3 +160,19 @@
 修改 `packages/game-core/src/facilities/index.ts`、`packages/game-core/src/facilities/inventory.ts`、`scripts/check-facilities.mjs`、`README.md`、`docs/Facility-Colors-2026-10-22.md`、`docs/Facility-Faces-Review-2026-10-22.md`、`docs/DevLog.md` 和本清单。
 
 最终实际 verify：strict 类型、**1028/1028（13 个文件）**、构建通过；四项相关编译检查退出0。库存和设施供应独立实现，尚未接入 GameState/建设执行。原已确认数据/文本/摘要、ADR、依赖及项目版本不变，无 UI、联机、部署或对外发布。
+
+
+## 2026-10-23 玩家面板与位置预检增量
+
+新增可编辑文件（相对于仓库根目录）：
+
+- `packages/game-core/src/facilities/founders-player-panel.json`：12格、初始核心与来源。
+- `packages/game-core/src/facilities/panel-definition.ts`：Schema、类型、固定SHA、逻辑格位和十字邻接。
+- `packages/game-core/src/facilities/panel-state.ts`：核心初始化、归属交叉校验、位置预检与邻格查询。
+- `packages/game-core/src/facilities/panel.test.ts`：89项新测试。
+- `docs/Player-Panel-2026-10-23.md`：格位表、图片身份、规则依据、API及边界。
+- `docs/testing/player-panel-validation-2026-10-23.md`：实际执行与结果。
+
+修改 `packages/game-core/src/facilities/index.ts`、`scripts/check-facilities.mjs`、`README.md`、`docs/Facility-Faces-Review-2026-10-22.md`、`docs/Facility-Supply-2026-10-22.md`、`docs/DevLog.md` 和本清单。原图未改写，源码仓库仅保存来源身份/摘要与结构化事实。
+
+最终实际 **1117/1117（14个文件）**，strict类型、构建、四项相关编译检查通过；其中设施312、新增89。只完成逻辑面板与位置预检，未接入完整建设/GameState；原规则数据、存档格式、ADR、依赖及项目版本不变，无部署或对外发布。

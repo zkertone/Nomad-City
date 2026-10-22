@@ -63,3 +63,6 @@ const facilities = createFoundersFacilitySupply({
 `getFacilityInventoryReconciliation` 新增 readyForPhysicalSupplySetup=true；旧 readyForDeckSetup=false 仍表示完整可玩设施流程尚未实现。已生成实体牌库，不能继续将当前进度笼统写为“尚未生成实际设施牌库”。
 
 实际测试结果见 [验证记录](testing/facility-supply-validation-2026-10-22.md)。待完成：接入权威对局事务、建设/摆放与费用、入场效果、两人角色阶段移牌、明确牌堆耗尽处理、角色/样式与整局编排。静态卡面/数量/地图/事件原数据及摘要、Accepted ADR、项目版本和依赖均未更改，无 UI、联机、部署或发布。
+
+
+2026-10-23 后续：已新增 [玩家面板与位置预检](Player-Panel-2026-10-23.md)，用单一格位记录与本账本的实体归属进行严格交叉校验。两者仍是独立模块，完整建设事务及 GameState 接入未实现，补牌预检不冒充建设执行。
