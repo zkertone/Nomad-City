@@ -1,8 +1,8 @@
 {
   "catalogId": "founders-facility-face-transcriptions",
-  "schemaVersion": "1.0.0",
+  "schemaVersion": "2.0.0",
   "scope": "base-pictured-faces",
-  "reviewStatus": "ai-transcribed-awaiting-review",
+  "reviewStatus": "mixed-source-transcription",
   "executionReady": false,
   "sources": [
     {
@@ -67,12 +67,16 @@
               "kind": "text",
               "text": " 或 进行1次 探索。"
             }
-          ]
+          ],
+          "sourceRef": "facility-image-1",
+          "verificationStatus": "image-transcribed"
         }
       },
       "flavor": {
-        "status": "unreadable",
-        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+        "status": "transcribed",
+        "text": "从矿区回收的探索车辆正在进行细致的清洗，等待它的下一任主人。",
+        "sourceRef": "user-2026-10-22-facility-flavor-fulltext",
+        "verificationStatus": "user-provided"
       }
     },
     {
@@ -109,12 +113,16 @@
               "kind": "icon",
               "icon": "green-down-cube"
             }
-          ]
+          ],
+          "sourceRef": "facility-image-1",
+          "verificationStatus": "image-transcribed"
         }
       },
       "flavor": {
-        "status": "unreadable",
-        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+        "status": "transcribed",
+        "text": "“虽不及高多汀开拓军的前人来的谨慎，但这些新人拓荒者们勇气尚可。”",
+        "sourceRef": "user-2026-10-22-facility-flavor-fulltext",
+        "verificationStatus": "user-provided"
       }
     },
     {
@@ -145,7 +153,7 @@
           "segments": [
             {
               "kind": "icon",
-              "icon": "red-up-cube"
+              "icon": "red-green-up-down-cube"
             },
             {
               "kind": "text",
@@ -155,12 +163,16 @@
               "kind": "icon",
               "icon": "green-down-cube"
             }
-          ]
+          ],
+          "sourceRef": "facility-image-1",
+          "verificationStatus": "image-transcribed"
         }
       },
       "flavor": {
-        "status": "unreadable",
-        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+        "status": "transcribed",
+        "text": "“放心，把活儿交给专业的人。”",
+        "sourceRef": "user-2026-10-22-facility-flavor-fulltext",
+        "verificationStatus": "user-provided"
       }
     },
     {
@@ -193,12 +205,16 @@
               "kind": "text",
               "text": "可从余下的 延伸枢纽 中选择1张建造。"
             }
-          ]
+          ],
+          "sourceRef": "facility-image-1",
+          "verificationStatus": "image-transcribed"
         }
       },
       "flavor": {
-        "status": "unreadable",
-        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+        "status": "transcribed",
+        "text": "“本城的第一座物流港，愿其能为我们开辟一条......”",
+        "sourceRef": "user-2026-10-22-facility-flavor-fulltext",
+        "verificationStatus": "user-provided"
       }
     },
     {
@@ -239,12 +255,16 @@
               "kind": "text",
               "text": "。"
             }
-          ]
+          ],
+          "sourceRef": "facility-image-1",
+          "verificationStatus": "image-transcribed"
         }
       },
       "flavor": {
-        "status": "unreadable",
-        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+        "status": "transcribed",
+        "text": "“哥伦比亚重视开拓与研究，当然也重视在其背后支持的贸易系统。”",
+        "sourceRef": "user-2026-10-22-facility-flavor-fulltext",
+        "verificationStatus": "user-provided"
       }
     },
     {
@@ -341,12 +361,16 @@
               "kind": "text",
               "text": "。"
             }
-          ]
+          ],
+          "sourceRef": "facility-image-1",
+          "verificationStatus": "image-transcribed"
         }
       },
       "flavor": {
-        "status": "unreadable",
-        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+        "status": "transcribed",
+        "text": "“在这不一定能寻到最好的价格，但一定可以解你燃眉之急。”",
+        "sourceRef": "user-2026-10-22-facility-flavor-fulltext",
+        "verificationStatus": "user-provided"
       }
     },
     {
@@ -387,12 +411,16 @@
               "kind": "text",
               "text": "，并在通过的航道上放置1个影响力。"
             }
-          ]
+          ],
+          "sourceRef": "facility-image-1",
+          "verificationStatus": "image-transcribed"
         }
       },
       "flavor": {
-        "status": "unreadable",
-        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+        "status": "transcribed",
+        "text": "下层动力区关乎所有人的存亡，有必要对其进行翻修和改良。",
+        "sourceRef": "user-2026-10-22-facility-flavor-fulltext",
+        "verificationStatus": "user-provided"
       }
     },
     {
@@ -449,12 +477,16 @@
               "kind": "text",
               "text": "。"
             }
-          ]
+          ],
+          "sourceRef": "facility-image-1",
+          "verificationStatus": "image-transcribed"
         }
       },
       "flavor": {
-        "status": "unreadable",
-        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+        "status": "transcribed",
+        "text": "当开采平台发展为移动城市，会有人想起它简陋的过往吗？",
+        "sourceRef": "user-2026-10-22-facility-flavor-fulltext",
+        "verificationStatus": "user-provided"
       }
     },
     {
@@ -495,12 +527,16 @@
               "kind": "text",
               "text": "。"
             }
-          ]
+          ],
+          "sourceRef": "facility-image-1",
+          "verificationStatus": "image-transcribed"
         }
       },
       "flavor": {
-        "status": "unreadable",
-        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+        "status": "transcribed",
+        "text": "移动城市的优势既非武力，也非经济，而是可以躲避天灾的生产力。",
+        "sourceRef": "user-2026-10-22-facility-flavor-fulltext",
+        "verificationStatus": "user-provided"
       }
     },
     {
@@ -537,15 +573,16 @@
               "kind": "icon",
               "icon": "iron"
             }
-          ]
+          ],
+          "sourceRef": "facility-image-3",
+          "verificationStatus": "image-transcribed"
         }
       },
       "flavor": {
-        "status": "partial",
-        "fragments": [
-          "承受在这片大地的苦难而不变质。"
-        ],
-        "reason": "照片中的部分字形或标点无法可靠辨认；不补全缺字。"
+        "status": "transcribed",
+        "text": "少有人造物可以像异铁块一样，承受着这片大地的苦难而不变质。",
+        "sourceRef": "user-2026-10-22-facility-flavor-fulltext",
+        "verificationStatus": "user-provided"
       }
     },
     {
@@ -582,12 +619,16 @@
               "kind": "icon",
               "icon": "originium"
             }
-          ]
+          ],
+          "sourceRef": "facility-image-3",
+          "verificationStatus": "image-transcribed"
         }
       },
       "flavor": {
         "status": "transcribed",
-        "text": "现在，移动城市有了跳动的心脏。"
+        "text": "现在，移动城市有了跳动的心脏。",
+        "sourceRef": "user-2026-10-22-facility-flavor-fulltext",
+        "verificationStatus": "user-provided"
       }
     },
     {
@@ -624,15 +665,16 @@
               "kind": "icon",
               "icon": "orirock"
             }
-          ]
+          ],
+          "sourceRef": "facility-image-3",
+          "verificationStatus": "image-transcribed"
         }
       },
       "flavor": {
-        "status": "partial",
-        "fragments": [
-          "源石是移动城市不断流动的血液"
-        ],
-        "reason": "照片中的部分字形或标点无法可靠辨认；不补全缺字。"
+        "status": "transcribed",
+        "text": "假若精炼源石是移动城市不断流动的血液，那提纯源岩便是坚实的肌肉。",
+        "sourceRef": "user-2026-10-22-facility-flavor-fulltext",
+        "verificationStatus": "user-provided"
       }
     },
     {
@@ -660,12 +702,16 @@
         "uniqueMarker": true,
         "transcription": {
           "status": "transcribed",
-          "segments": []
+          "segments": [],
+          "sourceRef": "facility-image-3",
+          "verificationStatus": "image-transcribed"
         }
       },
       "flavor": {
-        "status": "unreadable",
-        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+        "status": "transcribed",
+        "text": "行政体系的建立能够解决各种问题，特别是在这片正待开垦的荒原之上。",
+        "sourceRef": "user-2026-10-22-facility-flavor-fulltext",
+        "verificationStatus": "user-provided"
       }
     },
     {
@@ -698,15 +744,16 @@
               "kind": "text",
               "text": "选择1个十字相邻的非彩色设施，结算其入场效果。"
             }
-          ]
+          ],
+          "sourceRef": "facility-image-3",
+          "verificationStatus": "image-transcribed"
         }
       },
       "flavor": {
-        "status": "partial",
-        "fragments": [
-          "日以继夜地运作着，一刻不停。"
-        ],
-        "reason": "照片中的部分字形或标点无法可靠辨认；不补全缺字。"
+        "status": "transcribed",
+        "text": "通过源源不断的能源供应，移动城市上的设施日以继夜地运作着，一刻不停。",
+        "sourceRef": "user-2026-10-22-facility-flavor-fulltext",
+        "verificationStatus": "user-provided"
       }
     },
     {
@@ -733,16 +780,22 @@
         "entryMarker": true,
         "uniqueMarker": true,
         "transcription": {
-          "status": "partial",
-          "fragments": [
-            "本回合收尾阶段传递起始玩家标记时，由你获得该标记。"
+          "status": "transcribed",
+          "segments": [
+            {
+              "kind": "text",
+              "text": "本回合收尾阶段传递起始玩家标记时，由你获得该标记。（只有本回合最后被建设的联邦理事处效果会生效）"
+            }
           ],
-          "reason": "照片中的部分字形或标点无法可靠辨认；不补全缺字。"
+          "sourceRef": "user-2026-10-22-facility-effect-fulltext",
+          "verificationStatus": "user-provided"
         }
       },
       "flavor": {
-        "status": "unreadable",
-        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+        "status": "transcribed",
+        "text": "尽管拓荒队之间各自为政，但依旧在一些方面受制于哥伦比亚当局。",
+        "sourceRef": "user-2026-10-22-facility-flavor-fulltext",
+        "verificationStatus": "user-provided"
       }
     },
     {
@@ -775,15 +828,16 @@
               "kind": "icon",
               "icon": "construction-crane"
             }
-          ]
+          ],
+          "sourceRef": "facility-image-3",
+          "verificationStatus": "image-transcribed"
         }
       },
       "flavor": {
-        "status": "partial",
-        "fragments": [
-          "并维护工人的个人利益。"
-        ],
-        "reason": "照片中的部分字形或标点无法可靠辨认；不补全缺字。"
+        "status": "transcribed",
+        "text": "“我们提供高规格的防护，有效的抑制剂，并维护工人的个人利益。”",
+        "sourceRef": "user-2026-10-22-facility-flavor-fulltext",
+        "verificationStatus": "user-provided"
       }
     },
     {
@@ -808,12 +862,16 @@
               "kind": "text",
               "text": "延伸枢纽只能通过物流枢纽的效果建造。"
             }
-          ]
+          ],
+          "sourceRef": "facility-image-4",
+          "verificationStatus": "image-transcribed"
         }
       },
       "flavor": {
-        "status": "unreadable",
-        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+        "status": "transcribed",
+        "text": "......源石与工业之路。",
+        "sourceRef": "user-2026-10-22-facility-flavor-fulltext",
+        "verificationStatus": "user-provided"
       }
     },
     {
@@ -832,18 +890,132 @@
         "entryMarker": false,
         "uniqueMarker": false,
         "transcription": {
-          "status": "partial",
-          "fragments": [
-            "放置在设施面板的初始位置上。"
+          "status": "transcribed",
+          "segments": [
+            {
+              "kind": "text",
+              "text": "设置玩家面板时，放置在设施面板的初始位置上。"
+            }
           ],
-          "reason": "照片中的部分字形或标点无法可靠辨认；不补全缺字。"
+          "sourceRef": "user-2026-10-22-facility-effect-fulltext",
+          "verificationStatus": "user-provided"
         }
       },
       "flavor": {
-        "status": "unreadable",
-        "reason": "照片小字模糊，尚不能可靠逐字转录。"
+        "status": "transcribed",
+        "text": "启航的第一盏信号灯在塔顶点亮。",
+        "sourceRef": "user-2026-10-22-facility-flavor-fulltext",
+        "verificationStatus": "user-provided"
       }
     }
   ],
-  "contentHash": "sha256:2b8220fa4df10ad8c949b43720d38bd61b27269e4179b021e7bcdcbd32cc9e21"
+  "textSources": [
+    {
+      "id": "user-2026-10-22-facility-flavor-fulltext",
+      "kind": "user-message",
+      "description": "负责人逐项提供18种基础设施的完整风味文字，包含原标点与省略号。"
+    },
+    {
+      "id": "user-2026-10-22-facility-effect-fulltext",
+      "kind": "user-message",
+      "description": "负责人补充联邦理事处括号限制及核心指挥塔的完整说明。"
+    }
+  ],
+  "rulesSource": {
+    "id": "rules-20230803",
+    "filename": "游城拓荒铸基者-规则书20230803.pdf",
+    "sha256": "6b87c026e317606de2324276ff117480b8e104f5b925a21d43b95af176ddbf42"
+  },
+  "iconLegend": [
+    {
+      "icon": "red-up-cube",
+      "meaning": "place-influence",
+      "label": "放置1个影响力",
+      "sourcePages": [
+        5
+      ]
+    },
+    {
+      "icon": "blue-right-cube",
+      "meaning": "move-influence",
+      "label": "移动1个影响力",
+      "sourcePages": [
+        6
+      ]
+    },
+    {
+      "icon": "green-down-cube",
+      "meaning": "remove-influence",
+      "label": "移除1个影响力",
+      "sourcePages": [
+        14
+      ]
+    },
+    {
+      "icon": "red-green-up-down-cube",
+      "meaning": "replace-influence",
+      "label": "替换1个影响力",
+      "sourcePages": [
+        7,
+        14
+      ]
+    },
+    {
+      "icon": "city-right-arrow",
+      "meaning": "city-move",
+      "label": "城市移动",
+      "sourcePages": [
+        7
+      ]
+    },
+    {
+      "icon": "construction-crane",
+      "meaning": "construct",
+      "label": "建设",
+      "sourcePages": [
+        7
+      ]
+    },
+    {
+      "icon": "orirock",
+      "meaning": "resource-orirock",
+      "label": "源岩",
+      "sourcePages": [
+        4
+      ]
+    },
+    {
+      "icon": "originium",
+      "meaning": "resource-originium",
+      "label": "源石",
+      "sourcePages": [
+        4
+      ]
+    },
+    {
+      "icon": "iron",
+      "meaning": "resource-iron",
+      "label": "异铁",
+      "sourcePages": [
+        4
+      ]
+    },
+    {
+      "icon": "pure-originium",
+      "meaning": "resource-pure-originium",
+      "label": "至纯源石",
+      "sourcePages": [
+        4
+      ]
+    },
+    {
+      "icon": "voucher",
+      "meaning": "currency-voucher",
+      "label": "哥伦比亚金券",
+      "sourcePages": [
+        4
+      ]
+    }
+  ],
+  "contentHash": "sha256:840edd051e9c8a97377a0419cf64d663b35d68a2fcd861b5f288560ac6ab614e"
 }

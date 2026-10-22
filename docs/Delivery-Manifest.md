@@ -130,3 +130,18 @@
 修改 `packages/game-core/src/facilities/index.ts`、`scripts/check-facilities.mjs`、`README.md`、`docs/Card-Image-Intake-2026-10-22.md`、`docs/Facility-Colors-2026-10-22.md`、`docs/DevLog.md` 和本清单。原数量 JSON、Schema 与摘要不变，未复制整套卡面图。
 
 实际最终 verify：strict 类型、**905/905（12 个文件）**、构建通过；四项相关编译包检查退出 0，初次 99/100 的失败与修正已记录。新转录状态为待复核，2 处效果及 17 份风味仍未完整，图片适用范围不推到其他颜色版本；没有设施执行器、UI、联网、部署或发布。
+
+
+## 2026-10-22 用户全文与行动图标修正增量
+
+修改可编辑文件（仓库相对路径）：
+
+- `packages/game-core/src/facilities/founders-faces.json`：18 份风味与两条完整说明、逐字段来源、规则书图标语义；格式 2.0.0。
+- `packages/game-core/src/facilities/faces-schema.ts`：用户/图片来源区分、严格语义词典与来源交叉验证、相关只读类型。
+- `packages/game-core/src/facilities/faces-hash.ts`：v2 规范化及全部新增字段的内容摘要。
+- `packages/game-core/src/facilities/faces.ts`：固定基准、新图标含义/可读效果查询及当前进度。
+- `packages/game-core/src/facilities/faces.test.ts`：更新原 47 项并新增 48 项全文与语义回归测试。
+- `scripts/check-facilities.mjs`：编译后的新 API、原文和语义检查。
+- `README.md`、`docs/Facility-Faces-Review-2026-10-22.md`、`docs/Card-Image-Intake-2026-10-22.md`、`docs/testing/facility-faces-validation-2026-10-22.md`、`docs/DevLog.md` 和本清单：当前转录、来源、真实验证及历史更正。
+
+最新实际 **148/148（2 个设施文件）**、strict 类型、构建及四项相关编译检查通过；此次未重跑全量游戏测试。效果区/风味均 18/18，缺字 0；不代表建设或设施行动执行完成。没有新依赖、架构变更、部署或对外发布。

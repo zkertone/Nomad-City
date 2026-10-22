@@ -2,10 +2,10 @@ import data from './founders-faces.json' with { type: 'json' };
 import { deepFreeze } from '../board/hash.js';
 import { getFacilityCopyCountRecords } from './inventory.js';
 import { facilityFacesCatalogSchema } from './faces-schema.js';
-import type { FacilityFaceTranscription, FacilityFacesCatalog } from './faces-schema.js';
+import type { FacilityFaceTranscription, FacilityFacesCatalog, FacilityIconMeaning } from './faces-schema.js';
 import { computeFacilityFacesHash } from './faces-hash.js';
 
-export const FOUNDERS_FACILITY_FACES_HASH = 'sha256:2b8220fa4df10ad8c949b43720d38bd61b27269e4179b021e7bcdcbd32cc9e21';
+export const FOUNDERS_FACILITY_FACES_HASH = 'sha256:840edd051e9c8a97377a0419cf64d663b35d68a2fcd861b5f288560ac6ab614e';
 export type FacilityFacesValidationResult =
   | { readonly success: true; readonly catalog: FacilityFacesCatalog }
   | { readonly success: false; readonly issues: readonly string[] };
@@ -36,6 +36,22 @@ export function getFoundersFacilityFace(id: string): FacilityFaceTranscription {
   const face = FOUNDERS_FACILITY_FACES.facilities.find(row => row.id === id);
   if (!face) throw new RangeError(`Unknown base facility face: ${id}`);
   return face;
+}
+/** Meanings describe the symbol. They grant no action window, targets, payment exemption or state mutation. */
+export function getFacilityIconMeaning(icon: string): FacilityIconMeaning {
+  const meaning = FOUNDERS_FACILITY_FACES.iconLegend.find(row => row.icon === icon);
+  if (!meaning) throw new RangeError(`Unknown facility icon: ${icon}`);
+  return meaning;
+}
+/** Human-readable rule terms, rather than color/shape labels. Single move symbols stay single moves. */
+export function getFacilityEffectText(id: string): string {
+  const effect = getFoundersFacilityFace(id).effect;
+  const markers = [effect.entryMarker ? '入场' : '', effect.uniqueMarker ? '唯一' : ''].filter(Boolean);
+  const value = effect.transcription;
+  const body = value.status === 'transcribed'
+    ? value.segments.map(segment => segment.kind === 'text' ? segment.text : `〔${getFacilityIconMeaning(segment.icon).label}〕`).join('')
+    : value.status === 'partial' ? `${value.fragments.join(' / ')}（部分可读）` : '待辨认';
+  return [...markers, body].filter(Boolean).join('；');
 }
 /** Explicit progress prevents stored partial/unknown text from being reported as completed rules. */
 export function getFacilityFaceTranscriptionProgress() {
