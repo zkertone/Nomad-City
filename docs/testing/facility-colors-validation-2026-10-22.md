@@ -1,3 +1,5 @@
+> **语义更正：以下 853/853、49/49 为历史执行结果，当时采用的“颜色格数”解释错误。用户现已明确这些数字是设施实体个数，历史测试通过不代表该解释或牌库总数正确。当前结果见文末更正记录。**
+
 # 设施颜色与数量确认验证 · 2026-10-22
 
 基线：main `73a5f997e22e36b8dde665888450d8a72e38f410`。Node v24.19.0、npm 11.9.0，TypeScript 5.9.3、Zod 4.6.7、Vitest 5.0.4；锁文件不变。
@@ -39,3 +41,31 @@
 ## 后续补充：核心指挥塔虹色
 
 用户随后确认其颜色为虹色。新增独立颜色身份记录 color=rainbow、colorCellCount=null，保持 physicalCopyCount=4；原 20 条完整格数和内容摘要未变。执行 `npm run typecheck && npm test -- packages/game-core/src/facilities/facilities.test.ts && npm run build && node scripts/check-facilities.mjs` 退出 0：设施定向 **49/49**，类型、构建及编译检查通过。未在此次小增量重新执行全量 853 项测试。
+
+
+## 当前更正：数字为实体个数，清单包含企业扩展
+
+用户明确此前数字为个数，AI 的格数解释错误，已撤回。数据改为 copyCountsByColor，静态 Schema 2.0.0 拒绝旧格数字段；scope=mixed-edition-inventory-report，不与 GameState 版本混淆。完整保留原始数字，20 项合计 53、核心指挥塔另 4，总计 57。
+
+用户进一步说明部分设施来自企业扩展。视觉核对基础规则书 p15/p16（新增 3 张设施）及企业办事处 E 标，按用户清单将其 3 张识别为企业扩展。临时聚居点和罗德岛办事处各 3 张有 O 标识，其含义未确认，保持 unresolved。剩余基础候选 48 仅是计数吻合，不能反推每张归属；readyForDeckSetup=false。
+
+实际执行：初次更正过程中主动中断尚在类型检查的运行（退出 130），先同步版本反例从新有效版本 2.0.0 改为无效 3.0.0。随后数量更正的定向 51/51、strict 类型及构建通过；收到企业扩展范围补充后新增分组测试，最终执行：
+
+`npm run typecheck && npm test -- packages/game-core/src/facilities/facilities.test.ts && npm run build && node scripts/check-facilities.mjs`
+
+退出 0，**52/52（1 个文件）**、strict 类型检查、构建和编译包检查通过，Vitest 2.65 秒。检查混合数量 57、企业 3、O 标未定 6、剩余候选 48、原始数值保持、旧格数格式拒绝、不授权开局，以及固定摘要和逐项转录。此次没有重跑全量游戏测试，不宣称新增后的全套测试已全部执行。
+
+当前数量格式摘要：`sha256:3b5855b9375089d02ebd26d6825d4e7528b37f65e066d5a52982a7f187a77987`。原格数格式/摘要已停用。全量历史结果与旧解释分开保存；测试通过不能代替对 O 标识的规则确认。
+
+最终构建后原地图、事件和对局编译检查也实际执行并退出 0，原有摘要与逐枚守恒保持不变。
+
+
+## 最终确认：E 企业，O《感染者》，数量已对齐
+
+用户明确 E=企业扩展、O=DLC《感染者》。将企业办事处 3 张归 enterprise，临时聚居点/罗德岛办事处各 3 张归 infected，基础版 48（普通设施 41、核心指挥塔 4、延伸枢纽 3）。全部混合报告 57 无需修改原始数字，先前总数冲突及 O 未确定的阶段性结论已解决。
+
+数据状态 user-confirmed-copy-counts-and-editions；getFacilityCopyCountRecords() 默认仅基础版 18 种/48 张，显式传版别才查询扩展。totalsReconciled=true；readyForDeckSetup=false 仅因完整设施定义/执行未实现，不再表示数量冲突。
+
+最终实际执行 `npm run typecheck && npm test -- packages/game-core/src/facilities/facilities.test.ts && npm run build && node scripts/check-facilities.mjs` 退出 0：**53/53，1 个文件**，Vitest 1.65 秒，strict 类型、构建和根/子路径编译检查通过。新增默认基础版排除 E/O、显式版别查询、错误版别拒绝与混合原始数据不删减检查。此次未重跑全量游戏测试。
+
+最终摘要：`sha256:935420d88b603f20333ef399c4968f98e72ab30c41d715cf145f1380889b5e7d`。这是用户数量及版别记录的摘要；不代表扩展玩法、设施费用/效果/布局已经实现。

@@ -1,15 +1,17 @@
 {
-  "schemaVersion": "1.0.0",
-  "catalogId": "founders-facility-color-counts",
-  "verificationStatus": "user-confirmed-colors-only",
+  "schemaVersion": "2.0.0",
+  "catalogId": "founders-facility-copy-counts",
+  "verificationStatus": "user-confirmed-copy-counts-and-editions",
   "sourceRefs": [
-    "user-2026-10-22-facility-colors"
+    "user-2026-10-22-facility-colors",
+    "user-2026-10-22-facility-quantity-clarification",
+    "user-2026-10-22-e-enterprise-o-infected"
   ],
   "facilities": [
     {
       "id": "FAC-001",
       "name": "载具仓库",
-      "colorCellCounts": {
+      "copyCountsByColor": {
         "red": 3,
         "blue": 0,
         "yellow": 0,
@@ -19,7 +21,7 @@
     {
       "id": "FAC-002",
       "name": "护航调度中心",
-      "colorCellCounts": {
+      "copyCountsByColor": {
         "red": 2,
         "blue": 0,
         "yellow": 0,
@@ -29,7 +31,7 @@
     {
       "id": "FAC-003",
       "name": "佣兵指挥部",
-      "colorCellCounts": {
+      "copyCountsByColor": {
         "red": 3,
         "blue": 0,
         "yellow": 0,
@@ -39,7 +41,7 @@
     {
       "id": "FAC-004",
       "name": "物流枢纽",
-      "colorCellCounts": {
+      "copyCountsByColor": {
         "red": 0,
         "blue": 2,
         "yellow": 0,
@@ -49,7 +51,7 @@
     {
       "id": "FAC-005",
       "name": "城市化区域",
-      "colorCellCounts": {
+      "copyCountsByColor": {
         "red": 0,
         "blue": 3,
         "yellow": 0,
@@ -59,7 +61,7 @@
     {
       "id": "FAC-006",
       "name": "贸易街区",
-      "colorCellCounts": {
+      "copyCountsByColor": {
         "red": 0,
         "blue": 3,
         "yellow": 0,
@@ -69,7 +71,7 @@
     {
       "id": "FAC-007",
       "name": "高性能动力系统",
-      "colorCellCounts": {
+      "copyCountsByColor": {
         "red": 0,
         "blue": 0,
         "yellow": 2,
@@ -79,7 +81,7 @@
     {
       "id": "FAC-008",
       "name": "开采电铲",
-      "colorCellCounts": {
+      "copyCountsByColor": {
         "red": 0,
         "blue": 0,
         "yellow": 3,
@@ -89,7 +91,7 @@
     {
       "id": "FAC-009",
       "name": "城邦工业区",
-      "colorCellCounts": {
+      "copyCountsByColor": {
         "red": 0,
         "blue": 0,
         "yellow": 3,
@@ -99,7 +101,7 @@
     {
       "id": "FAC-010",
       "name": "异铁冶炼厂",
-      "colorCellCounts": {
+      "copyCountsByColor": {
         "red": 1,
         "blue": 1,
         "yellow": 0,
@@ -109,7 +111,7 @@
     {
       "id": "FAC-011",
       "name": "源石精炼厂",
-      "colorCellCounts": {
+      "copyCountsByColor": {
         "red": 0,
         "blue": 1,
         "yellow": 1,
@@ -119,7 +121,7 @@
     {
       "id": "FAC-012",
       "name": "固源岩提纯厂",
-      "colorCellCounts": {
+      "copyCountsByColor": {
         "red": 1,
         "blue": 0,
         "yellow": 1,
@@ -129,7 +131,7 @@
     {
       "id": "FAC-013",
       "name": "城邦行政区",
-      "colorCellCounts": {
+      "copyCountsByColor": {
         "red": 0,
         "blue": 0,
         "yellow": 0,
@@ -139,7 +141,7 @@
     {
       "id": "FAC-014",
       "name": "附属能源设施",
-      "colorCellCounts": {
+      "copyCountsByColor": {
         "red": 0,
         "blue": 0,
         "yellow": 0,
@@ -149,7 +151,7 @@
     {
       "id": "FAC-015",
       "name": "联邦理事处",
-      "colorCellCounts": {
+      "copyCountsByColor": {
         "red": 0,
         "blue": 0,
         "yellow": 0,
@@ -159,7 +161,7 @@
     {
       "id": "FAC-016",
       "name": "简陋工程营",
-      "colorCellCounts": {
+      "copyCountsByColor": {
         "red": 0,
         "blue": 0,
         "yellow": 0,
@@ -169,7 +171,7 @@
     {
       "id": "FAC-017",
       "name": "临时聚居点",
-      "colorCellCounts": {
+      "copyCountsByColor": {
         "red": 0,
         "blue": 0,
         "yellow": 0,
@@ -179,7 +181,7 @@
     {
       "id": "FAC-018",
       "name": "延伸枢纽",
-      "colorCellCounts": {
+      "copyCountsByColor": {
         "red": 1,
         "blue": 1,
         "yellow": 1,
@@ -189,7 +191,7 @@
     {
       "id": "FAC-019",
       "name": "罗德岛办事处",
-      "colorCellCounts": {
+      "copyCountsByColor": {
         "red": 1,
         "blue": 1,
         "yellow": 1,
@@ -199,7 +201,7 @@
     {
       "id": "FAC-020",
       "name": "企业办事处",
-      "colorCellCounts": {
+      "copyCountsByColor": {
         "red": 1,
         "blue": 1,
         "yellow": 1,
@@ -207,5 +209,6 @@
       }
     }
   ],
-  "contentHash": "sha256:6f036e1907f2eefe6b6cbb5f6a0ee1d01b0552e76da8581e567862e5e76e066a"
+  "scope": "mixed-edition-inventory-report",
+  "contentHash": "sha256:935420d88b603f20333ef399c4968f98e72ab30c41d715cf145f1380889b5e7d"
 }

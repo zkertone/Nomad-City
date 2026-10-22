@@ -12,7 +12,7 @@ function canonicalize(value: unknown): string {
 }
 export function canonicalFacilityColorCountsContent(input: FacilityColorCountsCatalog | UnsignedFacilityColorCountsCatalog): string {
   const { contentHash: _ignored, ...catalog } = input as FacilityColorCountsCatalog;
-  return canonicalize({ hashProtocol: 'nco-facility-colors-c14n-v1', catalog: {
+  return canonicalize({ hashProtocol: 'nco-facility-copies-c14n-v1', catalog: {
     ...catalog, facilities: [...catalog.facilities].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
   } });
 }

@@ -5,7 +5,7 @@ import { computeFacilityColorCountsHash } from './hash.js';
 import type { FacilityColorCountsCatalog, FacilityColorCountRecord } from './types.js';
 
 // Fixed independently of the contentHash supplied by the imported JSON.
-export const FOUNDERS_FACILITY_COLOR_COUNTS_HASH = 'sha256:6f036e1907f2eefe6b6cbb5f6a0ee1d01b0552e76da8581e567862e5e76e066a';
+export const FOUNDERS_FACILITY_COLOR_COUNTS_HASH = 'sha256:935420d88b603f20333ef399c4968f98e72ab30c41d715cf145f1380889b5e7d';
 export type FacilityColorCountsValidationResult =
   | { readonly success: true; readonly catalog: FacilityColorCountsCatalog }
   | { readonly success: false; readonly issues: readonly string[] };
@@ -15,7 +15,7 @@ export function validateFoundersFacilityColorCounts(input: unknown): FacilityCol
   const actual = computeFacilityColorCountsHash(parsed.data);
   const issues: string[] = [];
   if (actual !== parsed.data.contentHash) issues.push('Facility color counts hash mismatch');
-  if (actual !== FOUNDERS_FACILITY_COLOR_COUNTS_HASH) issues.push('Facility color counts differ from user-confirmed baseline');
+  if (actual !== FOUNDERS_FACILITY_COLOR_COUNTS_HASH) issues.push('Facility color counts differ from user-reported baseline');
   return issues.length ? { success: false, issues } : { success: true, catalog: deepFreeze(parsed.data) };
 }
 export function parseFoundersFacilityColorCounts(input: unknown): FacilityColorCountsCatalog {
@@ -27,6 +27,6 @@ export const FOUNDERS_FACILITY_COLOR_COUNTS: FacilityColorCountsCatalog = parseF
 /** FAC IDs are project identifiers, not official printed card numbers. */
 export function getFoundersFacilityColorCountRecord(id: string): FacilityColorCountRecord {
   const facility = FOUNDERS_FACILITY_COLOR_COUNTS.facilities.find(item => item.id === id);
-  if (!facility) throw new RangeError(`Unknown confirmed facility color record: ${id}`);
+  if (!facility) throw new RangeError(`Unknown reported facility count record: ${id}`);
   return facility;
 }
