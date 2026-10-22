@@ -91,3 +91,14 @@
 新增 `packages/game-core/src/game/scoring.ts`、`scoring.test.ts`，修改同目录 index.ts 导出；新增 `scripts/check-scoring.mjs` 与 package.json 命令。说明：[Base-Scoring-2026-10-18.md](Base-Scoring-2026-10-18.md)；实际验证：[base-scoring-validation-2026-10-18.md](testing/base-scoring-validation-2026-10-18.md)。更新 README、DevLog、采集后续进度和本清单。
 
 新增 56 项计分测试，总计 **805/805**，十项编译检查通过。仅提供只读派生查询，没有更改 GameState/存档格式、地图/事件数据及摘要、已确认文案、Accepted ADR、依赖锁或项目版本。正式收尾/终局执行、UI 与联机仍待完成。可编辑源文件继续保存在现有 GitHub 仓库，无部署或发布。
+
+
+## 2026-10-22 设施颜色与实体数量确认增量
+
+新增 `packages/game-core/src/facilities/` 的 founders-color-counts.json、schema.ts、types.ts、hash.ts、catalog.ts、inventory.ts、index.ts、facilities.test.ts，录入本批 20 项用户确认颜色及独立的核心指挥塔 4 张事实。修改根模块导出和 workspace package.json，新增 `/facilities` 子路径；新增 `scripts/check-facilities.mjs` 及 npm 命令。vitest.config.ts 调整共享环境的并发和超时设置，规则断言不变。
+
+清单：[Facility-Colors-2026-10-22.md](Facility-Colors-2026-10-22.md)；图片、去重和延伸枢纽补图：[Card-Image-Intake-2026-10-22.md](Card-Image-Intake-2026-10-22.md)；实际验证：[facility-colors-validation-2026-10-22.md](testing/facility-colors-validation-2026-10-22.md)。README 与 DevLog 同步。
+
+这批内容是静态事实，不代表建设、形状、样式或完整角色效果已经实现。原图未改写；源码不复制整套卡面图片。GameDefinition/GameState、地图/事件数据与摘要、此前已确认文案、Accepted ADR、依赖锁及项目版本保持原值。未部署或发布。
+
+设施增量最终实际验证：853/853（新增 48），strict 检查、构建和四项相关编译包检查通过；超时及中断记录已保留，没有将未完成运行算作通过。

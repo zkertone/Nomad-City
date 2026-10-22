@@ -28,6 +28,7 @@ npm run check:city-move
 npm run check:influence
 npm run check:harvest
 npm run check:scoring
+npm run check:facilities
 ```
 
 `npm run verify` 合并类型检查、Vitest 和构建。`npm run test:watch` 进入测试监视模式。核心不依赖 React、Three.js、NestJS 或数据库。依赖分别为 Zod 4.6.7、Vitest 5.0.4、TypeScript 5.9.3；`package-lock.json` 固定实际依赖树。
@@ -266,3 +267,13 @@ GameState 1.5.0 保留旧格式兼容；采集 complete 后拒绝重放和同轮
 新增 `getRegionControl`、`getResourceScoreBreakdown` 和 `getBaseScoringPreview`。按区块统计真实资源点/航道标记及城市 +2，并列无控制分；剩余资源按各自完整组计分。基础总分依次比较分数、金券、至纯源石，仍相同则保留并列领先者。预览不改余额、分数、回合或游戏状态，不能代替尚未实现的角色/城市样式收尾与正式终局。
 
 最新实际验证：**805/805 测试**（新增计分 56），strict 类型检查、构建及十项编译包检查通过。`npm run check:scoring` 验证 2/3/4 人真实入场/行动/采集后的只读预览；两人例中正确保留非起始玩家初始 3 分并以金券解开同分。规则依据、API 与边界见 [基础计分说明](docs/Base-Scoring-2026-10-18.md)，实际结果见 [验证记录](docs/testing/base-scoring-validation-2026-10-18.md)。当前仍为核心逻辑阶段，没有游戏 UI、3D 模型或联机。
+
+## 设施颜色事实增量 · 2026-10-22
+
+按项目负责人明确提供的清单录入 20 个设施类型的颜色格数，保存红/蓝/黄/虹四类，提供严格 Schema、唯一性检查、固定内容摘要和 `/facilities` 子模块。核心指挥塔的 **4 张**实体数量另行确认，其他张数保持未知。颜色格数不作为建造费用、分数或形状使用；尚未接入设施建设、布局和城市样式匹配。
+
+补充的延伸枢纽卡面已接收，记录了右上 -1 及“只能通过物流枢纽的效果建造”的原文。五个附件中 image(1)/image(2) 重复，去重为四份独立图片。角色/设施全部效果与风味文字仍待逐项转录和核对。
+
+逐项数据与摘要：[设施颜色](docs/Facility-Colors-2026-10-22.md)；图片与补图记录：[卡面接收](docs/Card-Image-Intake-2026-10-22.md)；实际执行结果：[验证记录](docs/testing/facility-colors-validation-2026-10-22.md)。`npm run check:facilities` 验证编译包与数量事实。
+
+本增量最终验证：**853/853 测试（新增设施 48）**、strict 检查和构建通过；编译后的设施/地图/事件/对局导入检查通过。共享环境下既有用例曾超过默认 5 秒，测试配置现限制 4 个文件并发、单项限时 30 秒，断言保持原样；实际经过见验证记录。
