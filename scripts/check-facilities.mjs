@@ -9,6 +9,8 @@ assert.equal(facilities.validateFoundersFacilityColorCounts(catalog).success, tr
 assert.deepEqual(facilities.getFoundersFacilityColorCountRecord('FAC-018').colorCellCounts, { red: 1, blue: 1, yellow: 1, rainbow: 0 });
 assert.deepEqual(facilities.getFoundersFacilityColorCountRecord('FAC-016').colorCellCounts, { red: 0, blue: 0, yellow: 0, rainbow: 2 });
 assert.equal(facilities.getConfirmedFacilityCopyCount('核心指挥塔'), 4);
+assert.equal(facilities.FOUNDERS_FACILITY_COLOR_CONFIRMATIONS[0].color, 'rainbow');
+assert.equal(facilities.FOUNDERS_FACILITY_COLOR_CONFIRMATIONS[0].colorCellCount, null);
 assert.equal(facilities.getConfirmedFacilityCopyCount('物流枢纽'), null);
 const changed = JSON.parse(JSON.stringify(catalog)); changed.facilities[0].colorCellCounts.red = 2;
 changed.contentHash = facilities.computeFacilityColorCountsHash(changed);

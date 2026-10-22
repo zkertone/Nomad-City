@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   FOUNDERS_FACILITY_COLOR_COUNTS, FOUNDERS_FACILITY_COLOR_COUNTS_HASH,
   FOUNDERS_FACILITY_COPY_COUNT_CONFIRMATIONS, getConfirmedFacilityCopyCount,
+  FOUNDERS_FACILITY_COLOR_CONFIRMATIONS,
   validateFoundersFacilityColorCounts, parseFoundersFacilityColorCounts, getFoundersFacilityColorCountRecord,
   facilityColorCountsCatalogSchema, computeFacilityColorCountsHash, canonicalFacilityColorCountsContent,
 } from './index.js';
@@ -114,4 +115,12 @@ describe('independent confirmed physical quantity', () => {
     for (const record of FOUNDERS_FACILITY_COLOR_COUNTS.facilities) expect(getConfirmedFacilityCopyCount(record.name)).toBeNull();
     expect(getConfirmedFacilityCopyCount('constructor')).toBeNull(); expect(getConfirmedFacilityCopyCount('toString')).toBeNull();
   });
+});
+
+
+it('records the core command tower as rainbow without inferring its cell count from four cards', () => {
+  expect(FOUNDERS_FACILITY_COLOR_CONFIRMATIONS).toEqual([{ facilityId: 'FAC-CORE-COMMAND-TOWER', facilityName: '核心指挥塔', color: 'rainbow', colorCellCount: null, sourceRef: 'user-2026-10-22-core-command-tower-color' }]);
+  expect(getConfirmedFacilityCopyCount('核心指挥塔')).toBe(4);
+  expect(FOUNDERS_FACILITY_COLOR_COUNTS.facilities).toHaveLength(20);
+  expect(Object.isFrozen(FOUNDERS_FACILITY_COLOR_CONFIRMATIONS[0])).toBe(true);
 });

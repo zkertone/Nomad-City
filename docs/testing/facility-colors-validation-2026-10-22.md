@@ -34,3 +34,8 @@
 颜色事实有 20 条，各类型取一份的颜色和为红 13、蓝 13、黄 13、虹 14，总计 53 格；不能据此认定物理牌库格数或每种设施张数。核心指挥塔 4 张仅来自用户补充，不由重复照片推导。
 
 内容摘要：`sha256:6f036e1907f2eefe6b6cbb5f6a0ee1d01b0552e76da8581e567862e5e76e066a`，规范化方式见设施颜色说明。本轮没有改变静态地图/事件数据、既有对局格式、Accepted ADR 或依赖锁，没有测试或宣称建设/样式/完整角色/收尾/UI/联机已完成。
+
+
+## 后续补充：核心指挥塔虹色
+
+用户随后确认其颜色为虹色。新增独立颜色身份记录 color=rainbow、colorCellCount=null，保持 physicalCopyCount=4；原 20 条完整格数和内容摘要未变。执行 `npm run typecheck && npm test -- packages/game-core/src/facilities/facilities.test.ts && npm run build && node scripts/check-facilities.mjs` 退出 0：设施定向 **49/49**，类型、构建及编译检查通过。未在此次小增量重新执行全量 853 项测试。

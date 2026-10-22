@@ -7,3 +7,9 @@ export const FOUNDERS_FACILITY_COPY_COUNT_CONFIRMATIONS = Object.freeze([
 export function getConfirmedFacilityCopyCount(facilityName: string): number | null {
   return FOUNDERS_FACILITY_COPY_COUNT_CONFIRMATIONS.find(fact => fact.facilityName === facilityName)?.physicalCopyCount ?? null;
 }
+
+/** Color identity confirmed separately from cell counts and physical quantities. */
+export const FOUNDERS_FACILITY_COLOR_CONFIRMATIONS = Object.freeze([
+  Object.freeze({ facilityId: 'FAC-CORE-COMMAND-TOWER', facilityName: '核心指挥塔', color: 'rainbow',
+    colorCellCount: null, sourceRef: 'user-2026-10-22-core-command-tower-color' } as const),
+]);
