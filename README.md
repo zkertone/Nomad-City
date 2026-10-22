@@ -274,7 +274,7 @@ GameState 1.5.0 保留旧格式兼容；采集 complete 后拒绝重放和同轮
 
 getFacilityCopyCountRecords() 默认仅返回基础版 18 种设施、48 个实体数量，排除 E 标企业办事处、O 标临时聚居点和罗德岛办事处。核心指挥塔为虹色 4 张。原始混合报告不删减，扩展仅记录版别和数量，当前不执行扩展玩法。
 
-设施静态格式 2.0.0 拒绝旧 colorCellCounts 字段；数量/版别已确认，totalsReconciled=true。新增卡面转录模块已记录照片中 18 种基础设施的分数、16 种普通设施的两套费用及可读效果；效果说明/风味全文已由用户补齐；跨颜色版本核对和摆放定义仍待完成。readyForDeckSetup=false，尚未生成实际设施牌库。游戏状态、地图、事件格式及依赖不变。
+设施静态格式 2.0.0 拒绝旧 colorCellCounts 字段；数量/版别已确认，totalsReconciled=true。新增卡面转录模块已记录照片中 18 种基础设施的分数、16 种普通设施的两套费用及可读效果；效果说明/风味全文已由用户补齐；跨颜色版本核对和摆放定义仍待完成。readyForPhysicalSupplySetup=true，已生成独立实体牌库与供应区；完整可玩流程 readyForDeckSetup=false。游戏状态、地图、事件格式及依赖不变。
 
 [逐项数量和版别](docs/Facility-Colors-2026-10-22.md)、[卡面接收](docs/Card-Image-Intake-2026-10-22.md)、[实际验证](docs/testing/facility-colors-validation-2026-10-22.md)。历史测试通过不代表先前错误格数解释正确。`npm run check:facilities` 验证修正后的数量和版本过滤。
 
@@ -291,3 +291,12 @@ getFacilityCopyCountRecords() 默认仅返回基础版 18 种设施、48 个实�
 
 
 图标现在可用 `getFacilityIconMeaning(icon)` 和 `getFacilityEffectText(id)` 查询规则含义。佣兵指挥部更正为“替换1个影响力或移除1个影响力”；单个蓝色箭头为移动1个影响力，不能误作完整调度（两次移动）。格式 2.0.0 及 SHA 协议 v2 将用户原文、逐字段来源和图标含义一并纳入固定基准；历史格式不会静默迁移为用户确认。详见上方逐项表和验证记录。
+
+
+## 设施实体牌库与供应区 · 2026-10-22
+
+新增 `FOUNDERS_FACILITY_STOCK`：按已确认数量生成 48 张独立实体牌，普通41/核心4/延伸3，不从不同颜色张数推断格数、费用或效果。`shuffleFoundersFacilityDeck(randomBelow)` 由服务器注入随机源；`createFoundersFacilitySupply` 接收服务器完整牌序，创建 2/3/4 人开局：供应区6、暗牌堆35、延伸预留3、每人1核心，未用核心另存。
+
+`validateFacilitySupplyState` 验证逐张守恒与正确分区；`replenishFacilitySupply` 是内部补牌原语，支持版本冲突检查，牌堆不足返回明确结果，不自行发明耗尽规则；`getFacilitySupplyPublicView` 仅公开暗牌数量，隐藏牌序。牌归属和补牌通过不代表某次建设已合法或入场效果已执行。该状态尚未接入 GameState，原对局/存档格式不变。
+
+`npm test -- packages/game-core/src/facilities` 运行全部设施测试；`npm run check:facilities` 构建并检查新模块导入；`npm run verify` 执行全量回归、strict 类型及构建。[模块说明与服务器随机源示例](docs/Facility-Supply-2026-10-22.md)，[实际验证](docs/testing/facility-supply-validation-2026-10-22.md)。建设/摆放/费用和入场执行、两人角色阶段选择移牌、整局编排仍待完成。

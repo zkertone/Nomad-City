@@ -40,7 +40,7 @@ export function getFacilityCopyCountRecords(edition: FacilityEdition = 'base') {
   records.push({ id: 'FAC-CORE-COMMAND-TOWER', name: '核心指挥塔', copyCountsByColor: { red: 0, blue: 0, yellow: 0, rainbow: 4 }, edition: 'base' });
   return deepFreeze(records.filter(record => record.edition === edition));
 }
-/** Counts are reconciled; a playable deck still requires complete facility definitions. */
+/** Physical supply setup is available; complete playable setup still requires geometry/effect integration. */
 export function getFacilityInventoryReconciliation() {
   const sum = (edition: FacilityEdition) => getFacilityCopyCountRecords(edition).reduce((total, record) => total + Object.values(record.copyCountsByColor).reduce((a, b) => a + b, 0), 0);
   const base = sum('base'), enterprise = sum('enterprise'), infected = sum('infected');
@@ -61,5 +61,5 @@ export function getFacilityInventoryReconciliation() {
     reported: { base, enterprise, infected, total: base + enterprise + infected },
     baseBreakdown: { ordinary: baseOrdinary, coreCommandTower, extensionHub },
     rules: { base: FOUNDERS_RULEBOOK_FACILITY_TOTALS.total, enterpriseAddition: FOUNDERS_RULEBOOK_ENTERPRISE_FACILITY_TOTAL.count },
-    countsByColor, totalsReconciled, readyForDeckSetup: false as const });
+    countsByColor, totalsReconciled, readyForPhysicalSupplySetup: totalsReconciled, readyForDeckSetup: false as const });
 }

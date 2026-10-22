@@ -55,3 +55,25 @@ assert.equal(facilities.getFacilityFaceTranscriptionProgress().flavor.partial, 0
 assert.equal(facilities.FOUNDERS_FACILITY_FACES.facilities.every(row => row.flavor.verificationStatus === 'user-provided'), true);
 assert.throws(() => facilities.getFacilityIconMeaning('constructor'), RangeError);
 console.log('PASS: semantic symbols, corrected replacement, single move, 18 user flavor texts, both supplied full instructions and field provenance');
+
+assert.equal(core.FOUNDERS_FACILITY_STOCK, facilities.FOUNDERS_FACILITY_STOCK);
+assert.equal(core.createFoundersFacilitySupply, facilities.createFoundersFacilitySupply);
+assert.equal(facilities.FOUNDERS_FACILITY_STOCK.cards.length, 48);
+assert.equal(facilities.getFacilityInventoryReconciliation().readyForPhysicalSupplySetup, true);
+const order = facilities.shuffleFoundersFacilityDeck(() => 0); // Deterministic test RNG only.
+for (const count of [2, 3, 4]) {
+  const state = facilities.createFoundersFacilitySupply({ gameId: `stock-check-${count}`, playerIds: Array.from({ length: count }, (_, n) => `p${n + 1}`), deckOrder: order });
+  assert.equal(facilities.validateFacilitySupplyState(state).success, true);
+  assert.equal(state.supply.length, 6); assert.equal(state.drawPile.length, 35);
+  assert.equal(state.extensionReserve.length, 3); assert.equal(state.unusedCoreTowers.length, 4 - count);
+  const view = facilities.getFacilitySupplyPublicView(state);
+  assert.equal(Object.hasOwn(view, 'drawPile'), false); assert.equal(view.drawPileCount, 35);
+  assert.equal(facilities.replenishFacilitySupply(state, 0).status, 'unchanged');
+}
+const physicalFixture = JSON.parse(JSON.stringify(facilities.createFoundersFacilitySupply({ gameId: 'refill-check', playerIds: ['p1', 'p2', 'p3'], deckOrder: order })));
+physicalFixture.returnedToBox.push(physicalFixture.supply.shift());
+const filled = facilities.replenishFacilitySupply(physicalFixture, 0);
+assert.equal(filled.status, 'replenished'); assert.equal(filled.state.supply.length, 6);
+assert.equal(filled.state.drawPile.length, 34); assert.equal(filled.state.revision, 1);
+console.log(JSON.stringify({ stockHash: facilities.FOUNDERS_FACILITY_STOCK.contentHash, physicalCards: 48, ordinary: 41, initialSupply: 6, initialDrawPile: 35, extensionReserve: 3 }));
+console.log('PASS: compiled physical stock, 2/3/4-player allocation, injected shuffle, conservation, public projection and internal refill');

@@ -145,3 +145,18 @@
 - `README.md`、`docs/Facility-Faces-Review-2026-10-22.md`、`docs/Card-Image-Intake-2026-10-22.md`、`docs/testing/facility-faces-validation-2026-10-22.md`、`docs/DevLog.md` 和本清单：当前转录、来源、真实验证及历史更正。
 
 最新实际 **148/148（2 个设施文件）**、strict 类型、构建及四项相关编译检查通过；此次未重跑全量游戏测试。效果区/风味均 18/18，缺字 0；不代表建设或设施行动执行完成。没有新依赖、架构变更、部署或对外发布。
+
+
+## 2026-10-22 设施实体牌库与供应区增量
+
+新增可编辑文件（相对于仓库根目录）：
+
+- `packages/game-core/src/facilities/stock.ts`：48 张实体牌定义、类型、Schema、逐项校验与固定摘要。
+- `packages/game-core/src/facilities/supply.ts`：开局分配、注入随机洗牌、运行时守恒、内部补牌和公开视图。
+- `packages/game-core/src/facilities/supply.test.ts`：75 项新测试。
+- `docs/Facility-Supply-2026-10-22.md`：规则依据、API、状态边界、摘要与服务器调用示例。
+- `docs/testing/facility-supply-validation-2026-10-22.md`：初期执行、类型错误修正与最终实际结果。
+
+修改 `packages/game-core/src/facilities/index.ts`、`packages/game-core/src/facilities/inventory.ts`、`scripts/check-facilities.mjs`、`README.md`、`docs/Facility-Colors-2026-10-22.md`、`docs/Facility-Faces-Review-2026-10-22.md`、`docs/DevLog.md` 和本清单。
+
+最终实际 verify：strict 类型、**1028/1028（13 个文件）**、构建通过；四项相关编译检查退出0。库存和设施供应独立实现，尚未接入 GameState/建设执行。原已确认数据/文本/摘要、ADR、依赖及项目版本不变，无 UI、联机、部署或对外发布。

@@ -6,3 +6,5 @@ export * from './inventory.js';
 export * from './faces-schema.js';
 export * from './faces-hash.js';
 export * from './faces.js';
+export * from './stock.js';
+export * from './supply.js';

@@ -70,3 +70,8 @@ getFacilityCopyCountRecords() 默认只返回基础版：18 种设施、48 个�
 
 
 卡面分数、费用和文本现另存于 [基础版卡面转录](Facility-Faces-Review-2026-10-22.md)；数量目录及其固定摘要没有因此改变。新的图片转录状态与这里已确认的实体数量、版别保持独立。
+
+
+## 实体牌库进度更新
+
+已新增 [设施实体牌库与供应区](Facility-Supply-2026-10-22.md)，按本页数量生成基础版 48 张独立牌，支持开局分配、守恒、补牌和隐藏牌序投影。readyForPhysicalSupplySetup=true；readyForDeckSetup=false 保留给尚未实现的完整设施玩法，不能再解读为数量不符或没有实体牌库。原数量数据、Schema 与固定摘要保持不变。
