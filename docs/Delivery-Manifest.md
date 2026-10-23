@@ -287,3 +287,59 @@
 修改packages/game-core/src/facilities下construction-spec.ts、construction.ts、construction.test.ts、index.ts；packages/game-core/src/game下influence.ts、liskarm-rules.ts、role-effects.ts；scripts/check-facilities.mjs能力断言；package.json仅新增check:facility-entries；README.md及docs/Facility-Construction-2026-10-23.md、Construction-Window-2026-10-23.md、Facility-Faces-Review-2026-10-22.md、Round-Flow-2026-10-23.md、DevLog.md和本清单。共6新增、16修改。
 
 实际定向156/156（旧85+新71）、全量1629/1629（21文件）、strict/构建及17项编译检查全部退出0。当前10类/23张匹配已拍颜色实体；不新增GameState版本，1.6.0–1.10.0继续兼容，效果不另存账本。原静态JSON/固定摘要/确认文本/GameDefinition/Accepted ADR/项目版本/依赖锁未改。嵌套入场、其余设施/颜色、城市样式和最终计分待完成，无UI/联机/部署或对外发布。
+
+
+## 2026-10-23 载具仓库完整入场增量
+
+新增仓库规则/API与真实验证文档、可恢复父子行动、共享探索执行引擎、目标费用查询、76项测试和编译包真实2/3/4人两分支检查。完整文件清单在下方按实际差异生成。
+
+最终实际1705/1705（22文件）、strict/构建和18项编译检查全部退出0；显式1.11.0、新分支选择/事件/末尾放置暂停均属于原一次建设，支持11类/26张。原静态数据/摘要/用户全文/GameDefinition/项目版本/依赖锁/Accepted ADR未改。其他设施/样式/最终计分/联机仍待完成，无UI、部署或对外发布。
+
+本增量实际新增7份、修改33份文件：
+
+新增：
+
+- `docs/Warehouse-Entries-2026-10-23.md`
+- `docs/testing/warehouse-validation-2026-10-23.md`
+- `packages/game-core/src/game/exploration-engine.ts`
+- `packages/game-core/src/game/warehouse-rules.ts`
+- `packages/game-core/src/game/warehouse.test.ts`
+- `packages/game-core/src/game/warehouse.ts`
+- `scripts/check-warehouse.mjs`
+
+修改：
+
+- `README.md`
+- `docs/Construction-Window-2026-10-23.md`
+- `docs/Delivery-Manifest.md`
+- `docs/DevLog.md`
+- `docs/Exploration-Flow-2026-10-18.md`
+- `docs/Facility-Construction-2026-10-23.md`
+- `docs/Facility-Faces-Review-2026-10-22.md`
+- `docs/Facility-Immediate-Entries-2026-10-23.md`
+- `docs/Game-State-Foundation-2026-10-17.md`
+- `docs/Round-Flow-2026-10-23.md`
+- `package.json`
+- `packages/game-core/src/facilities/construction-spec.ts`
+- `packages/game-core/src/facilities/construction.test.ts`
+- `packages/game-core/src/facilities/construction.ts`
+- `packages/game-core/src/facilities/entry-effects.ts`
+- `packages/game-core/src/game/city-move.ts`
+- `packages/game-core/src/game/construction-invariants.ts`
+- `packages/game-core/src/game/construction.test.ts`
+- `packages/game-core/src/game/construction.ts`
+- `packages/game-core/src/game/exploration-invariants.ts`
+- `packages/game-core/src/game/exploration.ts`
+- `packages/game-core/src/game/facility-entries.test.ts`
+- `packages/game-core/src/game/harvest.ts`
+- `packages/game-core/src/game/index.ts`
+- `packages/game-core/src/game/influence-actions.ts`
+- `packages/game-core/src/game/liskarm.ts`
+- `packages/game-core/src/game/role-effects.ts`
+- `packages/game-core/src/game/role-rules.ts`
+- `packages/game-core/src/game/round-invariants.ts`
+- `packages/game-core/src/game/round-schema.ts`
+- `packages/game-core/src/game/schema.ts`
+- `scripts/check-facilities.mjs`
+- `scripts/check-facility-entries.mjs`
+

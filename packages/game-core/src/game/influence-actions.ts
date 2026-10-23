@@ -27,7 +27,7 @@ function open(input: GameState, definition: GameDefinition, options: OpenInfluen
   const board = loadFoundersBoard(getFoundersMapSide(definition.players.length));
   const actorId = prepared.options.actorId;
   const possible = kind === 'deploy' ? availableInfluenceSlots(prepared.position, board, actorId).length : dispatchSourceSlots(prepared.position, board, actorId).length;
-  return parseGameState({ ...prepared.position, ...prepared.facilityFields, ...prepared.roundFields, schemaVersion: prepared.previousFormat === '1.10.0' ? '1.10.0' : prepared.previousFormat === '1.9.0' ? '1.9.0' : prepared.previousFormat === '1.8.0' ? '1.8.0' : prepared.previousFormat === '1.7.0' ? '1.7.0' : prepared.previousFormat === '1.6.0' ? '1.6.0' : prepared.previousFormat === '1.5.0' ? '1.5.0' : '1.4.0', stateVersion: prepared.stateVersion, phase: 'influence-action',
+  return parseGameState({ ...prepared.position, ...prepared.facilityFields, ...prepared.roundFields, schemaVersion: prepared.previousFormat === '1.11.0' ? '1.11.0' : prepared.previousFormat === '1.10.0' ? '1.10.0' : prepared.previousFormat === '1.9.0' ? '1.9.0' : prepared.previousFormat === '1.8.0' ? '1.8.0' : prepared.previousFormat === '1.7.0' ? '1.7.0' : prepared.previousFormat === '1.6.0' ? '1.6.0' : prepared.previousFormat === '1.5.0' ? '1.5.0' : '1.4.0', stateVersion: prepared.stateVersion, phase: 'influence-action',
     eventDecks: prepared.eventDecks, playerOrder: prepared.playerOrder,
     influenceAction: { kind, actorId, roundNumber: prepared.options.roundNumber, status: possible ? 'ready' : 'complete', operationsCompleted: 0 } }, definition);
 }

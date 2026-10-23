@@ -98,7 +98,7 @@ export function applyBaseRoleCommand(input: GameState, definition: GameDefinitio
   if (usesScheme && command.schemeChoice!.kind !== expectedScheme[command.roleId]) return reject('ROLE_CHOICES', 'Choice does not belong to this role scheme');
   if (state.stateVersion === Number.MAX_SAFE_INTEGER) return reject('VERSION_OVERFLOW', 'State version exhausted');
   const next = gameStateSchema.parse(state), actor = next.players[actorId]!, nextRoles = next.roundFlow!.rolesByPlayer.find(role => role.playerId === actorId)!;
-  if (state.schemaVersion === '1.10.0' && turn.majorActionStatus === 'complete') {
+  if (['1.10.0', '1.11.0'].includes(state.schemaVersion) && turn.majorActionStatus === 'complete') {
     next.roundFlow!.completedMajorAction = state.phase === 'exploration' ? 'explore' : state.phase === 'city-move' ? 'city-move'
       : state.phase === 'construction' ? 'construct' : state.influenceAction!.kind;
     delete next.exploration; delete next.cityMove; delete next.influenceAction; delete next.construction;

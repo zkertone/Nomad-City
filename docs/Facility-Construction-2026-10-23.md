@@ -73,3 +73,10 @@
 facilityConstructionCommandSchema.entryChoice增加移除列表、佣兵替换/移除分支和四资源出售数量，原开采电铲选择不变。报价增加entryChoiceKind，内部回执增加entryInfluenceChanges/entrySales，不另存权威状态；费用→拿牌/补牌→摆放→分数→入场顺序不变。缺失/错误目标、后段失败或溢出整次回滚。
 
 当前正式行动和回合层均能继续包含三种新设施；没有新增存档格式。10类也不表示全部设施完成，未拍颜色、嵌套入场与耗尽仍拒绝。真实1629/1629、17项编译检查见 [验证记录](testing/facility-immediate-entries-validation-2026-10-23.md)。
+
+
+## 同日后续：仓库父子行动，当前11类/26张
+
+[载具仓库](Warehouse-Entries-2026-10-23.md) 两种完整分支已执行。静态支持11类/26张，GameState中仓库必须显式1.11.0；其他旧设施和格式继续兼容。同步settleFacilityConstruction只返回完整已结算结果，仓库探索或待选分支以ENTRY_REQUIRES_CONTINUATION拒绝；可信beginFacilityConstruction可返回pendingEntry，并在receipt.entryStatus明确pending/complete，由父建设权威接口保存并继续。
+
+推荐先建设/补牌公开再选择入场，不要求玩家提前绑定未知信息后的决策；自愿预选分支仍可一并提交。失败边界按实际提交区分：同次建设/初始探索无效时全次回滚；已合法提交的建设/揭牌不因下一次无效选择撤销，保留原待选进度。阶段间不重复支付或拿牌。真实1705/1705和18项编译检查见新验证记录，其他嵌套设施仍未完成。

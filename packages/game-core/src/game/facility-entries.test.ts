@@ -87,9 +87,9 @@ function assertBuilt(f: Fixture, before: GameState, next: GameState) {
 }
 
 describe('source scope, runtime choices and construction quotes', () => {
-  it('reports ten complete pictured types and 23 physical cards while keeping the original face hash pinned', () => {
-    const support = getFacilityConstructionSupport(); expect(support.supportedFacilityIds).toEqual(['FAC-002', 'FAC-003', 'FAC-005', 'FAC-006', 'FAC-008', 'FAC-009', 'FAC-010', 'FAC-011', 'FAC-012', 'FAC-013']);
-    expect(support.supportedPhysicalCardIds).toHaveLength(23); expect(support.sourceHash).toBe(FOUNDERS_FACILITY_FACES_HASH); expect(support.allFacilitiesImplemented).toBe(false);
+  it('reports eleven complete pictured types and 26 physical cards while keeping the original face hash pinned', () => {
+    const support = getFacilityConstructionSupport(); expect(support.supportedFacilityIds).toEqual(['FAC-001', 'FAC-002', 'FAC-003', 'FAC-005', 'FAC-006', 'FAC-008', 'FAC-009', 'FAC-010', 'FAC-011', 'FAC-012', 'FAC-013']);
+    expect(support.supportedPhysicalCardIds).toHaveLength(26); expect(support.sourceHash).toBe(FOUNDERS_FACILITY_FACES_HASH); expect(support.allFacilitiesImplemented).toBe(false);
     expect(support.supportedPhysicalCardIds.filter(id => getFoundersPhysicalFacilityCard(id).facilityId === 'FAC-002')).toHaveLength(2);
     expect(support.supportedPhysicalCardIds.filter(id => getFoundersPhysicalFacilityCard(id).facilityId === 'FAC-003')).toHaveLength(3);
     expect(support.supportedPhysicalCardIds.filter(id => getFoundersPhysicalFacilityCard(id).facilityId === 'FAC-006')).toHaveLength(3);
@@ -233,7 +233,7 @@ describe('full construction atomicity, permissions, save formats and managed-rou
     const next = run(f, mercenary('remove'), state); expect(next.schemaVersion).toBe(format); expect(validateGameState(next, f.definition).success).toBe(true); expect(next).not.toHaveProperty('facilityEntry');
   });
   it('does not call a missing entry handler or permit unpictured variants after capability expansion', () => {
-    const f = fixture('FAC-001'); errorCode(() => run(f, removal([])), 'UNSUPPORTED_ENTRY_EFFECT');
+    const f = fixture('FAC-004'); errorCode(() => run(f, removal([])), 'UNSUPPORTED_ENTRY_EFFECT');
     const g = fixture('FAC-010'), state = gameStateSchema.parse(g.state), supply = state.facilities!.supply, blue = FOUNDERS_FACILITY_STOCK.cards.find(card => card.facilityId === 'FAC-010' && card.color === 'blue')!.id;
     const at = supply.drawPile.indexOf(blue); const replaced = supply.supply[0]!; supply.supply[0] = blue; supply.drawPile[at] = replaced;
     errorCode(() => applyConstructionCommand(state, g.definition, { authenticatedPlayerId: 'p1' }, { ...command(g, undefined, state), cardId: blue }), 'UNCONFIRMED_COLOR_VARIANT');

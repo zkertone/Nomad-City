@@ -1,14 +1,12 @@
-import { z } from 'zod';
-import { quoteRouteTolls } from './route-tolls.js';
 import type { RouteTollLeg } from './route-tolls.js';
 import { loadFoundersBoard } from '../board/index.js';
-import { resourceNodeIdSchema, routeIdSchema, slotIdSchema } from '../board/schema.js';
-import { getFoundersEventCard } from '../events/index.js';
-import { gameEntityIdSchema, gamePositionSchema, gameStateSchema } from './schema.js';
+import { gameStateSchema } from './schema.js';
 import { getFoundersMapSide, getGamePosition, parseGameState } from './state.js';
-import { finalExplorationSlots, redExplorationOpeningRound } from './exploration-rules.js';
-import { eventSettlementChoiceSchema, getEventChoiceRequirements, settleEventChoice, EventSettlementError } from './settlement.js';
-import type { DeepReadonly, GameDefinition, GameState } from './types.js';
+import { finalExplorationSlots } from './exploration-rules.js';
+import { getEventChoiceRequirements } from './settlement.js';
+import type { GameDefinition, GameState } from './types.js';
+import { explorationPlayerCommandSchema, quoteExplorationStep, resolveExplorationStep } from './exploration-engine.js';
+import type { ExplorationPathStep } from './exploration-engine.js';
 import { prepareActionWindow } from './action-window.js';
 import type { OpenActionWindowOptions } from './action-window.js';
 
@@ -16,20 +14,9 @@ export class ExplorationCommandError extends Error {
   constructor(readonly code: string, message: string) { super(message); this.name = 'ExplorationCommandError'; }
 }
 const reject = (code: string, message: string): never => { throw new ExplorationCommandError(code, message); };
-const versionSchema = z.number().int().nonnegative().safe();
 export type OpenExplorationWindowOptions = OpenActionWindowOptions;
-export const explorationPathStepSchema = z.strictObject({
-  routeId: routeIdSchema, toNodeId: resourceNodeIdSchema, payeePlayerId: gameEntityIdSchema.optional(),
-});
-const pathSchema = z.array(explorationPathStepSchema).min(1).max(22);
-export type ExplorationPathStep = DeepReadonly<z.infer<typeof explorationPathStepSchema>>;
-const envelope = { gameId: gameEntityIdSchema, expectedVersion: versionSchema };
-export const explorationPlayerCommandSchema = z.discriminatedUnion('type', [
-  z.strictObject({ ...envelope, type: z.literal('explore'), nodeId: resourceNodeIdSchema, path: pathSchema }),
-  z.strictObject({ ...envelope, type: z.literal('choose-exploration-event'), choice: eventSettlementChoiceSchema }),
-  z.strictObject({ ...envelope, type: z.literal('place-exploration-influence'), slotId: slotIdSchema }),
-]);
-export type ExplorationPlayerCommand = z.infer<typeof explorationPlayerCommandSchema>;
+export { explorationPathStepSchema, explorationPlayerCommandSchema } from './exploration-engine.js';
+export type { ExplorationPathStep, ExplorationPlayerCommand } from './exploration-engine.js';
 export interface ExplorationActorContext { readonly authenticatedPlayerId: string }
 export type ExplorationTollLeg = RouteTollLeg;
 export interface ExplorationTollQuote { readonly total: number; readonly legs: readonly ExplorationTollLeg[] }
@@ -45,7 +32,7 @@ function nextVersion(version: number): number {
  */
 export function openExplorationWindow(input: GameState, definition: GameDefinition, rawOptions: OpenExplorationWindowOptions): GameState {
   const prepared = prepareActionWindow(input, definition, rawOptions, reject);
-  return parseGameState({ ...prepared.position, ...prepared.facilityFields, ...prepared.roundFields, schemaVersion: prepared.previousFormat === '1.10.0' ? '1.10.0' : prepared.previousFormat === '1.9.0' ? '1.9.0' : prepared.previousFormat === '1.8.0' ? '1.8.0' : prepared.previousFormat === '1.7.0' ? '1.7.0' : prepared.previousFormat === '1.6.0' ? '1.6.0' : prepared.previousFormat === '1.5.0' ? '1.5.0' : prepared.previousFormat === '1.4.0' ? '1.4.0' : prepared.previousFormat === '1.3.0' ? '1.3.0' : '1.2.0',
+  return parseGameState({ ...prepared.position, ...prepared.facilityFields, ...prepared.roundFields, schemaVersion: prepared.previousFormat === '1.11.0' ? '1.11.0' : prepared.previousFormat === '1.10.0' ? '1.10.0' : prepared.previousFormat === '1.9.0' ? '1.9.0' : prepared.previousFormat === '1.8.0' ? '1.8.0' : prepared.previousFormat === '1.7.0' ? '1.7.0' : prepared.previousFormat === '1.6.0' ? '1.6.0' : prepared.previousFormat === '1.5.0' ? '1.5.0' : prepared.previousFormat === '1.4.0' ? '1.4.0' : prepared.previousFormat === '1.3.0' ? '1.3.0' : '1.2.0',
     stateVersion: prepared.stateVersion, phase: 'exploration', eventDecks: prepared.eventDecks, playerOrder: prepared.playerOrder,
     exploration: { actorId: prepared.options.actorId, roundNumber: prepared.options.roundNumber, status: 'ready',
       targetNodeId: null, cardId: null, resolvedChoiceId: null } }, definition);
@@ -61,25 +48,7 @@ function readyState(input: GameState, definition: GameDefinition, actorId: strin
 /** Ordered node/route walk from the actual city; coordinates and intermediate discovery never gate travel. */
 export function getExplorationTollQuote(input: GameState, definition: GameDefinition, actorId: string, nodeId: string, rawPath: readonly ExplorationPathStep[]): ExplorationTollQuote {
   const state = readyState(input, definition, actorId);
-  const board = loadFoundersBoard(getFoundersMapSide(definition.players.length));
-  const target = Object.hasOwn(board.resourceNodes, nodeId) ? board.resourceNodes[nodeId] : undefined;
-  if (!target || state.board.resourceMarkerByNode[nodeId] !== null) return reject('EXPLORATION_TARGET', 'Target must be an existing unexplored resource node');
-  if (target.redRestricted && state.exploration!.roundNumber < redExplorationOpeningRound(definition.players.length)) return reject('RED_CLOSED', 'Red target is not open this round');
-  const parsed = pathSchema.safeParse(rawPath);
-  if (!parsed.success) return reject('PATH_SCHEMA', parsed.error.message);
-  let current = state.board.cityNodeByPlayer[actorId]!;
-  const used = new Set<string>();
-  for (const step of parsed.data) {
-    const route = Object.hasOwn(board.routes, step.routeId) ? board.routes[step.routeId] : undefined;
-    if (!route || !route.incidentNodeIds.includes(current) || !route.incidentNodeIds.includes(step.toNodeId) || current === step.toNodeId) {
-      return reject('PATH_CONNECTION', 'Every step must use one route incident to both consecutive nodes');
-    }
-    // A route remains ONE identity even when revisited in the selected walk.
-    used.add(route.id);
-    current = step.toNodeId;
-  }
-  if (current !== nodeId) return reject('PATH_TARGET', 'Path must end at the selected target');
-  return quoteRouteTolls(state, board, actorId, [...used]);
+  return quoteExplorationStep(state, definition, state.exploration!, nodeId, rawPath, reject);
 }
 
 export function getExplorationFinalSlotIds(input: GameState, definition: GameDefinition, actorId: string): readonly string[] {
@@ -106,64 +75,8 @@ export function applyExplorationCommand(input: GameState, definition: GameDefini
   const progress = current.exploration;
   if (current.phase !== 'exploration' || !progress || progress.status === 'complete') return reject('ACTION_STAGE', 'No unfinished exploration grant');
   if (progress.actorId !== context.authenticatedPlayerId) return reject('WRONG_ACTOR', 'Only the granted actor may act');
-  const next = gameStateSchema.parse(current); const action = next.exploration!;
-  const board = loadFoundersBoard(getFoundersMapSide(definition.players.length));
-  switch (command.type) {
-    case 'explore': {
-      const quote = getExplorationTollQuote(current, definition, progress.actorId, command.nodeId, command.path);
-      if (next.players[progress.actorId]!.balances['columbia-voucher'] < quote.total) return reject('CANNOT_PAY', 'Road fees must be affordable before the event reward');
-      const node = board.resourceNodes[command.nodeId]!;
-      const cardId = next.eventDecks![node.eventDeckColor][0];
-      if (!cardId) return reject('EVENT_DECK', 'No eligible event remains');
-      const payees = new Map<string, string | null>();
-      for (const step of command.path) {
-        const leg = quote.legs.find(leg => leg.routeId === step.routeId)!;
-        const recipient = leg.amount === 0 || leg.toSupply ? null : step.payeePlayerId ?? (leg.recipientPlayerIds.length === 1 ? leg.recipientPlayerIds[0]! : undefined);
-        if (leg.amount === 0 || leg.toSupply) {
-          if (step.payeePlayerId !== undefined) return reject('TOLL_RECIPIENT', 'Free/supply route does not accept a player recipient');
-        } else if (!recipient || !leg.recipientPlayerIds.includes(recipient)) return reject('TOLL_RECIPIENT', 'Select an actual opposing influence owner on that route');
-        if (payees.has(step.routeId) && payees.get(step.routeId) !== recipient) return reject('TOLL_RECIPIENT', 'One route cannot have conflicting recipients');
-        payees.set(step.routeId, recipient ?? null);
-      }
-      next.players[progress.actorId]!.balances['columbia-voucher'] -= quote.total;
-      for (const leg of quote.legs) {
-        const payee = payees.get(leg.routeId);
-        if (leg.amount && payee) {
-          const player = next.players[payee]!;
-          const balance = player.balances['columbia-voucher'] + leg.amount;
-          if (!Number.isSafeInteger(balance)) return reject('BALANCE_OVERFLOW', 'Toll recipient exceeds safe integer range');
-          player.balances['columbia-voucher'] = balance;
-        }
-      }
-      next.eventDecks![node.eventDeckColor].shift();
-      const card = getFoundersEventCard(cardId);
-      next.board.resourceMarkerByNode[command.nodeId] = { markerDefinitionId: card.id, resourceKind: card.resourceMarker.resource, harvestAmount: card.resourceMarker.harvestAmount };
-      action.targetNodeId = command.nodeId; action.cardId = card.id; action.status = 'event-choice';
-      break;
-    }
-    case 'choose-exploration-event': {
-      if (progress.status !== 'event-choice') return reject('ACTION_STAGE', 'No unresolved event');
-      try {
-        const settled = settleEventChoice(getGamePosition(current, definition), definition,
-          { gameId: current.gameId, actorId: progress.actorId, nodeId: progress.targetNodeId!, cardId: progress.cardId! }, command.choice);
-        Object.assign(next, gamePositionSchema.parse(settled.position));
-      } catch (error) {
-        if (error instanceof EventSettlementError) return reject(error.code, error.message);
-        throw error;
-      }
-      action.resolvedChoiceId = command.choice.choiceId;
-      action.status = finalExplorationSlots(next, board, progress.actorId, progress.targetNodeId!).length ? 'final-influence' : 'complete';
-      break;
-    }
-    case 'place-exploration-influence': {
-      if (progress.status !== 'final-influence') return reject('ACTION_STAGE', 'No final placement is pending');
-      if (!getExplorationFinalSlotIds(current, definition, progress.actorId).includes(command.slotId)) return reject('FINAL_SLOT', 'Final influence must occupy a legal slot at the explored target');
-      const markerId = next.markerSupplyByPlayer[progress.actorId]!.shift()!;
-      next.board.influenceBySlot[command.slotId] = { markerId, ownerPlayerId: progress.actorId };
-      action.status = 'complete';
-      break;
-    }
-  }
+  const next = gameStateSchema.parse(current);
+  resolveExplorationStep(next, definition, next.exploration!, command, reject);
   next.stateVersion = nextVersion(current.stateVersion);
   return parseGameState(next, definition);
 }

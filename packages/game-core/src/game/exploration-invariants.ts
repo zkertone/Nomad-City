@@ -1,11 +1,13 @@
 import { FOUNDERS_EVENT_CATALOG } from '../events/index.js';
 import type { BoardDefinition, ValidationIssue } from '../board/types.js';
-import type { GameDefinition, GameState } from './types.js';
+import type { GameDefinition, GameState, ExplorationProgress } from './types.js';
 import { finalExplorationSlots, redExplorationOpeningRound } from './exploration-rules.js';
 
 export function explorationProgressIssues(state: GameState, definition: GameDefinition, board: BoardDefinition): ValidationIssue[] {
   if (state.phase !== 'exploration' || !state.exploration || !state.eventDecks) return [];
-  const progress = state.exploration;
+  return explorationProgressIssuesFor(state, state.exploration, definition, board);
+}
+export function explorationProgressIssuesFor(state: GameState, progress: ExplorationProgress, definition: GameDefinition, board: BoardDefinition): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const report = (path: string, message: string): void => { issues.push({ code: 'EXPLORATION_PROGRESS', path, message }); };
   if (!definition.players.some(player => player.id === progress.actorId)) report('exploration.actorId', 'Unknown action actor');

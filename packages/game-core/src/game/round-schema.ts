@@ -19,7 +19,7 @@ export const roundFlowSchema = z.strictObject({
   rolePlacementCount: z.number().int().min(0).max(4),
   turnIndex: z.number().int().min(0).max(8),
   majorActionOpened: z.boolean(),
-  // Only 1.10.0: retire a completed action before a subsequent quick role changes its facts.
+  // 1.10.0 and later: retire a completed action before a subsequent quick role changes its facts.
   completedMajorAction: z.enum(['deploy', 'dispatch', 'explore', 'city-move', 'construct']).nullable().optional(),
   rolesByPlayer: z.array(z.strictObject({
     playerId: z.string().min(1), hand: roleIds, discarded: roleIds, placed: baseRoleIdSchema.nullable(),

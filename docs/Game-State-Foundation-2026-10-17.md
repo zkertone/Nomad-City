@@ -101,3 +101,10 @@ GameDefinition 必须来自服务器持有的可信对局配置；不能让客�
 [三种剩余基础角色计谋](Remaining-Role-Schemes-2026-10-23.md) 通过enableRemainingBaseRoleEffects显式升级已验证1.9.0，保留已有角色、雷蛇义务和全部游戏事实。新格式要求roundFlow.completedMajorAction显式为null或动作类型，旧格式禁止该字段；角色在主要行动完成后使用时，结清并删除旧活动进度，以单个完成事实保留本轮额度，不能再授权动作。finish-player-turn/收尾清空，不复制活动进度、经济或标记账本。
 
 新计谋及其used记录仅1.10.0接受，旧1.0.0–1.9.0读取及默认入口保留；各动作、采集和雷蛇cleanup保持1.10.0。5张基础初始角色10/10模式已执行并测试，城市样式、完整设施、最终计分及服务端持久化仍待完成。实际1558/1558（20文件）、strict/构建及16项编译检查通过，GameDefinition、静态摘要和Accepted ADR未改。
+
+
+## 2026-10-23 后续格式1.11.0
+
+[载具仓库父子行动](Warehouse-Entries-2026-10-23.md) 通过enableWarehouseEntries显式从1.10.0升级，保留已有资源/设施/角色历史及当前动作。phase仍construction，新增entry-pending与可选warehouseEntry，包含branch-choice/event-choice/final-influence/complete/skipped及实际事件引用；actor/round不重复保存，顶层不能同时有exploration。
+
+推荐先提交合法建设/补牌，再让玩家选择分支/目标；已确定选择可自愿整次提交。各暂停点原子保存，下一次只结算当前步骤，不重收费/重抽牌。只有入场完成才能结束原一次主要行动；旧1.0.0–1.10.0拒绝伪造新字段/已建仓库，旧数据不自动补历史。现有动作、角色、雷蛇cleanup和采集保持1.11.0。GameDefinition、静态摘要及Accepted ADR不变，1705/1705和18项编译检查通过。

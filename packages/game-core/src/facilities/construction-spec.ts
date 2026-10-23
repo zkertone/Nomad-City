@@ -10,6 +10,7 @@ export class FacilityConstructionError extends Error {
 export const rejectFacilityConstruction = (code: string, message: string): never => { throw new FacilityConstructionError(code, message); };
 export type SupportedFacilityEntry =
   | { readonly kind: 'none' }
+  | { readonly kind: 'warehouse' }
   | { readonly kind: 'remove-two-influence' }
   | { readonly kind: 'replace-or-remove-influence' }
   | { readonly kind: 'sell-resources' }
@@ -17,6 +18,7 @@ export type SupportedFacilityEntry =
   | { readonly kind: 'choose-five-resources' }
   | { readonly kind: 'core-neighbor-vouchers' };
 const supported = deepFreeze([
+  { facilityId: 'FAC-001', entry: { kind: 'warehouse' } },
   { facilityId: 'FAC-002', entry: { kind: 'remove-two-influence' } },
   { facilityId: 'FAC-003', entry: { kind: 'replace-or-remove-influence' } },
   { facilityId: 'FAC-005', entry: { kind: 'core-neighbor-vouchers' } },
@@ -48,6 +50,6 @@ export function getFacilityConstructionSupport() {
     supportedPhysicalCardIds: FOUNDERS_FACILITY_STOCK.cards.filter(card => card.group === 'ordinary'
       && supported.some(row => row.facilityId === card.facilityId)
       && getFoundersFacilityFace(card.facilityId).observedColor === card.color).map(card => card.id),
-    sourceHash: FACILITY_CONSTRUCTION_SOURCE_HASH, allFacilitiesImplemented: false as const,
+    warehouseMinimumSnapshotVersion: '1.11.0', sourceHash: FACILITY_CONSTRUCTION_SOURCE_HASH, allFacilitiesImplemented: false as const,
   });
 }

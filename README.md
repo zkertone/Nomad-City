@@ -374,3 +374,12 @@ getFacilityCopyCountRecords() 默认仅返回基础版 18 种设施、48 个实�
 新增facilityEntryChoiceSchema和报价entryChoiceKind；回执记录实际影响力变化及出售明细，GameState不添加第二份账本或新格式。已支持1.6.0–1.10.0的设施状态继续读写；其余嵌套入场和未拍颜色仍明确拒绝，allFacilitiesImplemented=false。
 
 运行 `npm run verify`、`npm run check:facility-entries`；本轮真实 **1629/1629（21文件）**、strict/构建及17项编译检查全部通过，新增71项测试。新编译流程实际2/3/4人从入场、部署、雷蛇标记及德克萨斯收入完成三设施建设至下一回合。[规则与API](docs/Facility-Immediate-Entries-2026-10-23.md)，[实际验证](docs/testing/facility-immediate-entries-validation-2026-10-23.md)。下一步为载具仓库等嵌套入场行动，城市样式、剩余设施和最终计分仍待完成。
+
+
+## 载具仓库完整入场与恢复 · 2026-10-23
+
+载具仓库两分支已接入：放置1个再移动1个影响力，或正常付路费探索/事件/末尾放置。建设支持现为 **11类/26张匹配已拍颜色实体**。推荐entryChoice={kind:'warehouse-entry'}先完成建设和公开补牌，再通过choose-warehouse-entry决定分支与路径；也保留玩家自愿预选全部选择的一次提交方式。
+
+`enableWarehouseEntries` 显式1.10.0→**1.11.0**；branch-choice、event-choice、final-influence都可保存恢复，子进度只在父construction内，不增加主要行动、重复收费或抽牌。入场未完成时角色、轮次结束、旧行动窗口、采集及收尾均不能越过。旧格式继续读取，不补造仓库历史。
+
+运行 `npm run verify`、`npm run check:warehouse`；最终实际 **1705/1705（22文件）**、strict/构建及18项编译检查全部通过，新增76项测试。真实2/3/4人两分支均从原收入走到第2回合。[规则/API及1.11.0](docs/Warehouse-Entries-2026-10-23.md)，[真实验证与首轮断言修正](docs/testing/warehouse-validation-2026-10-23.md)。后续继续高性能动力系统免费移城与航道放置，其他设施/样式/最终计分仍待完成。

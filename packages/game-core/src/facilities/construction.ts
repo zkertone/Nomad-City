@@ -104,6 +104,7 @@ export function getFacilityConstructionQuote(input: unknown, definition: GameDef
 export interface FacilityConstructionReceipt {
   readonly actorId: string; readonly cardId: string; readonly facilityId: string; readonly cellId: string;
   readonly paymentMode: 'resources' | 'vouchers'; readonly paid: readonly ResourceCost[]; readonly orirockDiscount: number;
+  readonly entryStatus: 'pending' | 'complete';
   readonly points: number; readonly refilledCardIds: readonly string[];
   readonly entryInfluenceChanges: readonly FacilityEntryInfluenceChange[]; readonly entrySales: readonly ResourceSaleLine[];
   readonly entryGains: readonly { readonly asset: ResourceCost['asset']; readonly amount: number }[];
@@ -114,10 +115,11 @@ export interface FacilityConstructionResult { readonly state: FacilityConstructi
  * Atomic INTERNAL settlement. The future action owner must grant/consume the action once and CAS its outer GameState version.
  * Unsupported effects/variants fail before publishing any costs, placement, score or refill changes.
  */
-export function settleFacilityConstruction(input: unknown, definition: GameDefinition, context: FacilityConstructionContext, payload: unknown): FacilityConstructionResult {
+export interface FacilityConstructionStartResult extends FacilityConstructionResult { readonly pendingEntry: 'warehouse-exploration' | 'warehouse-choice' | null }
+export function beginFacilityConstruction(input: unknown, definition: GameDefinition, context: FacilityConstructionContext, payload: unknown): FacilityConstructionStartResult {
   const p = prepare(input, definition, context, payload);
   const choiceKind = requiredFacilityEntryChoiceKind(p.spec.entry);
-  if (choiceKind === null ? p.command.entryChoice !== undefined : p.command.entryChoice?.kind !== choiceKind) return reject('ENTRY_CHOICE', 'Provide exactly the choice kind required by this facility entry');
+  if (choiceKind === 'warehouse' ? !['warehouse-entry', 'warehouse-influence', 'warehouse-explore'].includes(p.command.entryChoice?.kind ?? '') : choiceKind === null ? p.command.entryChoice !== undefined : p.command.entryChoice?.kind !== choiceKind) return reject('ENTRY_CHOICE', 'Provide exactly the choice kind required by this facility entry');
   if (!canAffordResources(p.state.position.players[p.context.actorId]!.balances, p.costs)) return reject('CANNOT_PAY', 'All construction costs must be payable before entry rewards');
   const next = facilityConstructionPositionSchema.parse(p.state), actor = next.position.players[p.context.actorId]!;
   for (const cost of p.costs) actor.balances[cost.asset] -= cost.amount;
@@ -136,6 +138,7 @@ export function settleFacilityConstruction(input: unknown, definition: GameDefin
     if (!Number.isSafeInteger(actor.balances[asset] + amount)) return reject('BALANCE_OVERFLOW', 'Entry gain exceeds safe integer range');
     actor.balances[asset] += amount; if (amount) entryGains.push({ asset, amount });
   };
+  let pendingEntry: 'warehouse-exploration' | 'warehouse-choice' | null = null;
   switch (p.spec.entry.kind) {
     case 'none': break;
     case 'gain': gain(p.spec.entry.asset, p.spec.entry.amount); break;
@@ -146,8 +149,10 @@ export function settleFacilityConstruction(input: unknown, definition: GameDefin
       for (const asset of ['orirock', 'originium', 'iron'] as const) gain(asset, choice.gains[asset]);
       break;
     }
-    case 'remove-two-influence': case 'replace-or-remove-influence': case 'sell-resources': {
+    case 'warehouse': case 'remove-two-influence': case 'replace-or-remove-influence': case 'sell-resources': {
       const choice = p.command.entryChoice!;
+      if (choice.kind === 'warehouse-entry') { pendingEntry = 'warehouse-choice'; break; }
+      if (choice.kind === 'warehouse-explore') { pendingEntry = 'warehouse-exploration'; break; }
       if (choice.kind === 'resource-allocation') return reject('ENTRY_CHOICE', 'Wrong immediate entry choice');
       const entry = settleFacilityBoardOrSaleEntry(next.position, loadFoundersBoard(getFoundersMapSide(definition.players.length)), p.context.actorId, choice, reject);
       entryInfluenceChanges.push(...entry.influenceChanges); entrySales.push(...entry.sales);
@@ -156,9 +161,16 @@ export function settleFacilityConstruction(input: unknown, definition: GameDefin
     }
   }
   next.position = gamePositionSchema.parse(parseGamePosition(next.position, definition));
-  return deepFreeze({ state: parseFacilityConstructionPosition(next, definition), receipt: {
+  return deepFreeze({ pendingEntry, state: parseFacilityConstructionPosition(next, definition), receipt: {
     actorId: p.context.actorId, cardId: p.command.cardId, facilityId: p.spec.card.facilityId, cellId: p.command.cellId,
-    paymentMode: p.command.paymentMode, paid: p.costs, orirockDiscount: p.orirockDiscount, points: p.spec.face.printedScore,
+    entryStatus: pendingEntry ? 'pending' : 'complete', paymentMode: p.command.paymentMode, paid: p.costs, orirockDiscount: p.orirockDiscount, points: p.spec.face.printedScore,
     refilledCardIds: refill.drawnCardIds, entryGains, entryInfluenceChanges, entrySales, order: ['pay', 'take-and-refill', 'place', 'score', 'entry'],
   } });
+}
+
+/** Complete synchronous settlement only: callers cannot mistake a nested exploration for an executed entry. */
+export function settleFacilityConstruction(input: unknown, definition: GameDefinition, context: FacilityConstructionContext, payload: unknown): FacilityConstructionResult {
+  const result = beginFacilityConstruction(input, definition, context, payload);
+  if (result.pendingEntry) return reject('ENTRY_REQUIRES_CONTINUATION', 'Warehouse exploration needs the authoritative resumable construction owner');
+  return deepFreeze({ state: result.state, receipt: result.receipt });
 }

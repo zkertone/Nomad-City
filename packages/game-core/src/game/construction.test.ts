@@ -153,7 +153,7 @@ describe('single trusted construction window and authoritative snapshot', () => 
 
 describe('command boundary, failure atomicity and window guards', () => {
   it.each(['wrong-game', 'stale', 'other-player', 'unknown-player', 'card-source', 'occupied', 'unconfirmed-color', 'unsupported', 'cannot-pay', 'choice', 'state-overflow', 'panel-overflow', 'supply-overflow', 'gain-overflow', 'score-overflow'] as const)('rejects %s without consuming a grant or changing any ledger', problem => {
-    const f = problem === 'unconfirmed-color' ? fixture('FAC-010', 3, 'p1', 'blue') : problem === 'unsupported' ? fixture('FAC-001') : problem === 'gain-overflow' ? fixture('FAC-011') : fixture();
+    const f = problem === 'unconfirmed-color' ? fixture('FAC-010', 3, 'p1', 'blue') : problem === 'unsupported' ? fixture('FAC-004') : problem === 'gain-overflow' ? fixture('FAC-011') : fixture();
     const state = gameStateSchema.parse(f.state), payload: Record<string, unknown> = { ...f.command }; let actor = 'p1', expected = '';
     if (problem === 'wrong-game') { payload.gameId = 'other'; expected = 'GAME_REFERENCE'; }
     if (problem === 'stale') { payload.expectedVersion = state.stateVersion - 1; expected = 'STALE_VERSION'; }
@@ -307,7 +307,7 @@ describe('facility persistence across existing actions and snapshot validation',
   });
   it('rejects granting construction on a full panel without losing existing facilities', () => {
     const f = fixture(), state = gameStateSchema.parse(run(f)), facilities = state.facilities!, panel = facilities.panels[0]!;
-    const ids = getFacilityConstructionSupport().supportedPhysicalCardIds.filter(id => getFoundersPhysicalFacilityCard(id).facilityId !== 'FAC-013').slice(0, 10);
+    const ids = getFacilityConstructionSupport().supportedPhysicalCardIds.filter(id => !['FAC-001', 'FAC-013'].includes(getFoundersPhysicalFacilityCard(id).facilityId)).slice(0, 10);
     const cells = ['CP-1-2', 'CP-1-3', 'CP-2-1', 'CP-2-2', 'CP-2-3', 'CP-3-1', 'CP-3-3', 'CP-4-1', 'CP-4-2', 'CP-4-3'];
     // Physical full-panel fixture; not a claim of prior legal payment/action history.
     for (const [index, id] of ids.entries()) {

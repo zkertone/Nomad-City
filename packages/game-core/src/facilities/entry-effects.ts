@@ -2,13 +2,17 @@ import { z } from 'zod';
 import type { BoardDefinition } from '../board/types.js';
 import { slotIdSchema } from '../board/schema.js';
 import type { gamePositionSchema } from '../game/schema.js';
-import { replaceBoardInfluence, returnBoardInfluence } from '../game/influence.js';
+import { availableInfluenceSlots, dispatchSourceSlots, emptyInfluenceSlots, replaceBoardInfluence, returnBoardInfluence } from '../game/influence.js';
 import { sellStandardResources } from '../game/resource-sales.js';
 import type { ResourceSaleLine } from '../game/resource-sales.js';
 import type { SupportedFacilityEntry } from './construction-spec.js';
 
 const quantity = z.number().int().nonnegative().safe();
 export const facilityEntryChoiceSchema = z.discriminatedUnion('kind', [
+  z.strictObject({ kind: z.literal('warehouse-entry') }),
+  z.strictObject({ kind: z.literal('warehouse-explore') }),
+  z.strictObject({ kind: z.literal('warehouse-influence'), placeSlotId: slotIdSchema.optional(),
+    move: z.strictObject({ sourceSlotId: slotIdSchema, targetSlotId: slotIdSchema }).optional() }),
   z.strictObject({ kind: z.literal('resource-allocation'), gains: z.strictObject({
     orirock: z.number().int().min(0).max(5), originium: z.number().int().min(0).max(5), iron: z.number().int().min(0).max(5),
   }) }).refine(value => value.gains.orirock + value.gains.originium + value.gains.iron === 5, 'Must allocate exactly five resources in total'),
@@ -18,6 +22,7 @@ export const facilityEntryChoiceSchema = z.discriminatedUnion('kind', [
 ]);
 export function requiredFacilityEntryChoiceKind(entry: SupportedFacilityEntry) {
   switch (entry.kind) {
+    case 'warehouse': return 'warehouse';
     case 'choose-five-resources': return 'resource-allocation';
     case 'remove-two-influence': return 'remove-influence';
     case 'replace-or-remove-influence': return 'mercenary-influence';
@@ -33,7 +38,7 @@ type Choice = z.infer<typeof facilityEntryChoiceSchema>;
 type Reject = (code: string, message: string) => never;
 /** Internal synchronous effects only; the private construction transaction owns payment, cards and rollback. */
 export function settleFacilityBoardOrSaleEntry(position: MutablePosition, board: BoardDefinition, actorId: string,
-  choice: Exclude<Choice, { kind: 'resource-allocation' }>, reject: Reject) {
+  choice: Exclude<Choice, { kind: 'resource-allocation' | 'warehouse-explore' | 'warehouse-entry' }>, reject: Reject) {
   const influenceChanges: FacilityEntryInfluenceChange[] = [], sales: ResourceSaleLine[] = [];
   let saleProceeds = 0;
   const recordRemoval = (slotId: string) => {
@@ -50,7 +55,24 @@ export function settleFacilityBoardOrSaleEntry(position: MutablePosition, board:
     if (!occupied.includes(slotId)) return reject('REMOVAL_TARGET', 'Remove an existing board influence, not supply or score markers');
     recordRemoval(slotId); returnBoardInfluence(position, slotId);
   };
-  if (choice.kind === 'remove-influence') {
+  if (choice.kind === 'warehouse-influence') {
+    const slots = availableInfluenceSlots(position, board, actorId);
+    if (slots.length) {
+      if (!choice.placeSlotId || !slots.includes(choice.placeSlotId)) return reject('PLACEMENT_TARGET', 'Choose a legal slot for the executable warehouse placement');
+      const markerId = position.markerSupplyByPlayer[actorId]!.shift()!;
+      position.board.influenceBySlot[choice.placeSlotId] = { markerId, ownerPlayerId: actorId };
+      influenceChanges.push({ kind: 'place', slotId: choice.placeSlotId, markerId, ownerPlayerId: actorId });
+    } else if (choice.placeSlotId !== undefined) return reject('UNEXPECTED_PLACEMENT', 'Warehouse placement is impossible');
+    const sources = dispatchSourceSlots(position, board, actorId);
+    if (sources.length) {
+      if (!choice.move) return reject('MOVE_REQUIRED', 'An executable warehouse movement cannot be omitted');
+      if (!sources.includes(choice.move.sourceSlotId)) return reject('MOVE_SOURCE', 'Move your existing board influence');
+      if (!emptyInfluenceSlots(position, board, actorId).includes(choice.move.targetSlotId)) return reject('MOVE_TARGET', 'Move to a legal empty influence slot');
+      const marker = position.board.influenceBySlot[choice.move.sourceSlotId]!;
+      recordRemoval(choice.move.sourceSlotId); position.board.influenceBySlot[choice.move.sourceSlotId] = null; position.board.influenceBySlot[choice.move.targetSlotId] = marker;
+      influenceChanges.push({ kind: 'place', slotId: choice.move.targetSlotId, markerId: marker.markerId, ownerPlayerId: actorId });
+    } else if (choice.move !== undefined) return reject('UNEXPECTED_MOVE', 'Warehouse influence movement is impossible');
+  } else if (choice.kind === 'remove-influence') {
     for (let index = 0; index < 2; index++) remove(choice.slotIds[index]);
   } else if (choice.kind === 'mercenary-influence') {
     if (choice.effect === 'remove') remove(choice.slotId);
