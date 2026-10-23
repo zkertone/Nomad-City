@@ -72,3 +72,8 @@ GameDefinition 必须来自服务器持有的可信对局配置；不能让客�
 
 
 [部署与调度](Influence-Actions-2026-10-18.md) 再追加 1.4.0，记录当前 kind/actor/round/status/operationsCompleted，并支持之后的探索或城市移动。棋盘、余额、供给及 markerId 位置继续保持唯一。调度使用现存棋盘标记，因此目标空槽检查与“供给中是否有标记”分开；部署/事件/末尾放置仍要求实际供给。
+
+
+## 2026-10-23 后续格式1.6.0
+
+[建设行动窗口](Construction-Window-2026-10-23.md) 将已有设施供应/面板纳入单一GameState，并增加一次可信授权的construction阶段；余额仍只在players中保存。探索/城市移动/部署/调度/采集切换保留设施和1.6.0格式，全部阶段验证设施守恒。旧1.0.0–1.5.0按原结构继续读取，不自动补建未知设施历史。GameDefinition仍1.0.0，Accepted ADR未改；完整角色、回合顺序、两轮额度、服务器存储提交仍待完成。实际全量1277/1277与编译检查见 testing/construction-window-validation-2026-10-23.md。

@@ -191,3 +191,19 @@
 修改 `packages/game-core/src/facilities/index.ts`、`scripts/check-facilities.mjs`、`README.md`、`docs/Player-Panel-2026-10-23.md`、`docs/Facility-Supply-2026-10-22.md`、`docs/Facility-Faces-Review-2026-10-22.md`、`docs/DevLog.md` 和本清单。
 
 最终实际verify：strict类型、**1202/1202（15个文件）**、构建通过，四项相关编译包检查退出0。正式行动窗口/认证/额度、其他效果和颜色仍待完成，不宣称完整建设或网络入口已实现。原规则数据/摘要、存档格式、依赖及Accepted ADR不变，无部署或发布。
+
+
+## 2026-10-23 建设窗口与GameState 1.6.0增量
+
+新增可编辑文件（仓库根目录下）：
+
+- `packages/game-core/src/game/construction.ts`：可信单次授予、正式命令、报价与权威快照提交。
+- `packages/game-core/src/game/construction-invariants.ts`：跨阶段设施与建设进度校验。
+- `packages/game-core/src/game/construction.test.ts`：75项新测试。
+- `scripts/check-construction.mjs`：编译包2/3/4人正式建设及跨行动检查。
+- `docs/Construction-Window-2026-10-23.md`：1.6.0、接口、初始化、版本与权限边界。
+- `docs/testing/construction-window-validation-2026-10-23.md`：真实命令、失败修正、结果与未测范围。
+
+修改 `packages/game-core/src/game/schema.ts`、`state.ts`、`action-window.ts`、`exploration.ts`、`city-move.ts`、`influence-actions.ts`、`harvest.ts`、`index.ts`；另更新 `package.json`（仅新增check:construction脚本）、`README.md`、`docs/Game-State-Foundation-2026-10-17.md`、`docs/Facility-Construction-2026-10-23.md`、`docs/Facility-Supply-2026-10-22.md`、`docs/Player-Panel-2026-10-23.md`、`docs/DevLog.md` 与本清单。
+
+实际verify退出0：strict、1277/1277（16文件）、构建通过，12项编译检查退出0。GameState新1.6.0；旧格式读取保留，静态数据/固定摘要、GameDefinition、依赖锁、项目版本及Accepted ADR不变。完整角色与两轮额度/优惠、复杂设施及服务器持久化提交未实现，无UI、网络、部署或对外发布。

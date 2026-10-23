@@ -14,9 +14,9 @@ const phaseOptionsSchema = z.strictObject({
     red: z.array(z.string().regex(/^R\d{2}$/)).max(6),
   }).optional(),
 });
-const optionsSchema = phaseOptionsSchema.extend({ actorId: gameEntityIdSchema });
+export const actionWindowOptionsSchema = phaseOptionsSchema.extend({ actorId: gameEntityIdSchema });
 export type OpenPhaseWindowOptions = DeepReadonly<z.infer<typeof phaseOptionsSchema>>;
-export type OpenActionWindowOptions = DeepReadonly<z.infer<typeof optionsSchema>>;
+export type OpenActionWindowOptions = DeepReadonly<z.infer<typeof actionWindowOptionsSchema>>;
 type Reject = (code: string, message: string) => never;
 function shuffle(ids: string[]): string[] {
   for (let i = ids.length - 1; i > 0; i--) { const j = randomInt(i + 1); [ids[i], ids[j]] = [ids[j]!, ids[i]!]; }
@@ -31,7 +31,7 @@ export function preparePhaseWindow(input: GameState, definition: GameDefinition,
   const options = parsed.data;
   if (options.expectedVersion !== state.stateVersion) return reject('STALE_VERSION', 'Expected state version is stale');
   const initializing = state.phase === 'entry';
-  const previous = state.phase === 'exploration' ? state.exploration : state.phase === 'city-move' ? state.cityMove : state.phase === 'influence-action' ? state.influenceAction : state.harvest;
+  const previous = state.phase === 'exploration' ? state.exploration : state.phase === 'city-move' ? state.cityMove : state.phase === 'influence-action' ? state.influenceAction : state.phase === 'construction' ? state.construction : state.harvest;
   if (initializing ? state.entry?.status !== 'complete' : previous?.status !== 'complete') {
     return reject('ACTION_PENDING', 'Finish entry or the existing action before granting another');
   }
@@ -49,11 +49,12 @@ export function preparePhaseWindow(input: GameState, definition: GameDefinition,
     decks = { green: state.entry!.remainingGreenEventIds, yellow, red };
   }
   return { position: getGamePosition(state, definition), eventDecks: decks!, playerOrder: initializing ? state.entry!.playerOrder : state.playerOrder!,
-    stateVersion: state.stateVersion + 1, options, previousFormat: state.schemaVersion };
+    stateVersion: state.stateVersion + 1, options, previousFormat: state.schemaVersion,
+    facilityFields: state.facilities ? { facilities: state.facilities } : {} };
 }
 
 export function prepareActionWindow(input: GameState, definition: GameDefinition, rawOptions: OpenActionWindowOptions, reject: Reject) {
-  const parsed = optionsSchema.safeParse(rawOptions);
+  const parsed = actionWindowOptionsSchema.safeParse(rawOptions);
   if (!parsed.success) return reject('WINDOW_SCHEMA', parsed.error.message);
   const { actorId, ...phaseOptions } = parsed.data;
   if (!definition.players.some(player => player.id === actorId)) return reject('ACTOR_REFERENCE', 'Unknown granted actor');

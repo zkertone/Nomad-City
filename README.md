@@ -318,3 +318,12 @@ getFacilityCopyCountRecords() 默认仅返回基础版 18 种设施、48 个实�
 合计5资源由玩家选择；城市化区域在摆放后统计核心邻格；工业区按支付前已有的不同非虹色仅减少自身源岩；唯一限制按玩家自己的同名设施校验。未拍颜色、复杂入场、延伸普通建设、暗牌不足和非法请求明确拒绝，不跳过未实现效果。
 
 沿用事件结算器的内部GamePosition模式，没有改变GameState或另存余额。正式阶段、身份/额度、额外角色修正和外层GameState版本提交仍由后续行动层完成；此函数不能直接用作客户端端点。[支持清单、规则与边界](docs/Facility-Construction-2026-10-23.md)，[实际验证](docs/testing/facility-construction-validation-2026-10-23.md)。全量检查继续使用 `npm run verify` 与 `npm run check:facilities`。
+
+
+## 建设行动窗口与权威快照 · 2026-10-23
+
+`openConstructionWindow` / `getConstructionQuote` / `applyConstructionCommand` 将已有7类、15张匹配已拍颜色实体牌的建设接入 GameState。可信调用方授予一次普通原价建设；玩家只给牌、空格、支付方式与必要资源分配。服务器校验身份、对局和全局版本，成功同时提交扣费/补牌/位置/得分/入场与额度；失败保留原状态和窗口，重复执行明确拒绝。
+
+新增快照 **1.6.0**：设施供应/面板各存一份，原余额不复制；切换探索、移动、部署、调度、采集时保留。1.0.0–1.5.0继续读取，不推断旧存档缺失的设施历史；首次初始化必须由可信方显式提供服务器牌序，之后禁止重置。完整角色/回合顺序、两轮主要行动及优惠仍待实现。
+
+运行 `npm run verify` 和 `npm run check:construction`。本轮实际 **1277/1277（16文件）**、strict和构建通过，12项编译检查退出0。[接口、初始化示例与边界](docs/Construction-Window-2026-10-23.md)，[真实验证及失败修正](docs/testing/construction-window-validation-2026-10-23.md)。未来服务器仍须串行比较/提交版本，含暗牌的GameState不能直接广播；本轮无网络、数据库、UI或部署。

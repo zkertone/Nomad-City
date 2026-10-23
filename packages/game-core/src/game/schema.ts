@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { boardStateSchema, definitionRefSchema, resourceNodeIdSchema, routeIdSchema } from '../board/schema.js';
+import { facilitySupplyStateSchema } from '../facilities/supply.js';
+import { facilityPanelStateSchema } from '../facilities/panel-state.js';
 
 export const gameEntityIdSchema = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9:_./-]{0,99}$/);
 export const playerSetupSchema = z.strictObject({
@@ -90,34 +92,44 @@ export const harvestProgressSchema = z.strictObject({
   plansByPlayer: z.record(gameEntityIdSchema, harvestPlanSchema.nullable()),
 });
 export const gameStateSchema = z.strictObject({
-  schemaVersion: z.enum(['1.0.0', '1.1.0', '1.2.0', '1.3.0', '1.4.0', '1.5.0']),
+  schemaVersion: z.enum(['1.0.0', '1.1.0', '1.2.0', '1.3.0', '1.4.0', '1.5.0', '1.6.0']),
   stateVersion: balance,
   // Trusted caller grants an action or harvest phase; full round scheduling is not implemented.
-  phase: z.enum(['entry', 'exploration', 'city-move', 'influence-action', 'harvest']),
+  phase: z.enum(['entry', 'exploration', 'city-move', 'influence-action', 'harvest', 'construction']),
   ...gamePositionSchema.shape,
   entry: entryProgressSchema.optional(),
   exploration: explorationProgressSchema.optional(),
   cityMove: cityMoveProgressSchema.optional(),
   influenceAction: influenceActionProgressSchema.optional(),
   harvest: harvestProgressSchema.optional(),
+  facilities: z.strictObject({ supply: facilitySupplyStateSchema, panels: z.array(facilityPanelStateSchema).min(2).max(4) }).optional(),
+  construction: z.strictObject({
+    actorId: gameEntityIdSchema, roundNumber: z.number().int().min(1).max(8),
+    status: z.enum(['ready', 'complete']), constructionsCompleted: z.number().int().min(0).max(1),
+    builtCardId: z.string().min(1).nullable(),
+  }).optional(),
   eventDecks: eventDeckStateSchema.optional(),
   playerOrder: z.array(gameEntityIdSchema).min(2).max(4).optional(),
 }).superRefine((state, ctx) => {
+  if ((state.schemaVersion === '1.6.0') !== (state.facilities !== undefined)) {
+    ctx.addIssue({ code: 'custom', path: ['facilities'], message: 'Facility ownership and panels require snapshot format 1.6.0' });
+  }
   if ((state.schemaVersion === '1.1.0') !== (state.entry !== undefined)) {
     ctx.addIssue({ code: 'custom', path: ['entry'], message: 'Entry progress requires snapshot format 1.1.0; legacy 1.0.0 has no progress' });
   }
   if (state.phase === 'entry') {
-    if (!['1.0.0', '1.1.0'].includes(state.schemaVersion) || state.exploration !== undefined || state.cityMove !== undefined || state.influenceAction !== undefined || state.harvest !== undefined || state.eventDecks !== undefined || state.playerOrder !== undefined) {
+    if (!['1.0.0', '1.1.0'].includes(state.schemaVersion) || state.exploration !== undefined || state.cityMove !== undefined || state.influenceAction !== undefined || state.harvest !== undefined || state.construction !== undefined || state.eventDecks !== undefined || state.playerOrder !== undefined) {
       ctx.addIssue({ code: 'custom', path: ['phase'], message: 'Entry uses format 1.0.0/1.1.0 without action fields' });
     }
   } else {
-    const compatible = state.phase === 'exploration' ? ['1.2.0', '1.3.0', '1.4.0', '1.5.0'].includes(state.schemaVersion)
-      : state.phase === 'city-move' ? ['1.3.0', '1.4.0', '1.5.0'].includes(state.schemaVersion) : state.phase === 'influence-action' ? ['1.4.0', '1.5.0'].includes(state.schemaVersion) : state.schemaVersion === '1.5.0';
+    const compatible = state.schemaVersion === '1.6.0' || (state.phase === 'exploration' ? ['1.2.0', '1.3.0', '1.4.0', '1.5.0'].includes(state.schemaVersion)
+      : state.phase === 'city-move' ? ['1.3.0', '1.4.0', '1.5.0'].includes(state.schemaVersion) : state.phase === 'influence-action' ? ['1.4.0', '1.5.0'].includes(state.schemaVersion) : state.phase === 'harvest' && state.schemaVersion === '1.5.0');
     if (!compatible || !state.eventDecks || !state.playerOrder ||
         (state.phase === 'exploration') !== (state.exploration !== undefined) ||
         (state.phase === 'city-move') !== (state.cityMove !== undefined) ||
         (state.phase === 'influence-action') !== (state.influenceAction !== undefined) ||
-        (state.phase === 'harvest') !== (state.harvest !== undefined)) {
+        (state.phase === 'harvest') !== (state.harvest !== undefined) ||
+        (state.phase === 'construction') !== (state.construction !== undefined)) {
       ctx.addIssue({ code: 'custom', path: ['phase'], message: 'Action format, phase, unique progress, decks and preserved order must agree' });
     }
   }

@@ -30,7 +30,7 @@ export interface CityMoveOption { readonly nodeId: string; readonly routeId: str
 /** Trusted single-action grant. Full round/role/major-action authorization remains the caller's job. */
 export function openCityMoveWindow(input: GameState, definition: GameDefinition, options: OpenCityMoveWindowOptions): GameState {
   const prepared = prepareActionWindow(input, definition, options, reject);
-  return parseGameState({ ...prepared.position, schemaVersion: prepared.previousFormat === '1.5.0' ? '1.5.0' : prepared.previousFormat === '1.4.0' ? '1.4.0' : '1.3.0', stateVersion: prepared.stateVersion,
+  return parseGameState({ ...prepared.position, ...prepared.facilityFields, schemaVersion: prepared.previousFormat === '1.6.0' ? '1.6.0' : prepared.previousFormat === '1.5.0' ? '1.5.0' : prepared.previousFormat === '1.4.0' ? '1.4.0' : '1.3.0', stateVersion: prepared.stateVersion,
     phase: 'city-move', eventDecks: prepared.eventDecks, playerOrder: prepared.playerOrder,
     cityMove: { actorId: prepared.options.actorId, roundNumber: prepared.options.roundNumber, status: 'ready',
       sourceNodeId: null, targetNodeId: null, routeId: null, cardId: null, resolvedChoiceId: null } }, definition);
