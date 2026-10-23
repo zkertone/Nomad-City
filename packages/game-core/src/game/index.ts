@@ -11,3 +11,5 @@ export { redExplorationOpeningRound } from './exploration-rules.js';
 export * from './harvest.js';
 export * from './scoring.js';
 export * from './construction.js';
+export * from './round-schema.js';
+export * from './round.js';

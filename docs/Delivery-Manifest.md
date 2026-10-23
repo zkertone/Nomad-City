@@ -207,3 +207,20 @@
 修改 `packages/game-core/src/game/schema.ts`、`state.ts`、`action-window.ts`、`exploration.ts`、`city-move.ts`、`influence-actions.ts`、`harvest.ts`、`index.ts`；另更新 `package.json`（仅新增check:construction脚本）、`README.md`、`docs/Game-State-Foundation-2026-10-17.md`、`docs/Facility-Construction-2026-10-23.md`、`docs/Facility-Supply-2026-10-22.md`、`docs/Player-Panel-2026-10-23.md`、`docs/DevLog.md` 与本清单。
 
 实际verify退出0：strict、1277/1277（16文件）、构建通过，12项编译检查退出0。GameState新1.6.0；旧格式读取保留，静态数据/固定摘要、GameDefinition、依赖锁、项目版本及Accepted ADR不变。完整角色与两轮额度/优惠、复杂设施及服务器持久化提交未实现，无UI、网络、部署或对外发布。
+
+
+## 2026-10-23 角色盖放与两轮调度增量
+
+新增可编辑文件（仓库根目录下）：
+
+- `packages/game-core/src/game/round-schema.ts`：基础5角色身份、来源及roundFlow Schema。
+- `packages/game-core/src/game/round-invariants.ts`：角色守恒、两轮/阶段与当前动作交叉校验。
+- `packages/game-core/src/game/round.ts`：新局调度、两人移牌、盖放、主要行动、准备撤回、采集后限定收尾和局部公开投影。
+- `packages/game-core/src/game/round.test.ts`：72项新测试及2/3/4人各8回合真实流程。
+- `scripts/check-rounds.mjs`：根与/game编译包8回合检查。
+- `docs/Round-Flow-2026-10-23.md`：规则页码/范围、1.7.0/API和未实现能力。
+- `docs/testing/round-flow-validation-2026-10-23.md`：真实执行、早期类型错误、结果与边界。
+
+修改 `packages/game-core/src/game/schema.ts`、`state.ts`、`action-window.ts`、`construction.ts`、`exploration.ts`、`city-move.ts`、`influence-actions.ts`、`harvest.ts`、`index.ts`；另更新 `package.json`（仅新增check:rounds）、`README.md`、`docs/Game-State-Foundation-2026-10-17.md`、`docs/Construction-Window-2026-10-23.md`、`docs/Harvest-Phase-2026-10-18.md`、`docs/Facility-Supply-2026-10-22.md`、`docs/DevLog.md` 与本清单。
+
+最终真实verify：1349/1349（17文件）、strict和构建通过；13项编译检查退出0。GameState新1.7.0、旧格式保留；GameDefinition/静态原数据/摘要/已确认原文/依赖锁/项目版本/Accepted ADR不变。角色效果/优惠/样式、完整设施及最终分数提交待完成，无UI、联机、部署或对外发布。

@@ -1,0 +1,50 @@
+import type { ValidationIssue } from '../board/types.js';
+import type { GameDefinition, GameState } from './types.js';
+import { FOUNDERS_BASE_ROLES } from './round-schema.js';
+import { getFacilityConstructionSpec } from '../facilities/construction-spec.js';
+import { getFoundersPhysicalFacilityCard } from '../facilities/stock.js';
+
+/** Cross-check the sole round cursor against existing action progress; never duplicate economic state. */
+export function roundFlowIssues(state: GameState, definition: GameDefinition): ValidationIssue[] {
+  const flow = state.roundFlow;
+  if (!flow) return [];
+  const issues: ValidationIssue[] = [], count = definition.players.length, order = state.playerOrder ?? [];
+  const report = (message: string) => { issues.push({ code: 'ROUND_FLOW', path: 'roundFlow', message }); };
+  if (JSON.stringify(flow.rolesByPlayer.map(row => row.playerId).sort()) !== JSON.stringify(definition.players.map(row => row.id).sort())) report('Role inventory must cover exactly the registered players');
+  for (const role of flow.rolesByPlayer) {
+    const ids = [...role.hand, ...role.discarded, ...(role.placed === null ? [] : [role.placed])];
+    if (JSON.stringify([...ids].sort()) !== JSON.stringify(FOUNDERS_BASE_ROLES.map(role => role.id))) report(`Five distinct initial roles must be conserved for ${role.playerId}`);
+  }
+  // This managed flow currently supports ordinary base-price construction only. Do not silently
+  // skip delayed/continuous effects from a facility that the implementation cannot execute.
+  for (const holding of state.facilities?.supply.playerHoldings ?? []) for (const id of holding.cardIds) {
+    try { if (getFoundersPhysicalFacilityCard(id).group !== 'core-command-tower') getFacilityConstructionSpec(id); }
+    catch { report('Managed rounds cannot contain an unsupported built facility'); }
+  }
+  const placedPlayers = new Set(flow.rolesByPlayer.filter(row => row.placed !== null).map(row => row.playerId));
+  if (flow.stage === 'role-removal') {
+    if (count !== 2 || flow.supplyRemovalCount >= 2 || flow.rolePlacementCount !== 0) report('Two-player removals precede every role placement');
+  } else if (flow.stage === 'finished') {
+    if (flow.roundNumber !== 8 || flow.supplyRemovalCount !== 0 || flow.rolePlacementCount !== 0) report('Only eight completed rounds finish exploration');
+  } else if (flow.supplyRemovalCount !== (count === 2 ? 2 : 0)) report('Required supply removals must be complete before placing roles');
+  if (flow.stage === 'role-placement' && flow.rolePlacementCount >= count) report('Completed role placement must enter player actions');
+  if (['player-actions', 'harvest'].includes(flow.stage) && flow.rolePlacementCount !== count) report('All players must place a role before actions');
+  const expectedPlaced = order.slice(0, flow.rolePlacementCount);
+  if (placedPlayers.size !== expectedPlaced.length || expectedPlaced.some(id => !placedPlayers.has(id))) report('Placed roles must follow clockwise placement progress');
+  if (flow.stage === 'player-actions') {
+    if (flow.turnIndex >= count * 2) report('Each player receives one turn in each of two cycles');
+    const actorId = order[flow.turnIndex % count];
+    if (flow.majorActionOpened) {
+      const action = state.phase === 'exploration' ? state.exploration : state.phase === 'city-move' ? state.cityMove
+        : state.phase === 'influence-action' ? state.influenceAction : state.phase === 'construction' ? state.construction : undefined;
+      if (!action || action.actorId !== actorId || action.roundNumber !== flow.roundNumber) report('Active major action must belong to the current turn and round');
+    } else if (state.phase !== 'round-control') report('Before the major action only round control is active');
+  } else {
+    if (flow.majorActionOpened) report('No major grant outside player actions');
+    if (flow.turnIndex !== (flow.stage === 'harvest' ? count * 2 : 0)) report('Round cursor does not match its stage');
+    if (flow.stage === 'harvest') {
+      if (state.phase !== 'round-control' && (state.phase !== 'harvest' || state.harvest?.roundNumber !== flow.roundNumber)) report('Harvest follows both cycles in the current round');
+    } else if (state.phase !== 'round-control') report('Role placement and finished exploration have no active action');
+  }
+  return issues;
+}

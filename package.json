@@ -21,6 +21,7 @@
     "check:influence": "npm run build && node scripts/check-influence.mjs",
     "check:harvest": "npm run build && node scripts/check-harvest.mjs",
     "check:scoring": "npm run build && node scripts/check-scoring.mjs",
+    "check:rounds": "npm run build && node scripts/check-rounds.mjs",
     "check:construction": "npm run build && node scripts/check-construction.mjs",
     "check:facilities": "npm run build && node scripts/check-facilities.mjs",
     "archive": "python3 scripts/archive.py"

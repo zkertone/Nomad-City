@@ -5,7 +5,7 @@ import { getGamePosition, parseGameState } from './state.js';
 import { eligibleBaseEventIds } from './exploration-rules.js';
 import type { DeepReadonly, GameDefinition, GameState } from './types.js';
 
-// Internal preparation shared by implemented actions; not a turn scheduler or player endpoint.
+// Shared action preparation and managed scheduling gate; not a player endpoint.
 const phaseOptionsSchema = z.strictObject({
   roundNumber: z.number().int().min(1).max(8),
   expectedVersion: z.number().int().nonnegative().safe(),
@@ -24,12 +24,24 @@ function shuffle(ids: string[]): string[] {
 }
 const sameIds = (a: readonly string[], b: readonly string[]) => JSON.stringify([...a].sort()) === JSON.stringify([...b].sort());
 
-export function preparePhaseWindow(input: GameState, definition: GameDefinition, rawOptions: OpenPhaseWindowOptions, reject: Reject) {
+export function preparePhaseWindow(input: GameState, definition: GameDefinition, rawOptions: OpenPhaseWindowOptions, reject: Reject, actorId?: string) {
   const state = parseGameState(input, definition);
   const parsed = phaseOptionsSchema.safeParse(rawOptions);
   if (!parsed.success) return reject('WINDOW_SCHEMA', parsed.error.message);
   const options = parsed.data;
   if (options.expectedVersion !== state.stateVersion) return reject('STALE_VERSION', 'Expected state version is stale');
+  const flow = state.roundFlow;
+  if (flow) {
+    if (options.deckOrder !== undefined || options.roundNumber !== flow.roundNumber) return reject('ROUND_WINDOW', 'Managed round cannot reset decks or choose a different round');
+    if (state.phase !== 'round-control') return reject('ROUND_WINDOW', 'Finish the active action and explicitly end its turn first');
+    if (actorId === undefined ? flow.stage !== 'harvest' : flow.stage !== 'player-actions' || flow.majorActionOpened || state.playerOrder![flow.turnIndex % definition.players.length] !== actorId) {
+      return reject('ROUND_WINDOW', 'Only the scheduled actor/action or scheduled harvest can open');
+    }
+    if (state.stateVersion === Number.MAX_SAFE_INTEGER) return reject('VERSION_OVERFLOW', 'State version exhausted');
+    return { position: getGamePosition(state, definition), eventDecks: state.eventDecks!, playerOrder: state.playerOrder!,
+      stateVersion: state.stateVersion + 1, options, previousFormat: state.schemaVersion,
+      facilityFields: { facilities: state.facilities! }, roundFields: { roundFlow: { ...flow, majorActionOpened: actorId !== undefined } } };
+  }
   const initializing = state.phase === 'entry';
   const previous = state.phase === 'exploration' ? state.exploration : state.phase === 'city-move' ? state.cityMove : state.phase === 'influence-action' ? state.influenceAction : state.phase === 'construction' ? state.construction : state.harvest;
   if (initializing ? state.entry?.status !== 'complete' : previous?.status !== 'complete') {
@@ -50,7 +62,7 @@ export function preparePhaseWindow(input: GameState, definition: GameDefinition,
   }
   return { position: getGamePosition(state, definition), eventDecks: decks!, playerOrder: initializing ? state.entry!.playerOrder : state.playerOrder!,
     stateVersion: state.stateVersion + 1, options, previousFormat: state.schemaVersion,
-    facilityFields: state.facilities ? { facilities: state.facilities } : {} };
+    facilityFields: state.facilities ? { facilities: state.facilities } : {}, roundFields: {} };
 }
 
 export function prepareActionWindow(input: GameState, definition: GameDefinition, rawOptions: OpenActionWindowOptions, reject: Reject) {
@@ -58,5 +70,5 @@ export function prepareActionWindow(input: GameState, definition: GameDefinition
   if (!parsed.success) return reject('WINDOW_SCHEMA', parsed.error.message);
   const { actorId, ...phaseOptions } = parsed.data;
   if (!definition.players.some(player => player.id === actorId)) return reject('ACTOR_REFERENCE', 'Unknown granted actor');
-  return { ...preparePhaseWindow(input, definition, phaseOptions, reject), options: parsed.data };
+  return { ...preparePhaseWindow(input, definition, phaseOptions, reject, actorId), options: parsed.data };
 }
