@@ -71,10 +71,10 @@ function completedRound(state: GameState, definition: GameDefinition) {
 }
 
 describe('explicit format upgrade and bounded complete role modes', () => {
-  it('reports five supported modes independently of the incomplete full role system', () => {
-    expect(getBaseRoleEffectSupport()).toMatchObject({ supportedModeCount: 5, allBaseRoleEffectsImplemented: false,
+  it('reports seven supported modes independently of the incomplete full role system', () => {
+    expect(getBaseRoleEffectSupport()).toMatchObject({ supportedModeCount: 7, allBaseRoleEffectsImplemented: false,
       source: { printedPages: [8, 11, 13, 14] }, roles: [
-        { roleId: 'ROLE-01', strategy: false, scheme: false }, { roleId: 'ROLE-02', strategy: true, scheme: false },
+        { roleId: 'ROLE-01', strategy: true, scheme: true }, { roleId: 'ROLE-02', strategy: true, scheme: false },
         { roleId: 'ROLE-03', strategy: true, scheme: false }, { roleId: 'ROLE-04', strategy: true, scheme: false }, { roleId: 'ROLE-05', strategy: true, scheme: true },
       ] });
   });
@@ -91,8 +91,8 @@ describe('explicit format upgrade and bounded complete role modes', () => {
     const f = fixture(), old = gameStateSchema.parse(f.state); old.schemaVersion = '1.7.0'; for (const role of old.roundFlow!.rolesByPlayer) delete role.used;
     code(() => run(f, command(f, { kind: 'minimum-resource', asset: 'iron' }, 'strategy', undefined, old), old), 'ROLE_FORMAT');
   });
-  it.each([['ROLE-01', 'strategy'], ['ROLE-01', 'scheme'], ['ROLE-02', 'scheme'], ['ROLE-03', 'scheme'], ['ROLE-04', 'scheme'], ['ROLE-02', 'both'], ['ROLE-03', 'both']] as const)('refuses unimplemented %s/%s before partially executing', (roleId, mode) => {
-    const f = fixture(roleId), before = structuredClone(f.state); code(() => run(f, command(f, undefined, mode)), 'ROLE_MODE_UNSUPPORTED'); expect(f.state).toEqual(before);
+  it.each([['ROLE-01', 'strategy'], ['ROLE-01', 'scheme'], ['ROLE-02', 'scheme'], ['ROLE-03', 'scheme'], ['ROLE-04', 'scheme'], ['ROLE-02', 'both'], ['ROLE-03', 'both']] as const)('refuses a missing required format or unimplemented %s/%s before partially executing', (roleId, mode) => {
+    const f = fixture(roleId), before = structuredClone(f.state); code(() => run(f, command(f, undefined, mode)), roleId === 'ROLE-01' ? 'ROLE_FORMAT' : 'ROLE_MODE_UNSUPPORTED'); expect(f.state).toEqual(before);
   });
 });
 

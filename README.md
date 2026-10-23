@@ -347,3 +347,12 @@ getFacilityCopyCountRecords() 默认仅返回基础版 18 种设施、48 个实�
 用 `enableBaseRoleEffects(state,definition,{expectedVersion})` 显式将已验证1.7.0升级至 **1.8.0**（原状态/进度保留），再通过 `applyBaseRoleCommand` 使用自己本回合盖放的角色。只允许当前玩家在主要行动前或完整结束后使用，同回合只能使用一次；起始玩家both按策略→计谋原子结算，当前锡人不计入自身回收数量。成功才进入弃牌并记录used，不额外授予主要行动；失败不扣费、不回收、不移动、不弃牌。
 
 角色使用与弃牌历史会跨回合保持，收尾只让未用角色回手。新格式随原动作保留，旧1.0.0–1.7.0和默认beginRoundFlow入口兼容。运行 `npm run verify`、`npm run check:roles`；本轮实际 **1439/1439（18文件）**、strict/构建和14项编译检查通过。[数值、选择格式与边界](docs/Base-Role-Effects-2026-10-23.md)，[真实验证及编译夹具修正](docs/testing/role-effects-validation-2026-10-23.md)。雷蛇两模式和其余三名角色计谋、样式与完整设施仍待实现，无UI/联机或部署。
+
+
+## 雷蛇两种模式与收尾选择 · 2026-10-23
+
+雷蛇策略按顺序尽量放置两次真实影响力，并登记本回合收尾移除1枚本人影响力；计谋可选择支付3金券，先移除指定影响力，再尝试在同槽放置本人影响力。对手城市上的标记可以移除，但不能在那里放置自己的标记。费用、库存、放置、弃牌与使用记录原子提交。
+
+通过 `enableLiskarmEffects` 显式升级1.8.0→**1.9.0**，保留已有角色使用和弃牌历史。全员采集后用 `openManagedCleanup` 开启选择，当前待结算玩家通过 `applyRoleCleanupCommand` 移除任意本人现存棋盘影响力；未结算不能推进回合，没有本人影响力才自动跳过。所有主要行动和采集继续保持新格式。
+
+当前基础角色支持 **7/10模式**（五名角色的策略、雷蛇与锡人计谋）；先前章节的五模式/雷蛇待完成为历史记录。极境、德克萨斯、坎诺特计谋仍待实现，全角色完成标志仍false。运行 `npm run verify`、`npm run check:liskarm`；本次实际 **1488/1488（19文件）**、strict/构建及15项编译检查通过。[API、规则与边界](docs/Liskarm-Effects-2026-10-23.md)，[真实验证记录](docs/testing/liskarm-validation-2026-10-23.md)。

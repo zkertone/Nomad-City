@@ -11,6 +11,7 @@ import { createFoundersFacilitySupply, replenishFacilitySupply, facilitySupplySt
 import { createInitialFacilityPanels } from '../facilities/panel-state.js';
 import { baseRoleIdSchema, FOUNDERS_BASE_ROLES } from './round-schema.js';
 import type { DeepReadonly, GameDefinition, GameState } from './types.js';
+import { ownBoardInfluenceSlotIds, pendingLiskarmPlayers } from './liskarm-rules.js';
 
 export class RoundFlowError extends Error {
   constructor(readonly code: string, message: string) { super(message); this.name = 'RoundFlowError'; }
@@ -61,6 +62,7 @@ function currentActor(state: GameState, playerCount: number): string | null {
   const flow = state.roundFlow!;
   if (flow.stage === 'role-removal') return state.playerOrder![flow.supplyRemovalCount]!;
   if (flow.stage === 'role-placement') return state.playerOrder![flow.rolePlacementCount]!;
+  if (flow.stage === 'cleanup') return pendingLiskarmPlayers(state)[0] ?? null;
   return flow.stage === 'player-actions' ? state.playerOrder![flow.turnIndex % playerCount]! : null;
 }
 function actionComplete(state: GameState): boolean {
@@ -149,9 +151,11 @@ export function finishManagedRound(input: GameState, definition: GameDefinition,
   const state = checkedRound(input, definition), checked = finishOptionsSchema.safeParse(rawOptions);
   if (!checked.success) return reject('OPTIONS_SCHEMA', checked.error.message);
   if (checked.data.expectedVersion !== state.stateVersion) return reject('STALE_VERSION', 'Expected state version is stale');
-  if (state.roundFlow!.stage !== 'harvest' || state.phase !== 'harvest' || state.harvest?.status !== 'complete') return reject('HARVEST_PENDING', 'Every player must finish harvest before cleanup');
+  const cleanup = state.roundFlow!.stage === 'cleanup' && state.phase === 'round-control';
+  if (!cleanup && (state.roundFlow!.stage !== 'harvest' || state.phase !== 'harvest' || state.harvest?.status !== 'complete')) return reject('HARVEST_PENDING', 'Every player must finish harvest before cleanup');
+  if (pendingLiskarmPlayers(state).some(playerId => ownBoardInfluenceSlotIds(state, playerId).length)) return reject('CLEANUP_PENDING', 'Resolve the player selected delayed removal before passing the starting player');
   if (state.stateVersion === Number.MAX_SAFE_INTEGER) return reject('VERSION_OVERFLOW', 'State version exhausted');
-  // Implemented role modes have no delayed effect; validation rejects unsupported modes/facilities.
+  // Empty/impossible Liskarm removals skip under p13. Executable obligations were checked above.
   const next = gameStateSchema.parse(state), flow = next.roundFlow!;
   for (const role of flow.rolesByPlayer) {
     if (role.placed !== null) role.hand.push(role.placed);

@@ -37,7 +37,7 @@ export function openConstructionWindow(input: GameState, definition: GameDefinit
     } catch (error) { return reject('FACILITY_SETUP_INVALID', error instanceof Error ? error.message : String(error)); }
   }
   if (facilities.panels.find(panel => panel.playerId === options.actorId)!.placements.length === 12) return reject('NO_EMPTY_CELL', 'Construction requires an empty panel cell');
-  return parseGameState({ ...prepared.position, facilities, ...prepared.roundFields, schemaVersion: prepared.previousFormat === '1.8.0' ? '1.8.0' : prepared.previousFormat === '1.7.0' ? '1.7.0' : '1.6.0', stateVersion: prepared.stateVersion,
+  return parseGameState({ ...prepared.position, facilities, ...prepared.roundFields, schemaVersion: prepared.previousFormat === '1.9.0' ? '1.9.0' : prepared.previousFormat === '1.8.0' ? '1.8.0' : prepared.previousFormat === '1.7.0' ? '1.7.0' : '1.6.0', stateVersion: prepared.stateVersion,
     phase: 'construction', eventDecks: prepared.eventDecks, playerOrder: prepared.playerOrder,
     construction: { actorId: options.actorId, roundNumber: options.roundNumber, status: 'ready', constructionsCompleted: 0, builtCardId: null },
   }, definition);

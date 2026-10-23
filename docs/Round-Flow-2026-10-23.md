@@ -88,3 +88,12 @@ state = applyRoundCommand(state, definition, { authenticatedPlayerId }, {
 [首批基础角色效果](Base-Role-Effects-2026-10-23.md) 已实现极境/德克萨斯/坎诺特策略与锡人策略/计谋，通过显式1.7.0→1.8.0升级启用；默认入口继续1.7.0兼容。使用记录used引用本人弃牌，不额外保存一张牌；盖放前缀校验同时承认未用盖放或本回合已使用的角色，收尾只回收未使用牌，保留真实弃牌历史。
 
 先前“所有角色保持未用/没有角色执行入口”现在仅描述旧1.7.0流程；1.8.0允许上述五模式在主要行动前后执行，不增加主要行动，不允许中断动作，未实现模式仍拒绝。原ROUND_RULE_SOURCE.roleEffectsImplemented=false继续表示全角色未齐备，当前能力明细以getBaseRoleEffectSupport为准。实际1439/1439和14项编译检查见新验证记录。
+
+
+## 同日后续：1.9.0雷蛇收尾阶段
+
+[雷蛇增量](Liskarm-Effects-2026-10-23.md) 在全员采集结算之后、未用角色回手及起始玩家传递之前加入显式 `roundFlow.stage='cleanup'`，外层phase为control。`openManagedCleanup` 只能由可信阶段调用方在1.9.0采集完成后开启；`getRoundTurn` 和公开投影在此阶段给出按当前玩家顺序首个待选择玩家。`getRoleCleanupOptions` 只列该玩家本人当前棋盘影响力，`applyRoleCleanupCommand` 结算恰好1枚并归还本人供应。
+
+`finishManagedRound` 仍兼容旧采集完成后的直接入口，但只要存在可执行的雷蛇收尾义务就以CLEANUP_PENDING拒绝；全部结算后才清used、回收未用牌、轮转起始玩家及推进回合。完全没有本人影响力的义务按规则书p13自动跳过，显式cleanup与直接收尾结果一致。旧窗口不能绕过cleanup重新行动或采集。
+
+当前仅实现雷蛇这项角色延迟效果，不构造任意多效果排序引擎；未支持设施与其他角色模式仍拒绝。1.7.0/1.8.0不接受cleanup阶段或雷蛇使用记录，默认回合入口保持旧格式，显式逐步升级。当前7/10角色模式，真实1488/1488与15项编译检查见 [验证记录](testing/liskarm-validation-2026-10-23.md)。

@@ -9,6 +9,7 @@ import { isBaseRoleModeSupported } from './role-rules.js';
 import { emptyInfluenceSlots } from './influence.js';
 import { facilitySupplyStateSchema, replenishFacilitySupply } from '../facilities/supply.js';
 import type { DeepReadonly, GameDefinition, GameState } from './types.js';
+import { placeLiskarmInfluence, replaceLiskarmInfluence } from './liskarm-rules.js';
 
 export class BaseRoleEffectError extends Error {
   constructor(readonly code: string, message: string) { super(message); this.name = 'BaseRoleEffectError'; }
@@ -30,16 +31,20 @@ export function enableBaseRoleEffects(input: GameState, definition: GameDefiniti
 
 const quantity = z.number().int().nonnegative().safe();
 const strategyChoiceSchema = z.discriminatedUnion('kind', [
+  z.strictObject({ kind: z.literal('liskarm-place'), slotIds: z.array(slotIdSchema).max(2) }),
   z.strictObject({ kind: z.literal('minimum-resource'), asset: z.enum(['orirock', 'originium', 'iron']) }),
   z.strictObject({ kind: z.literal('cycle-facility'), cardId: z.string().min(1) }),
   z.strictObject({ kind: z.literal('sell-resources'), amounts: z.strictObject({ orirock: quantity, originium: quantity, iron: quantity, 'pure-originium': quantity }) }),
   z.strictObject({ kind: z.literal('tin-point') }),
   z.strictObject({ kind: z.literal('tin-purchases'), payFirst: z.boolean(), paySecond: z.boolean() }),
 ]);
-const schemeChoiceSchema = z.strictObject({ kind: z.literal('recover-roles'), rewards: z.array(z.discriminatedUnion('kind', [
+const recoveryChoiceSchema = z.strictObject({ kind: z.literal('recover-roles'), rewards: z.array(z.discriminatedUnion('kind', [
   z.strictObject({ roleId: baseRoleIdSchema, kind: z.literal('vouchers') }),
   z.strictObject({ roleId: baseRoleIdSchema, kind: z.literal('move-influence'), sourceSlotId: slotIdSchema, targetSlotId: slotIdSchema }),
 ])).max(4) });
+const schemeChoiceSchema = z.discriminatedUnion('kind', [recoveryChoiceSchema,
+  z.strictObject({ kind: z.literal('liskarm-replace'), costDecision: z.enum(['pay', 'decline']), slotId: slotIdSchema.optional() }),
+]);
 export const baseRolePlayerCommandSchema = z.strictObject({
   type: z.literal('use-base-role'), gameId: gameEntityIdSchema, expectedVersion: version,
   roleId: baseRoleIdSchema, mode: z.enum(['strategy', 'scheme', 'both']),
@@ -55,7 +60,7 @@ export function applyBaseRoleCommand(input: GameState, definition: GameDefinitio
   const command = checked.data;
   if (command.gameId !== state.gameId) return reject('GAME_REFERENCE', 'Wrong role game');
   if (command.expectedVersion !== state.stateVersion) return reject('STALE_VERSION', 'Expected state version is stale');
-  if (state.schemaVersion !== '1.8.0') return reject('ROLE_FORMAT', 'Role effects require explicit snapshot format 1.8.0');
+  if (!['1.8.0', '1.9.0'].includes(state.schemaVersion) || (command.roleId === 'ROLE-01' && state.schemaVersion !== '1.9.0')) return reject('ROLE_FORMAT', 'This role requires its explicit snapshot upgrade (Liskarm: 1.9.0)');
   const flow = state.roundFlow!, turn = getRoundTurn(state, definition);
   if (flow.stage !== 'player-actions' || turn.actorId !== context.authenticatedPlayerId) return reject('ROLE_WINDOW', 'Only the current action player may use their placed role');
   if (turn.majorActionStatus === 'pending') return reject('ACTION_PENDING', 'Quick actions cannot interrupt a major action');
@@ -66,9 +71,10 @@ export function applyBaseRoleCommand(input: GameState, definition: GameDefinitio
   if (!isBaseRoleModeSupported(command.roleId, command.mode)) return reject('ROLE_MODE_UNSUPPORTED', 'Every requested mode must have a complete handler before using the card');
   const usesStrategy = command.mode !== 'scheme', usesScheme = command.mode !== 'strategy';
   if (usesStrategy !== (command.strategyChoice !== undefined) || usesScheme !== (command.schemeChoice !== undefined)) return reject('ROLE_CHOICES', 'Provide exactly the choices for the requested modes');
-  const expectedChoice = command.roleId === 'ROLE-02' ? ['minimum-resource'] : command.roleId === 'ROLE-03' ? ['cycle-facility']
+  const expectedChoice = command.roleId === 'ROLE-01' ? ['liskarm-place'] : command.roleId === 'ROLE-02' ? ['minimum-resource'] : command.roleId === 'ROLE-03' ? ['cycle-facility']
     : command.roleId === 'ROLE-04' ? ['sell-resources'] : ['tin-point', 'tin-purchases'];
   if (usesStrategy && !expectedChoice.includes(command.strategyChoice!.kind)) return reject('ROLE_CHOICES', 'Choice does not belong to this role strategy');
+  if (usesScheme && command.schemeChoice!.kind !== (command.roleId === 'ROLE-01' ? 'liskarm-replace' : 'recover-roles')) return reject('ROLE_CHOICES', 'Choice does not belong to this role scheme');
   if (state.stateVersion === Number.MAX_SAFE_INTEGER) return reject('VERSION_OVERFLOW', 'State version exhausted');
   const next = gameStateSchema.parse(state), actor = next.players[actorId]!, nextRoles = next.roundFlow!.rolesByPlayer.find(role => role.playerId === actorId)!;
   const gain = (asset: keyof typeof actor.balances, amount: number) => {
@@ -84,6 +90,7 @@ export function applyBaseRoleCommand(input: GameState, definition: GameDefinitio
   if (usesStrategy) {
     const choice = command.strategyChoice!;
     switch (choice.kind) {
+      case 'liskarm-place': placeLiskarmInfluence(next, loadFoundersBoard(getFoundersMapSide(definition.players.length)), actorId, choice.slotIds, reject); break;
       case 'minimum-resource': {
         const minimum = Math.min(actor.balances.orirock, actor.balances.originium, actor.balances.iron);
         if (actor.balances[choice.asset] !== minimum) return reject('MINIMUM_RESOURCE', 'Select one of the tied minimum basic resources');
@@ -122,22 +129,28 @@ export function applyBaseRoleCommand(input: GameState, definition: GameDefinitio
     }
   }
   if (usesScheme) {
-    const rewards = command.schemeChoice!.rewards, recovering = [...nextRoles.discarded];
-    if (JSON.stringify(rewards.map(row => row.roleId).sort()) !== JSON.stringify([...recovering].sort())) return reject('RECOVERY_CHOICES', 'Choose one reward for each prior discarded card, excluding this Tin Man');
-    nextRoles.hand.push(...nextRoles.discarded.splice(0));
-    const board = loadFoundersBoard(getFoundersMapSide(definition.players.length));
-    for (const reward of rewards) {
-      if (reward.kind === 'vouchers') gain('columbia-voucher', 5);
-      else {
-        const marker = next.board.influenceBySlot[reward.sourceSlotId];
-        if (!Object.hasOwn(next.board.influenceBySlot, reward.sourceSlotId) || marker?.ownerPlayerId !== actorId) return reject('MOVE_SOURCE', 'Move one of the actor own board markers');
-        if (!emptyInfluenceSlots(next, board, actorId).includes(reward.targetSlotId)) return reject('MOVE_TARGET', 'Move to one legal empty influence slot');
-        next.board.influenceBySlot[reward.sourceSlotId] = null; next.board.influenceBySlot[reward.targetSlotId] = marker;
+    const scheme = command.schemeChoice!;
+    if (scheme.kind === 'liskarm-replace') replaceLiskarmInfluence(next, loadFoundersBoard(getFoundersMapSide(definition.players.length)), actorId, scheme.costDecision, scheme.slotId, reject);
+    else {
+      const rewards = scheme.rewards, recovering = [...nextRoles.discarded];
+      if (JSON.stringify(rewards.map(row => row.roleId).sort()) !== JSON.stringify([...recovering].sort())) return reject('RECOVERY_CHOICES', 'Choose one reward for each prior discarded card, excluding this Tin Man');
+      nextRoles.hand.push(...nextRoles.discarded.splice(0));
+      const board = loadFoundersBoard(getFoundersMapSide(definition.players.length));
+      for (const reward of rewards) {
+        if (reward.kind === 'vouchers') gain('columbia-voucher', 5);
+        else {
+          const marker = next.board.influenceBySlot[reward.sourceSlotId];
+          if (!Object.hasOwn(next.board.influenceBySlot, reward.sourceSlotId) || marker?.ownerPlayerId !== actorId) return reject('MOVE_SOURCE', 'Move one of the actor own board markers');
+          if (!emptyInfluenceSlots(next, board, actorId).includes(reward.targetSlotId)) return reject('MOVE_TARGET', 'Move to one legal empty influence slot');
+          next.board.influenceBySlot[reward.sourceSlotId] = null; next.board.influenceBySlot[reward.targetSlotId] = marker;
+        }
       }
     }
   }
   nextRoles.discarded.push(nextRoles.placed!); nextRoles.placed = null;
-  nextRoles.used = { roleId: command.roleId, mode: command.mode, turnIndex: flow.turnIndex };
+  nextRoles.used = { roleId: command.roleId, mode: command.mode, turnIndex: flow.turnIndex,
+    ...(command.roleId === 'ROLE-01' && usesStrategy ? { cleanupResolved: false } : {}),
+  };
   next.stateVersion++;
   return parseGameState(next, definition);
 }

@@ -4,6 +4,7 @@ import { FOUNDERS_BASE_ROLES } from './round-schema.js';
 import { getFacilityConstructionSpec } from '../facilities/construction-spec.js';
 import { getFoundersPhysicalFacilityCard } from '../facilities/stock.js';
 import { isBaseRoleModeSupported } from './role-rules.js';
+import { hasLiskarmCleanup, ownBoardInfluenceSlotIds } from './liskarm-rules.js';
 
 /** Cross-check the sole round cursor against existing action progress; never duplicate economic state. */
 export function roundFlowIssues(state: GameState, definition: GameDefinition): ValidationIssue[] {
@@ -17,8 +18,14 @@ export function roundFlowIssues(state: GameState, definition: GameDefinition): V
     if (JSON.stringify([...ids].sort()) !== JSON.stringify(FOUNDERS_BASE_ROLES.map(role => role.id))) report(`Five distinct initial roles must be conserved for ${role.playerId}`);
     if (role.used) {
       if (role.placed !== null || !role.discarded.includes(role.used.roleId)) report('Used role must be in discard, with no unused placed role');
-      if (!['player-actions', 'harvest'].includes(flow.stage) || role.used.turnIndex > flow.turnIndex || order[role.used.turnIndex % count] !== role.playerId) report('Role use must belong to this player in a reached action turn');
+      if (!['player-actions', 'harvest', 'cleanup'].includes(flow.stage) || role.used.turnIndex > flow.turnIndex || order[role.used.turnIndex % count] !== role.playerId) report('Role use must belong to this player in a reached action turn');
       if (!isBaseRoleModeSupported(role.used.roleId, role.used.mode) || (role.used.mode === 'both' && role.playerId !== order[0])) report('Role-use mode must be supported and both modes require the starting player');
+      if (role.used.roleId === 'ROLE-01' && state.schemaVersion !== '1.9.0') report('Liskarm requires snapshot 1.9.0');
+      if (hasLiskarmCleanup(role.used)) {
+        if (typeof role.used.cleanupResolved !== 'boolean') report('Liskarm strategy requires an explicit cleanup obligation');
+        if (role.used.cleanupResolved && flow.stage !== 'cleanup') report('Delayed removal cannot be resolved before cleanup');
+        if (flow.stage === 'cleanup' && !role.used.cleanupResolved && !ownBoardInfluenceSlotIds(state, role.playerId).length) report('Impossible cleanup automatically resolves when cleanup opens');
+      } else if (role.used.cleanupResolved !== undefined) report('Only Liskarm strategy has this cleanup obligation');
     }
   }
   // This managed flow currently supports ordinary base-price construction only. Do not silently
@@ -34,7 +41,8 @@ export function roundFlowIssues(state: GameState, definition: GameDefinition): V
     if (flow.roundNumber !== 8 || flow.supplyRemovalCount !== 0 || flow.rolePlacementCount !== 0) report('Only eight completed rounds finish exploration');
   } else if (flow.supplyRemovalCount !== (count === 2 ? 2 : 0)) report('Required supply removals must be complete before placing roles');
   if (flow.stage === 'role-placement' && flow.rolePlacementCount >= count) report('Completed role placement must enter player actions');
-  if (['player-actions', 'harvest'].includes(flow.stage) && flow.rolePlacementCount !== count) report('All players must place a role before actions');
+  if (['player-actions', 'harvest', 'cleanup'].includes(flow.stage) && flow.rolePlacementCount !== count) report('All players must place a role before actions');
+  if (flow.stage === 'cleanup' && state.schemaVersion !== '1.9.0') report('Explicit role cleanup requires snapshot 1.9.0');
   const expectedPlaced = order.slice(0, flow.rolePlacementCount);
   if (placedPlayers.size !== expectedPlaced.length || expectedPlaced.some(id => !placedPlayers.has(id))) report('Placed roles must follow clockwise placement progress');
   if (flow.stage === 'player-actions') {
@@ -47,7 +55,7 @@ export function roundFlowIssues(state: GameState, definition: GameDefinition): V
     } else if (state.phase !== 'round-control') report('Before the major action only round control is active');
   } else {
     if (flow.majorActionOpened) report('No major grant outside player actions');
-    if (flow.turnIndex !== (flow.stage === 'harvest' ? count * 2 : 0)) report('Round cursor does not match its stage');
+    if (flow.turnIndex !== (['harvest', 'cleanup'].includes(flow.stage) ? count * 2 : 0)) report('Round cursor does not match its stage');
     if (flow.stage === 'harvest') {
       if (state.phase !== 'round-control' && (state.phase !== 'harvest' || state.harvest?.roundNumber !== flow.roundNumber)) report('Harvest follows both cycles in the current round');
     } else if (state.phase !== 'round-control') report('Role placement and finished exploration have no active action');

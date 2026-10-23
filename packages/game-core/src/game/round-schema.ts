@@ -14,7 +14,7 @@ export const baseRoleIdSchema = z.enum(['ROLE-01', 'ROLE-02', 'ROLE-03', 'ROLE-0
 const roleIds = z.array(baseRoleIdSchema).max(5);
 export const roundFlowSchema = z.strictObject({
   roundNumber: z.number().int().min(1).max(8),
-  stage: z.enum(['role-removal', 'role-placement', 'player-actions', 'harvest', 'finished']),
+  stage: z.enum(['role-removal', 'role-placement', 'player-actions', 'harvest', 'cleanup', 'finished']),
   supplyRemovalCount: z.number().int().min(0).max(2),
   rolePlacementCount: z.number().int().min(0).max(4),
   turnIndex: z.number().int().min(0).max(8),
@@ -22,6 +22,8 @@ export const roundFlowSchema = z.strictObject({
   rolesByPlayer: z.array(z.strictObject({
     playerId: z.string().min(1), hand: roleIds, discarded: roleIds, placed: baseRoleIdSchema.nullable(),
     // Reference to a card in discarded, not an additional physical card zone. Absent in 1.7.0.
-    used: z.strictObject({ roleId: baseRoleIdSchema, mode: z.enum(['strategy', 'scheme', 'both']), turnIndex: z.number().int().min(0).max(7) }).nullable().optional(),
+    used: z.strictObject({ roleId: baseRoleIdSchema, mode: z.enum(['strategy', 'scheme', 'both']), turnIndex: z.number().int().min(0).max(7),
+      cleanupResolved: z.boolean().optional(),
+    }).nullable().optional(),
   })).min(2).max(4),
 });

@@ -4,7 +4,7 @@ import * as game from '@nomad-city-online/game-core/game';
 assert.equal(core.enableBaseRoleEffects, game.enableBaseRoleEffects);
 assert.equal(core.applyBaseRoleCommand, game.applyBaseRoleCommand);
 assert.equal(core.getBaseRoleEffectSupport, game.getBaseRoleEffectSupport);
-assert.equal(game.getBaseRoleEffectSupport().supportedModeCount, 5);
+assert.equal(game.getBaseRoleEffectSupport().supportedModeCount, 7);
 assert.equal(game.getBaseRoleEffectSupport().allBaseRoleEffectsImplemented, false);
 const seats = [{ id: 'p1', color: 'red' }, { id: 'p2', color: 'blue' }, { id: 'p3', color: 'green' }, { id: 'p4', color: 'yellow' }];
 const order = core.FOUNDERS_FACILITY_STOCK.cards.filter(card => card.group === 'ordinary').map(card => card.id);

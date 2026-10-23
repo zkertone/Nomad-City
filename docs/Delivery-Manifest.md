@@ -240,3 +240,19 @@
 修改 `packages/game-core/src/game/schema.ts`、`round-schema.ts`、`round-invariants.ts`、`round.ts`、`index.ts`、`construction.ts`、`exploration.ts`、`city-move.ts`、`influence-actions.ts`、`harvest.ts`；另更新 `package.json`（仅增加check:roles）、`README.md`、`docs/Round-Flow-2026-10-23.md`、`docs/Game-State-Foundation-2026-10-17.md`、`docs/DevLog.md`与本清单。
 
 最终实际verify：1439/1439（18文件）、strict/构建通过；14项编译检查最终退出0。4名角色5模式可执行，未实现模式仍拒绝；1.8.0显式升级、旧格式/默认入口保留。原静态JSON/摘要/全文、GameDefinition/Accepted ADR、项目版本/依赖锁不变。其余角色、样式、设施与最终计分待完成，无UI/联机/部署或对外发布。
+
+
+## 2026-10-23 雷蛇两种模式与收尾增量
+
+新增可编辑文件（仓库根目录下）：
+
+- `packages/game-core/src/game/liskarm-rules.ts`：逐次放置、先移除后同槽放置、真实标记供应及待处理义务辅助函数。
+- `packages/game-core/src/game/liskarm.ts`：显式1.9.0升级、开启收尾、目标查询和权威移除命令。
+- `packages/game-core/src/game/liskarm.test.ts`：49项新正反向与真实回合测试。
+- `scripts/check-liskarm.mjs`：根与/game编译包、2/3/4人入场至收尾的真实流程检查。
+- `docs/Liskarm-Effects-2026-10-23.md`：规则页码、API、费用/库存、版本、顺序与能力边界。
+- `docs/testing/liskarm-validation-2026-10-23.md`：真实命令、早期类型辅助错误、最终结果与未测范围。
+
+修改 `packages/game-core/src/game/schema.ts`、`round-schema.ts`、`round-invariants.ts`、`round.ts`、`role-rules.ts`、`role-effects.ts`、`role-effects.test.ts`、`index.ts`、`exploration.ts`、`city-move.ts`、`influence-actions.ts`、`harvest.ts`、`construction.ts`；`scripts/check-role-effects.mjs`；`package.json`（仅新增check:liskarm脚本）；`README.md`、`docs/Base-Role-Effects-2026-10-23.md`、`docs/Round-Flow-2026-10-23.md`、`docs/Game-State-Foundation-2026-10-17.md`、`docs/DevLog.md`及本清单。合计6个新增、21个修改文件。
+
+最终实际verify退出0：**1488/1488（19文件）**、strict/构建通过；构建后15项编译检查全部退出0。当前7/10角色模式，雷蛇策略/both必须完成可执行的本人移除后才推进回合，旧格式和默认入口保持兼容。GameDefinition/原静态JSON/摘要/已确认文字/Accepted ADR/项目版本/依赖锁不变。其余三角色计谋、样式、完整设施及最终计分待完成，无UI/联机/部署或对外发布。

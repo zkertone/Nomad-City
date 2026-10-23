@@ -87,3 +87,10 @@ GameDefinition 必须来自服务器持有的可信对局配置；不能让客�
 ## 2026-10-23 后续格式1.8.0
 
 [首批五种基础角色模式](Base-Role-Effects-2026-10-23.md) 通过可信enableBaseRoleEffects显式升级已验证1.7.0状态；新增每人used=null或{roleId,mode,turnIndex}的本回合引用，物理角色仍只存hand/discarded/placed。成功使用才原子执行并弃牌，所有动作保留1.8.0，收尾保留已用弃牌并清使用记录。旧格式/默认回合入口不自动改变，不重建未知历史；全角色效果、样式、完整设施及服务端持久化仍待完成。真实1439/1439（18文件）、strict/构建与14项编译检查通过，Accepted ADR和GameDefinition未改。
+
+
+## 2026-10-23 后续格式1.9.0
+
+[雷蛇策略、计谋与收尾](Liskarm-Effects-2026-10-23.md) 通过可信 `enableLiskarmEffects` 显式从1.8.0升级，保留已有角色使用/弃牌、设施、资源和回合历史。雷蛇strategy/both的used引用增加必须存在的 `cleanupResolved:boolean`，scheme-only和其他角色不得携带；格式1.9.0才接受雷蛇记录及cleanup阶段。完成标志只可在收尾阶段出现，不能提前伪造已结算。
+
+采集全部完成后可显式打开cleanup，按当前玩家顺序处理本人标记移除；未处理可执行义务时不能结束回合，无法执行的义务才跳过。所有现有动作继续保持1.9.0，不复制标记位置或余额账本。旧1.0.0–1.8.0读取和默认入口保留，GameDefinition及Accepted ADR不变。实际1488/1488、strict/构建和15项编译检查通过；完整角色、设施、样式及服务器持久化仍待完成。
