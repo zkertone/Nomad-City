@@ -343,3 +343,56 @@
 - `scripts/check-facilities.mjs`
 - `scripts/check-facility-entries.mjs`
 
+
+
+## 2026-10-23 · 剩余已拍基础设施批量交付
+
+基准提交62935e9849b97485f417444047bde9e0632dfcf5，保存根目录 `/workspace/scratch/a56cdbc0831a/nomad-city-dev`，远端既有仓库 `zkertone/Nomad-City`。完整规则/API见Remaining-Facilities-2026-10-23.md，实际1794/1794、strict/build与19项编译检查见testing/remaining-facilities-validation-2026-10-23.md。历史文件保留，未改原静态JSON/摘要、依赖锁或Accepted ADR。
+
+本批实际文件清单：
+
+共43份：新增7，修改36，无删除。相对路径均位于上述根目录及同名仓库路径。
+
+- `README.md`（更新）
+- `docs/Construction-Window-2026-10-23.md`（更新）
+- `docs/Delivery-Manifest.md`（更新）
+- `docs/DevLog.md`（更新）
+- `docs/Facility-Construction-2026-10-23.md`（更新）
+- `docs/Facility-Faces-Review-2026-10-22.md`（更新）
+- `docs/Facility-Immediate-Entries-2026-10-23.md`（更新）
+- `docs/Game-State-Foundation-2026-10-17.md`（更新）
+- `docs/Remaining-Facilities-2026-10-23.md`（新增）
+- `docs/Round-Flow-2026-10-23.md`（更新）
+- `docs/Warehouse-Entries-2026-10-23.md`（更新）
+- `docs/testing/remaining-facilities-validation-2026-10-23.md`（新增）
+- `package.json`（更新）
+- `packages/game-core/src/facilities/construction-spec.ts`（更新）
+- `packages/game-core/src/facilities/construction.test.ts`（更新）
+- `packages/game-core/src/facilities/construction.ts`（更新）
+- `packages/game-core/src/facilities/entry-effects.ts`（更新）
+- `packages/game-core/src/game/city-move-invariants.ts`（更新）
+- `packages/game-core/src/game/city-move.ts`（更新）
+- `packages/game-core/src/game/construction-invariants.ts`（更新）
+- `packages/game-core/src/game/construction.test.ts`（更新）
+- `packages/game-core/src/game/construction.ts`（更新）
+- `packages/game-core/src/game/exploration.ts`（更新）
+- `packages/game-core/src/game/facility-entries.test.ts`（更新）
+- `packages/game-core/src/game/facility-entries.ts`（新增）
+- `packages/game-core/src/game/facility-entry-invariants.ts`（新增）
+- `packages/game-core/src/game/facility-entry-rules.ts`（新增）
+- `packages/game-core/src/game/harvest.ts`（更新）
+- `packages/game-core/src/game/index.ts`（更新）
+- `packages/game-core/src/game/influence-actions.ts`（更新）
+- `packages/game-core/src/game/liskarm.ts`（更新）
+- `packages/game-core/src/game/remaining-facilities.test.ts`（新增）
+- `packages/game-core/src/game/role-effects.ts`（更新）
+- `packages/game-core/src/game/role-rules.ts`（更新）
+- `packages/game-core/src/game/round-invariants.ts`（更新）
+- `packages/game-core/src/game/round-schema.ts`（更新）
+- `packages/game-core/src/game/round.ts`（更新）
+- `packages/game-core/src/game/schema.ts`（更新）
+- `packages/game-core/src/game/warehouse.ts`（更新）
+- `scripts/check-facilities.mjs`（更新）
+- `scripts/check-facility-entries.mjs`（更新）
+- `scripts/check-remaining-facilities.mjs`（新增）
+- `scripts/check-warehouse.mjs`（更新）

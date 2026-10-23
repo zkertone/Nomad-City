@@ -164,7 +164,12 @@ export function finishManagedRound(input: GameState, definition: GameDefinition,
     role.placed = null;
     if (role.used !== undefined) role.used = null;
   }
-  next.playerOrder!.push(next.playerOrder!.shift()!);
+  const override = flow.startingPlayerOverride;
+  if (override) {
+    const index = next.playerOrder!.indexOf(override.playerId);
+    next.playerOrder = [...next.playerOrder!.slice(index), ...next.playerOrder!.slice(0, index)];
+  } else next.playerOrder!.push(next.playerOrder!.shift()!);
+  if (flow.startingPlayerOverride !== undefined) flow.startingPlayerOverride = null;
   next.phase = 'round-control'; delete next.harvest;
   if (flow.completedMajorAction !== undefined) flow.completedMajorAction = null;
   flow.supplyRemovalCount = 0; flow.rolePlacementCount = 0; flow.turnIndex = 0; flow.majorActionOpened = false;

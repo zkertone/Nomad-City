@@ -54,10 +54,10 @@ const simple = [
 ] as const;
 
 describe('supported pictured facility variants and fail-closed boundaries', () => {
-  it('reports precisely eleven types and twenty-six matching physical copies', () => {
+  it('reports precisely sixteen types and thirty-eight matching physical copies', () => {
     const support = getFacilityConstructionSupport();
-    expect(support.supportedFacilityIds).toEqual(['FAC-001', 'FAC-002', 'FAC-003', 'FAC-005', 'FAC-006', 'FAC-008', 'FAC-009', 'FAC-010', 'FAC-011', 'FAC-012', 'FAC-013']);
-    expect(support.supportedPhysicalCardIds).toHaveLength(26); expect(support.allFacilitiesImplemented).toBe(false);
+    expect(support.supportedFacilityIds).toEqual(Array.from({ length: 16 }, (_, i) => `FAC-${String(i + 1).padStart(3, '0')}`));
+    expect(support.supportedPhysicalCardIds).toHaveLength(38); expect(support.allFacilitiesImplemented).toBe(false);
     expect(FACILITY_CONSTRUCTION_SOURCE_HASH).toBe(FOUNDERS_FACILITY_FACES_HASH);
     expect(Object.isFrozen(support.supportedPhysicalCardIds)).toBe(true);
   });
@@ -67,7 +67,7 @@ describe('supported pictured facility variants and fail-closed boundaries', () =
   });
   it.each(['FAC-001', 'FAC-002', 'FAC-003', 'FAC-004', 'FAC-006', 'FAC-007', 'FAC-014', 'FAC-015', 'FAC-016'])('rejects %s with an unavailable handler or missing mandatory entry choice', id => {
     const f = fixture(id), before = JSON.stringify(f.state);
-    errorCode(() => run(f), ['FAC-001', 'FAC-002', 'FAC-003', 'FAC-006'].includes(id) ? 'ENTRY_CHOICE' : 'UNSUPPORTED_ENTRY_EFFECT'); expect(JSON.stringify(f.state)).toBe(before);
+    errorCode(() => run(f), 'ENTRY_CHOICE'); expect(JSON.stringify(f.state)).toBe(before);
   });
   it('rejects ordinary extension/core construction and unknown physical IDs', () => {
     const extension = fixture('FAC-018', 'yellow'); errorCode(() => run(extension), 'CARD_SOURCE');

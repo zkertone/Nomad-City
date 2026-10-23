@@ -9,6 +9,7 @@ import type { SupportedFacilityEntry } from './construction-spec.js';
 
 const quantity = z.number().int().nonnegative().safe();
 export const facilityEntryChoiceSchema = z.discriminatedUnion('kind', [
+  z.strictObject({ kind: z.literal('deferred-entry') }),
   z.strictObject({ kind: z.literal('warehouse-entry') }),
   z.strictObject({ kind: z.literal('warehouse-explore') }),
   z.strictObject({ kind: z.literal('warehouse-influence'), placeSlotId: slotIdSchema.optional(),
@@ -23,6 +24,7 @@ export const facilityEntryChoiceSchema = z.discriminatedUnion('kind', [
 export function requiredFacilityEntryChoiceKind(entry: SupportedFacilityEntry) {
   switch (entry.kind) {
     case 'warehouse': return 'warehouse';
+    case 'logistics': case 'free-city-move': case 'copy-entry': case 'starting-player': case 'extra-construction': return 'deferred-entry';
     case 'choose-five-resources': return 'resource-allocation';
     case 'remove-two-influence': return 'remove-influence';
     case 'replace-or-remove-influence': return 'mercenary-influence';
@@ -38,7 +40,7 @@ type Choice = z.infer<typeof facilityEntryChoiceSchema>;
 type Reject = (code: string, message: string) => never;
 /** Internal synchronous effects only; the private construction transaction owns payment, cards and rollback. */
 export function settleFacilityBoardOrSaleEntry(position: MutablePosition, board: BoardDefinition, actorId: string,
-  choice: Exclude<Choice, { kind: 'resource-allocation' | 'warehouse-explore' | 'warehouse-entry' }>, reject: Reject) {
+  choice: Exclude<Choice, { kind: 'resource-allocation' | 'warehouse-explore' | 'warehouse-entry' | 'deferred-entry' }>, reject: Reject) {
   const influenceChanges: FacilityEntryInfluenceChange[] = [], sales: ResourceSaleLine[] = [];
   let saleProceeds = 0;
   const recordRemoval = (slotId: string) => {

@@ -11,6 +11,7 @@ export const rejectFacilityConstruction = (code: string, message: string): never
 export type SupportedFacilityEntry =
   | { readonly kind: 'none' }
   | { readonly kind: 'warehouse' }
+  | { readonly kind: 'logistics' | 'free-city-move' | 'copy-entry' | 'starting-player' | 'extra-construction' }
   | { readonly kind: 'remove-two-influence' }
   | { readonly kind: 'replace-or-remove-influence' }
   | { readonly kind: 'sell-resources' }
@@ -18,6 +19,11 @@ export type SupportedFacilityEntry =
   | { readonly kind: 'choose-five-resources' }
   | { readonly kind: 'core-neighbor-vouchers' };
 const supported = deepFreeze([
+  { facilityId: 'FAC-016', entry: { kind: 'extra-construction' } },
+  { facilityId: 'FAC-015', entry: { kind: 'starting-player' } },
+  { facilityId: 'FAC-014', entry: { kind: 'copy-entry' } },
+  { facilityId: 'FAC-007', entry: { kind: 'free-city-move' } },
+  { facilityId: 'FAC-004', entry: { kind: 'logistics' } },
   { facilityId: 'FAC-001', entry: { kind: 'warehouse' } },
   { facilityId: 'FAC-002', entry: { kind: 'remove-two-influence' } },
   { facilityId: 'FAC-003', entry: { kind: 'replace-or-remove-influence' } },
@@ -46,10 +52,13 @@ export function getFacilityConstructionSpec(cardId: string) {
 }
 export function getFacilityConstructionSupport() {
   return deepFreeze({
-    supportedFacilityIds: supported.map(row => row.facilityId),
+    supportedFacilityIds: supported.map(row => row.facilityId).sort(),
     supportedPhysicalCardIds: FOUNDERS_FACILITY_STOCK.cards.filter(card => card.group === 'ordinary'
       && supported.some(row => row.facilityId === card.facilityId)
       && getFoundersFacilityFace(card.facilityId).observedColor === card.color).map(card => card.id),
+    supportedExtensionPhysicalCardIds: FOUNDERS_FACILITY_STOCK.cards.filter(card => card.group === 'extension-hub' && card.color === getFoundersFacilityFace(card.facilityId).observedColor).map(card => card.id),
+    unconfirmedPhysicalCardIds: FOUNDERS_FACILITY_STOCK.cards.filter(card => card.color !== getFoundersFacilityFace(card.facilityId).observedColor).map(card => card.id),
+    picturedOrdinaryTypesImplemented: true, nestedEntriesMinimumSnapshotVersion: '1.12.0',
     warehouseMinimumSnapshotVersion: '1.11.0', sourceHash: FACILITY_CONSTRUCTION_SOURCE_HASH, allFacilitiesImplemented: false as const,
   });
 }

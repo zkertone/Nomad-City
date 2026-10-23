@@ -1,3 +1,4 @@
+import { nestedFacilityEntryIssues } from './facility-entry-invariants.js';
 import { loadFoundersBoard } from '../board/index.js';
 import { getFoundersMapSide } from './state.js';
 import { explorationProgressIssuesFor } from './exploration-invariants.js';
@@ -15,16 +16,17 @@ export function constructionIssues(state: GameState, definition: GameDefinition)
     const checked = validateFacilityConstructionPosition({ position: {
       gameId: state.gameId, board: state.board, players: state.players, markerSupplyByPlayer: state.markerSupplyByPlayer,
     }, ...state.facilities }, definition);
-    if (!checked.success) for (const message of checked.issues) report('facilities', message);
+    if (!checked.success) { for (const message of checked.issues) report('facilities', message); return issues; }
   }
   for (const holding of state.facilities?.supply.playerHoldings ?? []) for (const id of holding.cardIds) {
-    try { if (getFacilityConstructionSpec(id).entry.kind === 'warehouse' && state.schemaVersion !== '1.11.0') report('facilities', 'Built warehouse requires format 1.11.0'); } catch { /* Other invalid/unsupported cards are checked by their existing validators. */ }
+    try { if (getFacilityConstructionSpec(id).entry.kind === 'warehouse' && !['1.11.0', '1.12.0'].includes(state.schemaVersion)) report('facilities', 'Built warehouse requires format 1.11.0'); } catch { /* Other invalid/unsupported cards are checked by their existing validators. */ }
   }
+  issues.push(...nestedFacilityEntryIssues(state, definition));
   const action = state.construction;
   if (state.phase !== 'construction' || !action) return issues;
   if (!definition.players.some(player => player.id === action.actorId)) report('construction.actorId', 'Unknown granted player');
   if (action.status === 'ready') {
-    if (action.warehouseEntry !== undefined) report('construction', 'Ready construction cannot have an entry history');
+    if (action.warehouseEntry !== undefined || action.entryStack !== undefined) report('construction', 'Ready construction cannot have an entry history');
     if (action.constructionsCompleted !== 0 || action.builtCardId !== null) report('construction', 'Ready window has no completed construction');
     if (state.facilities?.panels.find(panel => panel.playerId === action.actorId)?.placements.length === 12) report('construction', 'Ready construction needs an empty panel cell');
   } else {
@@ -36,7 +38,7 @@ export function constructionIssues(state: GameState, definition: GameDefinition)
     }
   }
   const entry = action.warehouseEntry;
-  if (action.status === 'entry-pending' && !entry) report('construction', 'Pending construction needs a real warehouse continuation');
+  if (action.status === 'entry-pending' && !entry && !action.entryStack?.length) report('construction', 'Pending construction needs a real warehouse continuation');
   if (entry && definition.players.some(player => player.id === action.actorId)) {
     const board = loadFoundersBoard(getFoundersMapSide(definition.players.length));
     let warehouse = false; try { warehouse = action.builtCardId !== null && getFacilityConstructionSpec(action.builtCardId).entry.kind === 'warehouse'; } catch { /* Already reported. */ }

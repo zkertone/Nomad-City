@@ -128,7 +128,7 @@ describe('single trusted construction window and authoritative snapshot', () => 
     const f = fixture('FAC-011'), first = run(f);
     const next = openConstructionWindow(first, f.definition, options(first));
     expect(next.facilities).toEqual(first.facilities); expect(next.construction!.constructionsCompleted).toBe(0);
-    const cardId = next.facilities!.supply.supply.find(id => getFacilityConstructionSupport().supportedPhysicalCardIds.includes(id))!;
+    const cardId = next.facilities!.supply.supply.find(id => getFoundersPhysicalFacilityCard(id).facilityId === 'FAC-005')!;
     // In this explicit order the next supported card is the blue urban facility, requiring no extra choice.
     const result = run(f, { ...commandFor(next, f), cardId, cellId: 'CP-1-2' }, next);
     expect(result.facilities!.panels[0]!.placements).toHaveLength(3); expect(result.facilities!.supply.revision).toBe(2);
@@ -161,7 +161,7 @@ describe('command boundary, failure atomicity and window guards', () => {
     if (problem === 'card-source') { payload.cardId = state.facilities!.supply.drawPile[0]; expected = 'PLACEMENT_INVALID'; }
     if (problem === 'occupied') { payload.cellId = 'CP-3-2'; expected = 'PLACEMENT_INVALID'; }
     if (problem === 'unconfirmed-color') expected = 'UNCONFIRMED_COLOR_VARIANT';
-    if (problem === 'unsupported') expected = 'UNSUPPORTED_ENTRY_EFFECT';
+    if (problem === 'unsupported') expected = 'FACILITY_FORMAT';
     if (problem === 'cannot-pay') { state.players.p1!.balances['columbia-voucher'] = 0; expected = 'CANNOT_PAY'; }
     if (problem === 'choice') { payload.entryChoice = { kind: 'resource-allocation', gains: { orirock: 5, originium: 0, iron: 0 } }; expected = 'ENTRY_CHOICE'; }
     if (problem === 'state-overflow') { payload.expectedVersion = state.stateVersion = Number.MAX_SAFE_INTEGER; expected = 'VERSION_OVERFLOW'; }
@@ -307,7 +307,7 @@ describe('facility persistence across existing actions and snapshot validation',
   });
   it('rejects granting construction on a full panel without losing existing facilities', () => {
     const f = fixture(), state = gameStateSchema.parse(run(f)), facilities = state.facilities!, panel = facilities.panels[0]!;
-    const ids = getFacilityConstructionSupport().supportedPhysicalCardIds.filter(id => !['FAC-001', 'FAC-013'].includes(getFoundersPhysicalFacilityCard(id).facilityId)).slice(0, 10);
+    const ids = getFacilityConstructionSupport().supportedPhysicalCardIds.filter(id => !['FAC-001', 'FAC-004', 'FAC-007', 'FAC-013', 'FAC-014', 'FAC-015', 'FAC-016'].includes(getFoundersPhysicalFacilityCard(id).facilityId)).slice(0, 10);
     const cells = ['CP-1-2', 'CP-1-3', 'CP-2-1', 'CP-2-2', 'CP-2-3', 'CP-3-1', 'CP-3-3', 'CP-4-1', 'CP-4-2', 'CP-4-3'];
     // Physical full-panel fixture; not a claim of prior legal payment/action history.
     for (const [index, id] of ids.entries()) {

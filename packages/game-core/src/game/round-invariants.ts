@@ -1,7 +1,7 @@
 import type { ValidationIssue } from '../board/types.js';
 import type { GameDefinition, GameState } from './types.js';
 import { FOUNDERS_BASE_ROLES } from './round-schema.js';
-import { getFacilityConstructionSpec } from '../facilities/construction-spec.js';
+import { facilityEntrySpec } from './facility-entry-rules.js';
 import { getFoundersPhysicalFacilityCard } from '../facilities/stock.js';
 import { isBaseRoleModeAvailableInFormat } from './role-rules.js';
 import { hasLiskarmCleanup, ownBoardInfluenceSlotIds } from './liskarm-rules.js';
@@ -20,7 +20,7 @@ export function roundFlowIssues(state: GameState, definition: GameDefinition): V
       if (role.placed !== null || !role.discarded.includes(role.used.roleId)) report('Used role must be in discard, with no unused placed role');
       if (!['player-actions', 'harvest', 'cleanup'].includes(flow.stage) || role.used.turnIndex > flow.turnIndex || order[role.used.turnIndex % count] !== role.playerId) report('Role use must belong to this player in a reached action turn');
       if (!isBaseRoleModeAvailableInFormat(role.used.roleId, role.used.mode, state.schemaVersion) || (role.used.mode === 'both' && role.playerId !== order[0])) report('Role-use mode must be supported and both modes require the starting player');
-      if (role.used.roleId === 'ROLE-01' && !['1.9.0', '1.10.0', '1.11.0'].includes(state.schemaVersion)) report('Liskarm requires snapshot 1.9.0');
+      if (role.used.roleId === 'ROLE-01' && !['1.9.0', '1.10.0', '1.11.0', '1.12.0'].includes(state.schemaVersion)) report('Liskarm requires snapshot 1.9.0');
       if (hasLiskarmCleanup(role.used)) {
         if (typeof role.used.cleanupResolved !== 'boolean') report('Liskarm strategy requires an explicit cleanup obligation');
         if (role.used.cleanupResolved && flow.stage !== 'cleanup') report('Delayed removal cannot be resolved before cleanup');
@@ -31,7 +31,7 @@ export function roundFlowIssues(state: GameState, definition: GameDefinition): V
   // This managed flow currently supports ordinary base-price construction only. Do not silently
   // skip delayed/continuous effects from a facility that the implementation cannot execute.
   for (const holding of state.facilities?.supply.playerHoldings ?? []) for (const id of holding.cardIds) {
-    try { if (getFoundersPhysicalFacilityCard(id).group !== 'core-command-tower') getFacilityConstructionSpec(id); }
+    try { if (getFoundersPhysicalFacilityCard(id).group !== 'core-command-tower') facilityEntrySpec(id); }
     catch { report('Managed rounds cannot contain an unsupported built facility'); }
   }
   const placedPlayers = new Set(flow.rolesByPlayer.filter(row => row.placed !== null || row.used != null).map(row => row.playerId));
@@ -42,7 +42,7 @@ export function roundFlowIssues(state: GameState, definition: GameDefinition): V
   } else if (flow.supplyRemovalCount !== (count === 2 ? 2 : 0)) report('Required supply removals must be complete before placing roles');
   if (flow.stage === 'role-placement' && flow.rolePlacementCount >= count) report('Completed role placement must enter player actions');
   if (['player-actions', 'harvest', 'cleanup'].includes(flow.stage) && flow.rolePlacementCount !== count) report('All players must place a role before actions');
-  if (flow.stage === 'cleanup' && !['1.9.0', '1.10.0', '1.11.0'].includes(state.schemaVersion)) report('Explicit role cleanup requires snapshot 1.9.0');
+  if (flow.stage === 'cleanup' && !['1.9.0', '1.10.0', '1.11.0', '1.12.0'].includes(state.schemaVersion)) report('Explicit role cleanup requires snapshot 1.9.0');
   const expectedPlaced = order.slice(0, flow.rolePlacementCount);
   if (placedPlayers.size !== expectedPlaced.length || expectedPlaced.some(id => !placedPlayers.has(id))) report('Placed roles must follow clockwise placement progress');
   if (flow.completedMajorAction != null && (flow.stage !== 'player-actions' || !flow.majorActionOpened || state.phase !== 'round-control' || !flow.rolesByPlayer.some(role => role.playerId === order[flow.turnIndex % count] && role.used?.turnIndex === flow.turnIndex))) report('Retired major action requires a role used after completion in this exact turn');

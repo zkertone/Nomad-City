@@ -115,11 +115,11 @@ export interface FacilityConstructionResult { readonly state: FacilityConstructi
  * Atomic INTERNAL settlement. The future action owner must grant/consume the action once and CAS its outer GameState version.
  * Unsupported effects/variants fail before publishing any costs, placement, score or refill changes.
  */
-export interface FacilityConstructionStartResult extends FacilityConstructionResult { readonly pendingEntry: 'warehouse-exploration' | 'warehouse-choice' | null }
+export interface FacilityConstructionStartResult extends FacilityConstructionResult { readonly pendingEntry: 'warehouse-exploration' | 'warehouse-choice' | 'facility-entry' | null }
 export function beginFacilityConstruction(input: unknown, definition: GameDefinition, context: FacilityConstructionContext, payload: unknown): FacilityConstructionStartResult {
   const p = prepare(input, definition, context, payload);
   const choiceKind = requiredFacilityEntryChoiceKind(p.spec.entry);
-  if (choiceKind === 'warehouse' ? !['warehouse-entry', 'warehouse-influence', 'warehouse-explore'].includes(p.command.entryChoice?.kind ?? '') : choiceKind === null ? p.command.entryChoice !== undefined : p.command.entryChoice?.kind !== choiceKind) return reject('ENTRY_CHOICE', 'Provide exactly the choice kind required by this facility entry');
+  if (p.command.entryChoice?.kind !== 'deferred-entry' && (choiceKind === 'warehouse' ? !['warehouse-entry', 'warehouse-influence', 'warehouse-explore'].includes(p.command.entryChoice?.kind ?? '') : choiceKind === null ? p.command.entryChoice !== undefined : p.command.entryChoice?.kind !== choiceKind)) return reject('ENTRY_CHOICE', 'Provide exactly the choice kind required by this facility entry');
   if (!canAffordResources(p.state.position.players[p.context.actorId]!.balances, p.costs)) return reject('CANNOT_PAY', 'All construction costs must be payable before entry rewards');
   const next = facilityConstructionPositionSchema.parse(p.state), actor = next.position.players[p.context.actorId]!;
   for (const cost of p.costs) actor.balances[cost.asset] -= cost.amount;
@@ -138,8 +138,10 @@ export function beginFacilityConstruction(input: unknown, definition: GameDefini
     if (!Number.isSafeInteger(actor.balances[asset] + amount)) return reject('BALANCE_OVERFLOW', 'Entry gain exceeds safe integer range');
     actor.balances[asset] += amount; if (amount) entryGains.push({ asset, amount });
   };
-  let pendingEntry: 'warehouse-exploration' | 'warehouse-choice' | null = null;
-  switch (p.spec.entry.kind) {
+  let pendingEntry: 'warehouse-exploration' | 'warehouse-choice' | 'facility-entry' | null = null;
+  if (p.command.entryChoice?.kind === 'deferred-entry') pendingEntry = 'facility-entry';
+  else switch (p.spec.entry.kind) {
+    case 'logistics': case 'free-city-move': case 'copy-entry': case 'starting-player': case 'extra-construction': pendingEntry = 'facility-entry'; break;
     case 'none': break;
     case 'gain': gain(p.spec.entry.asset, p.spec.entry.amount); break;
     case 'core-neighbor-vouchers': gain('columbia-voucher', getOrthogonallyAdjacentPanelFacilities(panel, next.supply, FOUNDERS_FACILITY_PANEL.initialCoreCellId).length * 4); break;
@@ -171,6 +173,6 @@ export function beginFacilityConstruction(input: unknown, definition: GameDefini
 /** Complete synchronous settlement only: callers cannot mistake a nested exploration for an executed entry. */
 export function settleFacilityConstruction(input: unknown, definition: GameDefinition, context: FacilityConstructionContext, payload: unknown): FacilityConstructionResult {
   const result = beginFacilityConstruction(input, definition, context, payload);
-  if (result.pendingEntry) return reject('ENTRY_REQUIRES_CONTINUATION', 'Warehouse exploration needs the authoritative resumable construction owner');
+  if (result.pendingEntry) return reject('ENTRY_REQUIRES_CONTINUATION', 'Nested entry needs the authoritative resumable construction owner');
   return deepFreeze({ state: result.state, receipt: result.receipt });
 }

@@ -30,7 +30,7 @@ export interface CityMoveOption { readonly nodeId: string; readonly routeId: str
 /** Trusted single-action grant. Full round/role/major-action authorization remains the caller's job. */
 export function openCityMoveWindow(input: GameState, definition: GameDefinition, options: OpenCityMoveWindowOptions): GameState {
   const prepared = prepareActionWindow(input, definition, options, reject);
-  return parseGameState({ ...prepared.position, ...prepared.facilityFields, ...prepared.roundFields, schemaVersion: prepared.previousFormat === '1.11.0' ? '1.11.0' : prepared.previousFormat === '1.10.0' ? '1.10.0' : prepared.previousFormat === '1.9.0' ? '1.9.0' : prepared.previousFormat === '1.8.0' ? '1.8.0' : prepared.previousFormat === '1.7.0' ? '1.7.0' : prepared.previousFormat === '1.6.0' ? '1.6.0' : prepared.previousFormat === '1.5.0' ? '1.5.0' : prepared.previousFormat === '1.4.0' ? '1.4.0' : '1.3.0', stateVersion: prepared.stateVersion,
+  return parseGameState({ ...prepared.position, ...prepared.facilityFields, ...prepared.roundFields, schemaVersion: prepared.previousFormat === '1.12.0' ? '1.12.0' : prepared.previousFormat === '1.11.0' ? '1.11.0' : prepared.previousFormat === '1.10.0' ? '1.10.0' : prepared.previousFormat === '1.9.0' ? '1.9.0' : prepared.previousFormat === '1.8.0' ? '1.8.0' : prepared.previousFormat === '1.7.0' ? '1.7.0' : prepared.previousFormat === '1.6.0' ? '1.6.0' : prepared.previousFormat === '1.5.0' ? '1.5.0' : prepared.previousFormat === '1.4.0' ? '1.4.0' : '1.3.0', stateVersion: prepared.stateVersion,
     phase: 'city-move', eventDecks: prepared.eventDecks, playerOrder: prepared.playerOrder,
     cityMove: { actorId: prepared.options.actorId, roundNumber: prepared.options.roundNumber, status: 'ready',
       sourceNodeId: null, targetNodeId: null, routeId: null, cardId: null, resolvedChoiceId: null } }, definition);
@@ -40,6 +40,10 @@ export function openCityMoveWindow(input: GameState, definition: GameDefinition,
 export function getCityMoveOptions(input: GameState, definition: GameDefinition, actorId: string): readonly CityMoveOption[] {
   const state = parseGameState(input, definition); const move = state.cityMove;
   if (state.phase !== 'city-move' || move?.status !== 'ready' || move.actorId !== actorId || state.players[actorId]!.balances.originium < 3) return Object.freeze([]);
+  return cityMoveOptionsFor(state, definition, actorId, move.roundNumber);
+}
+/** Internal geometry/opening query, independent of payment or the top-level phase. */
+export function cityMoveOptionsFor(state: GameState, definition: GameDefinition, actorId: string, roundNumber: number): readonly CityMoveOption[] {
   const board = loadFoundersBoard(getFoundersMapSide(definition.players.length));
   const source = state.board.cityNodeByPlayer[actorId]!;
   const options: CityMoveOption[] = [];
@@ -47,7 +51,7 @@ export function getCityMoveOptions(input: GameState, definition: GameDefinition,
     if (!route.incidentNodeIds.includes(source)) continue;
     for (const nodeId of route.incidentNodeIds) {
       if (nodeId === source || Object.entries(state.board.cityNodeByPlayer).some(([other, city]) => other !== actorId && city === nodeId)) continue;
-      if (board.resourceNodes[nodeId]!.redRestricted && move.roundNumber < redExplorationOpeningRound(definition.players.length)) continue;
+      if (board.resourceNodes[nodeId]!.redRestricted && roundNumber < redExplorationOpeningRound(definition.players.length)) continue;
       options.push({ nodeId, routeId: route.id });
     }
   }
@@ -81,53 +85,60 @@ export function applyCityMoveCommand(input: GameState, definition: GameDefinitio
   const move = current.cityMove;
   if (current.phase !== 'city-move' || !move || move.status === 'complete') return reject('ACTION_STAGE', 'No unfinished city-move grant');
   if (move.actorId !== context.authenticatedPlayerId) return reject('WRONG_ACTOR', 'Only the granted actor may move');
-  const next = gameStateSchema.parse(current); const progress = next.cityMove!;
+  const next = gameStateSchema.parse(current);
+  resolveCityMoveStep(next, definition, next.cityMove!, command, reject);
+  next.stateVersion = nextVersion(current.stateVersion);
+  return parseGameState(next, definition);
+}
+
+/** Internal reducer on a private transaction. Caller owns authentication, phase, version and commit. */
+export function resolveCityMoveStep(next: z.infer<typeof gameStateSchema>, definition: GameDefinition,
+  progress: z.infer<typeof import('./schema.js').cityMoveProgressSchema>, command: CityMovePlayerCommand,
+  reject: (code: string, message: string) => never, free = false): void {
   const board = loadFoundersBoard(getFoundersMapSide(definition.players.length));
   switch (command.type) {
     case 'move-city': {
-      if (move.status !== 'ready') return reject('ACTION_STAGE', 'City has already moved');
-      if (next.players[move.actorId]!.balances.originium < 3) return reject('CANNOT_PAY', 'City movement requires 3 originium before any event');
-      if (!getCityMoveOptions(current, definition, move.actorId).some(option => option.nodeId === command.nodeId && option.routeId === command.routeId)) return reject('MOVE_TARGET', 'Choose a free, open destination on the specified single route');
+      if (progress.status !== 'ready') return reject('ACTION_STAGE', 'City has already moved');
+      if (!free && next.players[progress.actorId]!.balances.originium < 3) return reject('CANNOT_PAY', 'City movement requires 3 originium before any event');
+      if (!cityMoveOptionsFor(next, definition, progress.actorId, progress.roundNumber).some(option => option.nodeId === command.nodeId && option.routeId === command.routeId)) return reject('MOVE_TARGET', 'Choose a free, open destination on the specified single route');
       const node = board.resourceNodes[command.nodeId]!;
       const unexplored = next.board.resourceMarkerByNode[command.nodeId] === null;
       const cardId = unexplored ? next.eventDecks![node.eventDeckColor][0] : null;
       if (unexplored && !cardId) return reject('EVENT_DECK', 'No eligible event remains');
-      next.players[move.actorId]!.balances.originium -= 3;
-      progress.sourceNodeId = next.board.cityNodeByPlayer[move.actorId]!;
-      next.board.cityNodeByPlayer[move.actorId] = command.nodeId;
-      clearOpposingCityMoveInfluence(next, board, move.actorId, command.routeId, command.nodeId);
+      if (!free) next.players[progress.actorId]!.balances.originium -= 3;
+      progress.sourceNodeId = next.board.cityNodeByPlayer[progress.actorId]!;
+      next.board.cityNodeByPlayer[progress.actorId] = command.nodeId;
+      clearOpposingCityMoveInfluence(next, board, progress.actorId, command.routeId, command.nodeId);
       progress.targetNodeId = command.nodeId; progress.routeId = command.routeId;
       if (cardId) {
         const card = getFoundersEventCard(cardId);
         next.eventDecks![node.eventDeckColor].shift();
         next.board.resourceMarkerByNode[command.nodeId] = { markerDefinitionId: card.id, resourceKind: card.resourceMarker.resource, harvestAmount: card.resourceMarker.harvestAmount };
         progress.cardId = card.id; progress.status = 'event-choice';
-      } else progress.status = availableTargetInfluenceSlots(next, board, move.actorId, command.nodeId).length ? 'final-influence' : 'complete';
+      } else progress.status = availableTargetInfluenceSlots(next, board, progress.actorId, command.nodeId).length ? 'final-influence' : 'complete';
       break;
     }
     case 'choose-city-move-event': {
-      if (move.status !== 'event-choice') return reject('ACTION_STAGE', 'No new event to resolve');
+      if (progress.status !== 'event-choice') return reject('ACTION_STAGE', 'No new event to resolve');
       try {
-        const settled = settleEventChoice(getGamePosition(current, definition), definition,
-          { gameId: current.gameId, actorId: move.actorId, nodeId: move.targetNodeId!, cardId: move.cardId! }, command.choice);
+        const settled = settleEventChoice(getGamePosition(next, definition), definition,
+          { gameId: next.gameId, actorId: progress.actorId, nodeId: progress.targetNodeId!, cardId: progress.cardId! }, command.choice);
         Object.assign(next, gamePositionSchema.parse(settled.position));
       } catch (error) {
         if (error instanceof EventSettlementError) return reject(error.code, error.message);
         throw error;
       }
       progress.resolvedChoiceId = command.choice.choiceId;
-      progress.status = availableTargetInfluenceSlots(next, board, move.actorId, move.targetNodeId!).length ? 'final-influence' : 'complete';
+      progress.status = availableTargetInfluenceSlots(next, board, progress.actorId, progress.targetNodeId!).length ? 'final-influence' : 'complete';
       break;
     }
     case 'place-city-move-influence': {
-      if (move.status !== 'final-influence') return reject('ACTION_STAGE', 'No final influence is pending');
-      if (!getCityMoveFinalSlotIds(current, definition, move.actorId).includes(command.slotId)) return reject('FINAL_SLOT', 'Final placement must be at the new city node');
-      const markerId = next.markerSupplyByPlayer[move.actorId]!.shift()!;
-      next.board.influenceBySlot[command.slotId] = { markerId, ownerPlayerId: move.actorId };
+      if (progress.status !== 'final-influence') return reject('ACTION_STAGE', 'No final influence is pending');
+      if (!availableTargetInfluenceSlots(next, board, progress.actorId, progress.targetNodeId!).includes(command.slotId)) return reject('FINAL_SLOT', 'Final placement must be at the new city node');
+      const markerId = next.markerSupplyByPlayer[progress.actorId]!.shift()!;
+      next.board.influenceBySlot[command.slotId] = { markerId, ownerPlayerId: progress.actorId };
       progress.status = 'complete';
       break;
     }
   }
-  next.stateVersion = nextVersion(current.stateVersion);
-  return parseGameState(next, definition);
 }

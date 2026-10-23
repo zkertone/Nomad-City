@@ -6,7 +6,9 @@ import { availableTargetInfluenceSlots } from './influence.js';
 
 export function cityMoveProgressIssues(state: GameState, definition: GameDefinition, board: BoardDefinition): ValidationIssue[] {
   if (state.phase !== 'city-move' || !state.cityMove) return [];
-  const move = state.cityMove;
+  return cityMoveProgressIssuesFor(state, state.cityMove, definition, board);
+}
+export function cityMoveProgressIssuesFor(state: GameState, move: NonNullable<GameState['cityMove']>, definition: GameDefinition, board: BoardDefinition): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
   const report = (path: string, message: string): void => { issues.push({ code: 'CITY_MOVE_PROGRESS', path, message }); };
   if (!definition.players.some(player => player.id === move.actorId)) report('cityMove.actorId', 'Unknown moving player');

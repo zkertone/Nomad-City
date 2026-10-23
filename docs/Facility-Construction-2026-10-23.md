@@ -80,3 +80,10 @@ facilityConstructionCommandSchema.entryChoice增加移除列表、佣兵替换/�
 [载具仓库](Warehouse-Entries-2026-10-23.md) 两种完整分支已执行。静态支持11类/26张，GameState中仓库必须显式1.11.0；其他旧设施和格式继续兼容。同步settleFacilityConstruction只返回完整已结算结果，仓库探索或待选分支以ENTRY_REQUIRES_CONTINUATION拒绝；可信beginFacilityConstruction可返回pendingEntry，并在receipt.entryStatus明确pending/complete，由父建设权威接口保存并继续。
 
 推荐先建设/补牌公开再选择入场，不要求玩家提前绑定未知信息后的决策；自愿预选分支仍可一并提交。失败边界按实际提交区分：同次建设/初始探索无效时全次回滚；已合法提交的建设/揭牌不因下一次无效选择撤销，保留原待选进度。阶段间不重复支付或拿牌。真实1705/1705和18项编译检查见新验证记录，其他嵌套设施仍未完成。
+
+
+## 同日后续：剩余已拍基础设施批量接入
+
+[本批实现与边界](Remaining-Facilities-2026-10-23.md) 更新当前范围：普通16类/38张，加黄色延伸1张和原设置核心4张；其余5张颜色卡面未核验，allFacilitiesImplemented仍false。原11类/26张为此前仓库完成时的历史。显式GameState1.12.0增加局部entryStack和本回合理事处起始玩家记录，旧1.11仓库中途存档可继续，原始文字/数量/费用/摘要与Accepted ADR不变。
+
+物流/延伸、工程营付费额外建设、能源复制完整入场、动力免费移城→事件→目标末尾→额外航道放置、最后建成理事处收尾传递均已接入；可以在普通/额外建设补牌公开后选择入场。原有采集、角色权限和一次主要行动额度继续执行。实际命令、通过数量、失败修复与编译后2/3/4人完整流程见 [验证记录](testing/remaining-facilities-validation-2026-10-23.md)。

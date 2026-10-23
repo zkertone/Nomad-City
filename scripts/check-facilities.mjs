@@ -99,8 +99,8 @@ console.log(JSON.stringify({ panelHash: facilities.FOUNDERS_FACILITY_PANEL.conte
 console.log('PASS: compiled player panel, 2/3/4-player core positions, empty-cell preflight, orthogonal neighbors and no preview mutation');
 
 assert.equal(core.settleFacilityConstruction, facilities.settleFacilityConstruction);
-assert.equal(facilities.getFacilityConstructionSupport().supportedFacilityIds.length, 11);
-assert.equal(facilities.getFacilityConstructionSupport().supportedPhysicalCardIds.length, 26);
+assert.equal(facilities.getFacilityConstructionSupport().supportedFacilityIds.length, 16);
+assert.equal(facilities.getFacilityConstructionSupport().supportedPhysicalCardIds.length, 38);
 const constructionGame = core.createPreEntryGame('compiled-construction', [{ id: 'p1', color: 'red' }, { id: 'p2', color: 'blue' }]);
 const adminCard = facilities.FOUNDERS_FACILITY_STOCK.cards.find(card => card.facilityId === 'FAC-013').id;
 const constructionOrder = [adminCard, ...order.filter(id => id !== adminCard)];

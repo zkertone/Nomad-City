@@ -32,7 +32,7 @@ function nextVersion(version: number): number {
  */
 export function openExplorationWindow(input: GameState, definition: GameDefinition, rawOptions: OpenExplorationWindowOptions): GameState {
   const prepared = prepareActionWindow(input, definition, rawOptions, reject);
-  return parseGameState({ ...prepared.position, ...prepared.facilityFields, ...prepared.roundFields, schemaVersion: prepared.previousFormat === '1.11.0' ? '1.11.0' : prepared.previousFormat === '1.10.0' ? '1.10.0' : prepared.previousFormat === '1.9.0' ? '1.9.0' : prepared.previousFormat === '1.8.0' ? '1.8.0' : prepared.previousFormat === '1.7.0' ? '1.7.0' : prepared.previousFormat === '1.6.0' ? '1.6.0' : prepared.previousFormat === '1.5.0' ? '1.5.0' : prepared.previousFormat === '1.4.0' ? '1.4.0' : prepared.previousFormat === '1.3.0' ? '1.3.0' : '1.2.0',
+  return parseGameState({ ...prepared.position, ...prepared.facilityFields, ...prepared.roundFields, schemaVersion: prepared.previousFormat === '1.12.0' ? '1.12.0' : prepared.previousFormat === '1.11.0' ? '1.11.0' : prepared.previousFormat === '1.10.0' ? '1.10.0' : prepared.previousFormat === '1.9.0' ? '1.9.0' : prepared.previousFormat === '1.8.0' ? '1.8.0' : prepared.previousFormat === '1.7.0' ? '1.7.0' : prepared.previousFormat === '1.6.0' ? '1.6.0' : prepared.previousFormat === '1.5.0' ? '1.5.0' : prepared.previousFormat === '1.4.0' ? '1.4.0' : prepared.previousFormat === '1.3.0' ? '1.3.0' : '1.2.0',
     stateVersion: prepared.stateVersion, phase: 'exploration', eventDecks: prepared.eventDecks, playerOrder: prepared.playerOrder,
     exploration: { actorId: prepared.options.actorId, roundNumber: prepared.options.roundNumber, status: 'ready',
       targetNodeId: null, cardId: null, resolvedChoiceId: null } }, definition);

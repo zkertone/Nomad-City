@@ -21,6 +21,7 @@ export const roundFlowSchema = z.strictObject({
   majorActionOpened: z.boolean(),
   // 1.10.0 and later: retire a completed action before a subsequent quick role changes its facts.
   completedMajorAction: z.enum(['deploy', 'dispatch', 'explore', 'city-move', 'construct']).nullable().optional(),
+  startingPlayerOverride: z.strictObject({ playerId: z.string().min(1), cardId: z.string().min(1) }).nullable().optional(),
   rolesByPlayer: z.array(z.strictObject({
     playerId: z.string().min(1), hand: roleIds, discarded: roleIds, placed: baseRoleIdSchema.nullable(),
     // Reference to a card in discarded, not an additional physical card zone. Absent in 1.7.0.

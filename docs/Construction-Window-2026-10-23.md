@@ -104,3 +104,10 @@ const next = applyConstructionCommand(granted, definition, context, command);
 entryChoice warehouse-entry先付费/拿牌补牌/摆放/得分，再以choose-warehouse-entry选择完整影响力或正常收费探索分支。仓库探索既可玩家自愿预先确定并一并开始，也可补牌公开后决定；任何当前可执行探索不能直接省略，无可执行目标才skipped。applyWarehouseEntryCommand继续事件/末尾放置，旧Construction重复请求仍拒绝。
 
 pending期间getRoundTurn报告pending，不能finish-player-turn、取消已执行建设、插入角色、追加主要行动、采集或收尾；完成后只占原一次建设。正常探索与仓库复用同一引擎，保留独立航道身份/收费。当前11类/26张，真实1705/1705、strict/构建与18项编译检查通过。
+
+
+## 同日后续：剩余已拍基础设施批量接入
+
+[本批实现与边界](Remaining-Facilities-2026-10-23.md) 更新当前范围：普通16类/38张，加黄色延伸1张和原设置核心4张；其余5张颜色卡面未核验，allFacilitiesImplemented仍false。原11类/26张为此前仓库完成时的历史。显式GameState1.12.0增加局部entryStack和本回合理事处起始玩家记录，旧1.11仓库中途存档可继续，原始文字/数量/费用/摘要与Accepted ADR不变。
+
+物流/延伸、工程营付费额外建设、能源复制完整入场、动力免费移城→事件→目标末尾→额外航道放置、最后建成理事处收尾传递均已接入；可以在普通/额外建设补牌公开后选择入场。原有采集、角色权限和一次主要行动额度继续执行。实际命令、通过数量、失败修复与编译后2/3/4人完整流程见 [验证记录](testing/remaining-facilities-validation-2026-10-23.md)。
