@@ -97,3 +97,29 @@ for (const count of [2, 3, 4]) {
 }
 console.log(JSON.stringify({ panelHash: facilities.FOUNDERS_FACILITY_PANEL.contentHash, columns: 3, rows: 4, cells: 12, initialCoreCell: 'CP-3-2' }));
 console.log('PASS: compiled player panel, 2/3/4-player core positions, empty-cell preflight, orthogonal neighbors and no preview mutation');
+
+assert.equal(core.settleFacilityConstruction, facilities.settleFacilityConstruction);
+assert.equal(facilities.getFacilityConstructionSupport().supportedFacilityIds.length, 7);
+assert.equal(facilities.getFacilityConstructionSupport().supportedPhysicalCardIds.length, 15);
+const constructionGame = core.createPreEntryGame('compiled-construction', [{ id: 'p1', color: 'red' }, { id: 'p2', color: 'blue' }]);
+const adminCard = facilities.FOUNDERS_FACILITY_STOCK.cards.find(card => card.facilityId === 'FAC-013').id;
+const constructionOrder = [adminCard, ...order.filter(id => id !== adminCard)];
+const constructionSupply = facilities.createFoundersFacilitySupply({ gameId: constructionGame.definition.gameId, playerIds: ['p1', 'p2'], deckOrder: constructionOrder });
+const constructionPosition = core.gamePositionSchema.parse(core.getGamePosition(constructionGame.state, constructionGame.definition));
+constructionPosition.players.p1.balances['columbia-voucher'] = 30;
+const constructionInput = { position: constructionPosition, supply: constructionSupply, panels: facilities.createInitialFacilityPanels(constructionSupply) };
+const constructionContext = { gameId: constructionGame.definition.gameId, actorId: 'p1', expectedSupplyRevision: 0, expectedPanelRevision: 0 };
+const constructionCommand = { cardId: adminCard, cellId: 'CP-1-1', paymentMode: 'vouchers' };
+const constructionBefore = JSON.stringify(constructionInput);
+assert.equal(facilities.getFacilityConstructionQuote(constructionInput, constructionGame.definition, constructionContext, constructionCommand).canPay, true);
+const built = facilities.settleFacilityConstruction(constructionInput, constructionGame.definition, constructionContext, constructionCommand);
+assert.equal(built.state.position.players.p1.balances['columbia-voucher'], 0);
+assert.equal(built.state.position.players.p1.score, 3);
+assert.equal(built.state.supply.supply.length, 6); assert.equal(built.state.supply.drawPile.length, 34);
+assert.equal(built.state.panels[0].placements.length, 2); assert.equal(built.state.panels[0].revision, 1);
+assert.equal(facilities.validateFacilityConstructionPosition(built.state, constructionGame.definition).success, true);
+assert.equal(JSON.stringify(constructionInput), constructionBefore);
+assert.throws(() => facilities.settleFacilityConstruction(built.state, constructionGame.definition, constructionContext, constructionCommand), facilities.FacilityConstructionError);
+const unpicturedIron = facilities.FOUNDERS_FACILITY_STOCK.cards.find(card => card.facilityId === 'FAC-010' && card.color === 'blue').id;
+assert.throws(() => facilities.getFacilityConstructionSpec(unpicturedIron), facilities.FacilityConstructionError);
+console.log('PASS: compiled construction quote, exact payment, physical transfer, placement, score, refill, atomic immutability, stale replay and unpictured-variant rejection');

@@ -1,0 +1,147 @@
+import { z } from 'zod';
+import { deepFreeze } from '../board/hash.js';
+import { gameEntityIdSchema, gamePositionSchema } from '../game/schema.js';
+import { validateGameDefinition, validateGamePosition, parseGamePosition } from '../game/state.js';
+import { canAffordResources } from '../game/resources.js';
+import type { DeepReadonly, GameDefinition, ResourceCost } from '../game/types.js';
+import { facilitySupplyStateSchema, validateFacilitySupplyState, replenishFacilitySupply } from './supply.js';
+import { facilityPanelStateSchema, validateFacilityPanelSet, previewFacilityPanelPlacement, getOrthogonallyAdjacentPanelFacilities } from './panel-state.js';
+import { FOUNDERS_FACILITY_PANEL } from './panel-definition.js';
+import { getFoundersPhysicalFacilityCard } from './stock.js';
+import type { FacilityModuleValidation } from './stock.js';
+import { getFoundersFacilityFace } from './faces.js';
+import { getFacilityConstructionSpec, rejectFacilityConstruction as reject } from './construction-spec.js';
+
+/** Internal transaction bundle, not a new GameState format or a second balance ledger. */
+export const facilityConstructionPositionSchema = z.strictObject({
+  position: gamePositionSchema, supply: facilitySupplyStateSchema, panels: z.array(facilityPanelStateSchema).min(2).max(4),
+});
+export type FacilityConstructionPosition = DeepReadonly<z.infer<typeof facilityConstructionPositionSchema>>;
+export function validateFacilityConstructionPosition(input: unknown, inputDefinition: GameDefinition): FacilityModuleValidation<FacilityConstructionPosition> {
+  const checkedDefinition = validateGameDefinition(inputDefinition);
+  if (!checkedDefinition.success) return { success: false, issues: checkedDefinition.issues.map(issue => `definition: ${issue.message}`) };
+  const definition = checkedDefinition.data;
+  const parsed = facilityConstructionPositionSchema.safeParse(input);
+  if (!parsed.success) return { success: false, issues: parsed.error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`) };
+  const state = parsed.data, issues: string[] = [];
+  const position = validateGamePosition(state.position, definition), supply = validateFacilitySupplyState(state.supply), panels = validateFacilityPanelSet(state.panels, state.supply);
+  if (!position.success) issues.push(...position.issues.map(issue => `position: ${issue.message}`));
+  if (!supply.success) issues.push(...supply.issues);
+  if (!panels.success) issues.push(...panels.issues);
+  if (state.supply.gameId !== state.position.gameId) issues.push('Facility/game position mismatch');
+  if (JSON.stringify(state.supply.playerHoldings.map(row => row.playerId).sort()) !== JSON.stringify(definition.players.map(row => row.id).sort())) issues.push('Facility players must exactly match the game');
+  if (supply.success) for (const holding of state.supply.playerHoldings) {
+    const definitions = holding.cardIds.map(getFoundersPhysicalFacilityCard);
+    for (const card of definitions) {
+      const face = getFoundersFacilityFace(card.facilityId);
+      if (face.observedColor !== card.color) issues.push(`Unconfirmed built color variant: ${card.id}`);
+      if (face.effect.uniqueMarker && definitions.filter(other => other.facilityId === card.facilityId).length > 1) issues.push(`Duplicate unique facility: ${card.facilityId}`);
+    }
+  }
+  return issues.length ? { success: false, issues } : { success: true, data: deepFreeze(state) };
+}
+export function parseFacilityConstructionPosition(input: unknown, definition: GameDefinition): FacilityConstructionPosition {
+  const result = validateFacilityConstructionPosition(input, definition);
+  if (!result.success) return reject('POSITION_INVALID', result.issues.join('; '));
+  return result.data;
+}
+/** Trusted caller grants ONE ordinary, base-price construction; never derive this context from player payloads. */
+export const facilityConstructionContextSchema = z.strictObject({
+  gameId: gameEntityIdSchema, actorId: gameEntityIdSchema,
+  expectedSupplyRevision: z.number().int().nonnegative().safe(), expectedPanelRevision: z.number().int().nonnegative().safe(),
+});
+export type FacilityConstructionContext = DeepReadonly<z.infer<typeof facilityConstructionContextSchema>>;
+const allocationSchema = z.strictObject({
+  kind: z.literal('resource-allocation'),
+  gains: z.strictObject({ orirock: z.number().int().min(0).max(5), originium: z.number().int().min(0).max(5), iron: z.number().int().min(0).max(5) }),
+}).refine(value => value.gains.orirock + value.gains.originium + value.gains.iron === 5, 'Must allocate exactly five resources in total');
+export const facilityConstructionCommandSchema = z.strictObject({
+  cardId: z.string().min(1), cellId: z.string().min(1), paymentMode: z.enum(['resources', 'vouchers']), entryChoice: allocationSchema.optional(),
+});
+export type FacilityConstructionCommand = DeepReadonly<z.infer<typeof facilityConstructionCommandSchema>>;
+
+function prepare(input: unknown, definition: GameDefinition, rawContext: FacilityConstructionContext, payload: unknown) {
+  const state = parseFacilityConstructionPosition(input, definition);
+  const contextResult = facilityConstructionContextSchema.safeParse(rawContext), commandResult = facilityConstructionCommandSchema.safeParse(payload);
+  if (!contextResult.success) return reject('CONTEXT_SCHEMA', contextResult.error.message);
+  if (!commandResult.success) return reject('COMMAND_SCHEMA', commandResult.error.message);
+  const context = contextResult.data, command = commandResult.data;
+  if (context.gameId !== state.position.gameId) return reject('GAME_REFERENCE', 'Wrong construction game');
+  const panel = state.panels.find(row => row.playerId === context.actorId);
+  if (!panel) return reject('ACTOR_REFERENCE', 'Unknown granted actor');
+  const checkedPreview = previewFacilityPanelPlacement(panel, state.supply, {
+    actorId: context.actorId, expectedSupplyRevision: context.expectedSupplyRevision, expectedPanelRevision: context.expectedPanelRevision,
+    cardId: command.cardId, cellId: command.cellId,
+  });
+  if (checkedPreview.status !== 'position-available') return reject('PLACEMENT_INVALID', checkedPreview.issues.join('; '));
+  if (checkedPreview.source !== 'supply') return reject('CARD_SOURCE', 'Extension reserve needs a logistics effect, not ordinary construction');
+  if (state.supply.supply.length !== 6) return reject('SUPPLY_NOT_READY', 'Finish the prior immediate refill first');
+  if (!state.supply.drawPile.length) return reject('REFILL_RULE_UNRESOLVED', 'Cannot resolve immediate refill with an exhausted draw pile');
+  if (panel.revision === Number.MAX_SAFE_INTEGER || state.supply.revision === Number.MAX_SAFE_INTEGER) return reject('VERSION_OVERFLOW', 'Facility version exhausted');
+  const spec = getFacilityConstructionSpec(command.cardId);
+  if (spec.face.effect.uniqueMarker && panel.placements.some(row => getFoundersPhysicalFacilityCard(row.cardId).facilityId === spec.card.facilityId)) return reject('UNIQUE_FACILITY', 'Player already owns this unique facility');
+  const colors = new Set(panel.placements.map(row => getFoundersPhysicalFacilityCard(row.cardId).color).filter(color => color !== 'rainbow'));
+  // The industrial card discounts its own orirock component before it is placed, not all future construction or the voucher alternative.
+  const orirockDiscount = spec.card.facilityId === 'FAC-009' && command.paymentMode === 'resources' ? colors.size : 0;
+  const costs: ResourceCost[] = [];
+  const addCost = (asset: ResourceCost['asset'], amount: number) => { if (amount > 0) costs.push({ asset, amount }); };
+  if (command.paymentMode === 'vouchers') addCost('columbia-voucher', spec.printedCost.voucherPayment);
+  else {
+    const price = spec.printedCost.resourcePayment;
+    addCost('orirock', Math.max(0, price.orirock - orirockDiscount)); addCost('originium', price.originium); addCost('iron', price.iron);
+    addCost('pure-originium', price.pureOriginium); addCost('columbia-voucher', price.vouchers);
+  }
+  return { state, context, command, panel, spec, costs, orirockDiscount };
+}
+export function getFacilityConstructionQuote(input: unknown, definition: GameDefinition, context: FacilityConstructionContext, payload: unknown) {
+  const prepared = prepare(input, definition, context, payload);
+  return deepFreeze({ actorId: prepared.context.actorId, cardId: prepared.command.cardId, cellId: prepared.command.cellId,
+    facilityId: prepared.spec.card.facilityId, costs: prepared.costs, orirockDiscount: prepared.orirockDiscount,
+    printedPoints: prepared.spec.face.printedScore, requiresResourceAllocation: prepared.spec.entry.kind === 'choose-five-resources',
+    canPay: canAffordResources(prepared.state.position.players[prepared.context.actorId]!.balances, prepared.costs) });
+}
+export interface FacilityConstructionReceipt {
+  readonly actorId: string; readonly cardId: string; readonly facilityId: string; readonly cellId: string;
+  readonly paymentMode: 'resources' | 'vouchers'; readonly paid: readonly ResourceCost[]; readonly orirockDiscount: number;
+  readonly points: number; readonly refilledCardIds: readonly string[];
+  readonly entryGains: readonly { readonly asset: ResourceCost['asset']; readonly amount: number }[];
+  readonly order: readonly ['pay', 'take-and-refill', 'place', 'score', 'entry'];
+}
+export interface FacilityConstructionResult { readonly state: FacilityConstructionPosition; readonly receipt: FacilityConstructionReceipt }
+/**
+ * Atomic INTERNAL settlement. The future action owner must grant/consume the action once and CAS its outer GameState version.
+ * Unsupported effects/variants fail before publishing any costs, placement, score or refill changes.
+ */
+export function settleFacilityConstruction(input: unknown, definition: GameDefinition, context: FacilityConstructionContext, payload: unknown): FacilityConstructionResult {
+  const p = prepare(input, definition, context, payload);
+  if (p.spec.entry.kind === 'choose-five-resources' ? !p.command.entryChoice : p.command.entryChoice !== undefined) return reject('ENTRY_CHOICE', 'Resource allocation is required only for the mining shovel');
+  if (!canAffordResources(p.state.position.players[p.context.actorId]!.balances, p.costs)) return reject('CANNOT_PAY', 'All construction costs must be payable before entry rewards');
+  const next = facilityConstructionPositionSchema.parse(p.state), actor = next.position.players[p.context.actorId]!;
+  for (const cost of p.costs) actor.balances[cost.asset] -= cost.amount;
+  next.supply.supply.splice(next.supply.supply.indexOf(p.command.cardId), 1);
+  next.supply.playerHoldings.find(row => row.playerId === p.context.actorId)!.cardIds.push(p.command.cardId);
+  const refill = replenishFacilitySupply(next.supply, p.context.expectedSupplyRevision);
+  if (refill.status !== 'replenished') return reject('REFILL_RULE_UNRESOLVED', 'Immediate refill did not finish');
+  next.supply = facilitySupplyStateSchema.parse(refill.state);
+  const panel = next.panels.find(row => row.playerId === p.context.actorId)!;
+  panel.placements.push({ cardId: p.command.cardId, cellId: p.command.cellId }); panel.revision++;
+  if (!Number.isSafeInteger(actor.score + p.spec.face.printedScore)) return reject('SCORE_OVERFLOW', 'Construction score exceeds safe integer range');
+  actor.score += p.spec.face.printedScore;
+  const entryGains: { asset: ResourceCost['asset']; amount: number }[] = [];
+  const gain = (asset: ResourceCost['asset'], amount: number) => {
+    if (!Number.isSafeInteger(actor.balances[asset] + amount)) return reject('BALANCE_OVERFLOW', 'Entry gain exceeds safe integer range');
+    actor.balances[asset] += amount; if (amount) entryGains.push({ asset, amount });
+  };
+  switch (p.spec.entry.kind) {
+    case 'none': break;
+    case 'gain': gain(p.spec.entry.asset, p.spec.entry.amount); break;
+    case 'core-neighbor-vouchers': gain('columbia-voucher', getOrthogonallyAdjacentPanelFacilities(panel, next.supply, FOUNDERS_FACILITY_PANEL.initialCoreCellId).length * 4); break;
+    case 'choose-five-resources': for (const asset of ['orirock', 'originium', 'iron'] as const) gain(asset, p.command.entryChoice!.gains[asset]); break;
+  }
+  next.position = gamePositionSchema.parse(parseGamePosition(next.position, definition));
+  return deepFreeze({ state: parseFacilityConstructionPosition(next, definition), receipt: {
+    actorId: p.context.actorId, cardId: p.command.cardId, facilityId: p.spec.card.facilityId, cellId: p.command.cellId,
+    paymentMode: p.command.paymentMode, paid: p.costs, orirockDiscount: p.orirockDiscount, points: p.spec.face.printedScore,
+    refilledCardIds: refill.drawnCardIds, entryGains, order: ['pay', 'take-and-refill', 'place', 'score', 'entry'],
+  } });
+}

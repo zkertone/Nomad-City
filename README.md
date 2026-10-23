@@ -309,3 +309,12 @@ getFacilityCopyCountRecords() 默认仅返回基础版 18 种设施、48 个实�
 `FOUNDERS_FACILITY_PANEL` / `createInitialFacilityPanels` 提供带来源摘要的格位定义及2/3/4人起始面板。`validateFacilityPanelState` / `validateFacilityPanelSet` 将实体牌归属与格位交叉核对；空位和十字邻接从逻辑格派生，不依赖显示坐标。`previewFacilityPanelPlacement` 校验空位、候选牌来源、操作者和版本，返回只读位置预检结果；不拿牌、扣费或授权建设。
 
 面板模块与原 GameState 分开，完整建设和入场执行仍待接入。[格位表、来源、API与边界](docs/Player-Panel-2026-10-23.md)，[实际测试](docs/testing/player-panel-validation-2026-10-23.md)。使用现有 `npm test -- packages/game-core/src/facilities`、`npm run verify` 和 `npm run check:facilities` 验证。
+
+
+## 基础建设内部事务 · 2026-10-23
+
+`settleFacilityConstruction` 已将支付、拿牌/立即补牌、摆放、计分和支持的入场效果接成纯函数原子结算；失败不返回任何扣费或拿牌后的中间状态。`getFacilityConstructionQuote` 计算费用及支付能力，玩家不能上传金额/折扣/得分。支持城市化区域、开采电铲、城邦工业区、红色异铁冶炼厂、蓝色源石精炼厂、黄色固源岩提纯厂、城邦行政区，合计7种/15张已拍颜色实体。
+
+合计5资源由玩家选择；城市化区域在摆放后统计核心邻格；工业区按支付前已有的不同非虹色仅减少自身源岩；唯一限制按玩家自己的同名设施校验。未拍颜色、复杂入场、延伸普通建设、暗牌不足和非法请求明确拒绝，不跳过未实现效果。
+
+沿用事件结算器的内部GamePosition模式，没有改变GameState或另存余额。正式阶段、身份/额度、额外角色修正和外层GameState版本提交仍由后续行动层完成；此函数不能直接用作客户端端点。[支持清单、规则与边界](docs/Facility-Construction-2026-10-23.md)，[实际验证](docs/testing/facility-construction-validation-2026-10-23.md)。全量检查继续使用 `npm run verify` 与 `npm run check:facilities`。

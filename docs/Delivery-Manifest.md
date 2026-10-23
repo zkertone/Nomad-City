@@ -176,3 +176,18 @@
 修改 `packages/game-core/src/facilities/index.ts`、`scripts/check-facilities.mjs`、`README.md`、`docs/Facility-Faces-Review-2026-10-22.md`、`docs/Facility-Supply-2026-10-22.md`、`docs/DevLog.md` 和本清单。原图未改写，源码仓库仅保存来源身份/摘要与结构化事实。
 
 最终实际 **1117/1117（14个文件）**，strict类型、构建、四项相关编译检查通过；其中设施312、新增89。只完成逻辑面板与位置预检，未接入完整建设/GameState；原规则数据、存档格式、ADR、依赖及项目版本不变，无部署或对外发布。
+
+
+## 2026-10-23 基础建设内部事务增量
+
+新增可编辑文件（相对于仓库根目录）：
+
+- `packages/game-core/src/facilities/construction-spec.ts`：执行来源固定基准、7类/15张范围、错误类型与未支持拒绝。
+- `packages/game-core/src/facilities/construction.ts`：事务组合校验、费用报价、支付/归属/补牌/摆放/得分与支持入场原子结算。
+- `packages/game-core/src/facilities/construction.test.ts`：85项新测试。
+- `docs/Facility-Construction-2026-10-23.md`：覆盖表、规则依据、执行顺序及可信调用边界。
+- `docs/testing/facility-construction-validation-2026-10-23.md`：初次失败、修正与最终实际结果。
+
+修改 `packages/game-core/src/facilities/index.ts`、`scripts/check-facilities.mjs`、`README.md`、`docs/Player-Panel-2026-10-23.md`、`docs/Facility-Supply-2026-10-22.md`、`docs/Facility-Faces-Review-2026-10-22.md`、`docs/DevLog.md` 和本清单。
+
+最终实际verify：strict类型、**1202/1202（15个文件）**、构建通过，四项相关编译包检查退出0。正式行动窗口/认证/额度、其他效果和颜色仍待完成，不宣称完整建设或网络入口已实现。原规则数据/摘要、存档格式、依赖及Accepted ADR不变，无部署或发布。
