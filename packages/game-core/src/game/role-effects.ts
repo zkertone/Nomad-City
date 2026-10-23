@@ -5,10 +5,12 @@ import { gameEntityIdSchema, gameStateSchema } from './schema.js';
 import { getFoundersMapSide, parseGameState } from './state.js';
 import { getRoundTurn } from './round.js';
 import { baseRoleIdSchema } from './round-schema.js';
-import { isBaseRoleModeSupported } from './role-rules.js';
+import { isBaseRoleModeAvailableInFormat } from './role-rules.js';
 import { emptyInfluenceSlots } from './influence.js';
 import { facilitySupplyStateSchema, replenishFacilitySupply } from '../facilities/supply.js';
 import type { DeepReadonly, GameDefinition, GameState } from './types.js';
+import { deepFreeze } from '../board/hash.js';
+import { elysiumSchemeChoiceSchema, texasSchemeChoiceSchema, cannotSchemeChoiceSchema, elysiumDestinations, resolveElysiumScheme, resolveTexasScheme, resolveCannotScheme } from './role-schemes.js';
 import { placeLiskarmInfluence, replaceLiskarmInfluence } from './liskarm-rules.js';
 
 export class BaseRoleEffectError extends Error {
@@ -29,6 +31,24 @@ export function enableBaseRoleEffects(input: GameState, definition: GameDefiniti
   }, definition);
 }
 
+/** Explicitly enable the final three BASE schemes without inferring or resetting prior role history. */
+export function enableRemainingBaseRoleEffects(input: GameState, definition: GameDefinition, rawOptions: DeepReadonly<z.infer<typeof upgradeOptionsSchema>>): GameState {
+  const state = parseGameState(input, definition), options = upgradeOptionsSchema.safeParse(rawOptions);
+  if (!options.success) return reject('OPTIONS_SCHEMA', options.error.message);
+  if (options.data.expectedVersion !== state.stateVersion) return reject('STALE_VERSION', 'Expected state version is stale');
+  if (state.schemaVersion !== '1.9.0') return reject('ROLE_FORMAT', 'Upgrade a validated 1.9.0 snapshot exactly once');
+  if (state.stateVersion === Number.MAX_SAFE_INTEGER) return reject('VERSION_OVERFLOW', 'State version exhausted');
+  return parseGameState({ ...state, schemaVersion: '1.10.0', stateVersion: state.stateVersion + 1,
+    roundFlow: { ...state.roundFlow!, completedMajorAction: null },
+  }, definition);
+}
+/** Public target query on validated board facts; neither pays the cost nor grants a role use. */
+export function getElysiumSchemeOptions(input: GameState, definition: GameDefinition, actorId: string) {
+  const state = parseGameState(input, definition);
+  if (!state.roundFlow || !definition.players.some(player => player.id === actorId)) return Object.freeze([]);
+  return deepFreeze(elysiumDestinations(state, loadFoundersBoard(getFoundersMapSide(definition.players.length)), actorId, state.roundFlow.roundNumber, definition.players.length));
+}
+
 const quantity = z.number().int().nonnegative().safe();
 const strategyChoiceSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('liskarm-place'), slotIds: z.array(slotIdSchema).max(2) }),
@@ -42,7 +62,7 @@ const recoveryChoiceSchema = z.strictObject({ kind: z.literal('recover-roles'), 
   z.strictObject({ roleId: baseRoleIdSchema, kind: z.literal('vouchers') }),
   z.strictObject({ roleId: baseRoleIdSchema, kind: z.literal('move-influence'), sourceSlotId: slotIdSchema, targetSlotId: slotIdSchema }),
 ])).max(4) });
-const schemeChoiceSchema = z.discriminatedUnion('kind', [recoveryChoiceSchema,
+const schemeChoiceSchema = z.discriminatedUnion('kind', [recoveryChoiceSchema, elysiumSchemeChoiceSchema, texasSchemeChoiceSchema, cannotSchemeChoiceSchema,
   z.strictObject({ kind: z.literal('liskarm-replace'), costDecision: z.enum(['pay', 'decline']), slotId: slotIdSchema.optional() }),
 ]);
 export const baseRolePlayerCommandSchema = z.strictObject({
@@ -60,7 +80,7 @@ export function applyBaseRoleCommand(input: GameState, definition: GameDefinitio
   const command = checked.data;
   if (command.gameId !== state.gameId) return reject('GAME_REFERENCE', 'Wrong role game');
   if (command.expectedVersion !== state.stateVersion) return reject('STALE_VERSION', 'Expected state version is stale');
-  if (!['1.8.0', '1.9.0'].includes(state.schemaVersion) || (command.roleId === 'ROLE-01' && state.schemaVersion !== '1.9.0')) return reject('ROLE_FORMAT', 'This role requires its explicit snapshot upgrade (Liskarm: 1.9.0)');
+  if (!isBaseRoleModeAvailableInFormat(command.roleId, command.mode, state.schemaVersion)) return reject('ROLE_FORMAT', 'This role mode requires its explicit snapshot upgrade (remaining schemes: 1.10.0)');
   const flow = state.roundFlow!, turn = getRoundTurn(state, definition);
   if (flow.stage !== 'player-actions' || turn.actorId !== context.authenticatedPlayerId) return reject('ROLE_WINDOW', 'Only the current action player may use their placed role');
   if (turn.majorActionStatus === 'pending') return reject('ACTION_PENDING', 'Quick actions cannot interrupt a major action');
@@ -68,15 +88,21 @@ export function applyBaseRoleCommand(input: GameState, definition: GameDefinitio
   if (roles.used || roles.placed === null) return reject('ROLE_ALREADY_USED', 'This round role has already been used');
   if (roles.placed !== command.roleId) return reject('PLACED_ROLE', 'Only the placed role can be used');
   if (command.mode === 'both' && state.playerOrder![0] !== actorId) return reject('STARTING_PLAYER_ONLY', 'Only the round starting player may use both modes');
-  if (!isBaseRoleModeSupported(command.roleId, command.mode)) return reject('ROLE_MODE_UNSUPPORTED', 'Every requested mode must have a complete handler before using the card');
   const usesStrategy = command.mode !== 'scheme', usesScheme = command.mode !== 'strategy';
   if (usesStrategy !== (command.strategyChoice !== undefined) || usesScheme !== (command.schemeChoice !== undefined)) return reject('ROLE_CHOICES', 'Provide exactly the choices for the requested modes');
   const expectedChoice = command.roleId === 'ROLE-01' ? ['liskarm-place'] : command.roleId === 'ROLE-02' ? ['minimum-resource'] : command.roleId === 'ROLE-03' ? ['cycle-facility']
     : command.roleId === 'ROLE-04' ? ['sell-resources'] : ['tin-point', 'tin-purchases'];
   if (usesStrategy && !expectedChoice.includes(command.strategyChoice!.kind)) return reject('ROLE_CHOICES', 'Choice does not belong to this role strategy');
-  if (usesScheme && command.schemeChoice!.kind !== (command.roleId === 'ROLE-01' ? 'liskarm-replace' : 'recover-roles')) return reject('ROLE_CHOICES', 'Choice does not belong to this role scheme');
+  const expectedScheme = { 'ROLE-01': 'liskarm-replace', 'ROLE-02': 'elysium-city-move', 'ROLE-03': 'texas-influence', 'ROLE-04': 'forced-sale', 'ROLE-05': 'recover-roles' };
+  if (usesScheme && command.schemeChoice!.kind !== expectedScheme[command.roleId]) return reject('ROLE_CHOICES', 'Choice does not belong to this role scheme');
   if (state.stateVersion === Number.MAX_SAFE_INTEGER) return reject('VERSION_OVERFLOW', 'State version exhausted');
   const next = gameStateSchema.parse(state), actor = next.players[actorId]!, nextRoles = next.roundFlow!.rolesByPlayer.find(role => role.playerId === actorId)!;
+  if (state.schemaVersion === '1.10.0' && turn.majorActionStatus === 'complete') {
+    next.roundFlow!.completedMajorAction = state.phase === 'exploration' ? 'explore' : state.phase === 'city-move' ? 'city-move'
+      : state.phase === 'construction' ? 'construct' : state.influenceAction!.kind;
+    delete next.exploration; delete next.cityMove; delete next.influenceAction; delete next.construction;
+    next.phase = 'round-control';
+  }
   const gain = (asset: keyof typeof actor.balances, amount: number) => {
     if (!Number.isSafeInteger(amount) || !Number.isSafeInteger(actor.balances[asset] + amount)) return reject('BALANCE_OVERFLOW', 'Role gain exceeds safe integer range');
     actor.balances[asset] += amount;
@@ -131,6 +157,9 @@ export function applyBaseRoleCommand(input: GameState, definition: GameDefinitio
   if (usesScheme) {
     const scheme = command.schemeChoice!;
     if (scheme.kind === 'liskarm-replace') replaceLiskarmInfluence(next, loadFoundersBoard(getFoundersMapSide(definition.players.length)), actorId, scheme.costDecision, scheme.slotId, reject);
+    else if (scheme.kind === 'elysium-city-move') resolveElysiumScheme(next, loadFoundersBoard(getFoundersMapSide(definition.players.length)), actorId, flow.roundNumber, definition.players.length, scheme, reject);
+    else if (scheme.kind === 'texas-influence') resolveTexasScheme(next, loadFoundersBoard(getFoundersMapSide(definition.players.length)), actorId, scheme, reject);
+    else if (scheme.kind === 'forced-sale') resolveCannotScheme(next, actorId, scheme, reject);
     else {
       const rewards = scheme.rewards, recovering = [...nextRoles.discarded];
       if (JSON.stringify(rewards.map(row => row.roleId).sort()) !== JSON.stringify([...recovering].sort())) return reject('RECOVERY_CHOICES', 'Choose one reward for each prior discarded card, excluding this Tin Man');

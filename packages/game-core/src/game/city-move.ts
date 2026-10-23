@@ -8,7 +8,7 @@ import { getFoundersMapSide, getGamePosition, parseGameState } from './state.js'
 import { prepareActionWindow } from './action-window.js';
 import type { OpenActionWindowOptions } from './action-window.js';
 import { redExplorationOpeningRound } from './exploration-rules.js';
-import { availableTargetInfluenceSlots } from './influence.js';
+import { availableTargetInfluenceSlots, clearOpposingCityMoveInfluence } from './influence.js';
 import { eventSettlementChoiceSchema, getEventChoiceRequirements, settleEventChoice, EventSettlementError } from './settlement.js';
 import type { GameDefinition, GameState } from './types.js';
 
@@ -30,7 +30,7 @@ export interface CityMoveOption { readonly nodeId: string; readonly routeId: str
 /** Trusted single-action grant. Full round/role/major-action authorization remains the caller's job. */
 export function openCityMoveWindow(input: GameState, definition: GameDefinition, options: OpenCityMoveWindowOptions): GameState {
   const prepared = prepareActionWindow(input, definition, options, reject);
-  return parseGameState({ ...prepared.position, ...prepared.facilityFields, ...prepared.roundFields, schemaVersion: prepared.previousFormat === '1.9.0' ? '1.9.0' : prepared.previousFormat === '1.8.0' ? '1.8.0' : prepared.previousFormat === '1.7.0' ? '1.7.0' : prepared.previousFormat === '1.6.0' ? '1.6.0' : prepared.previousFormat === '1.5.0' ? '1.5.0' : prepared.previousFormat === '1.4.0' ? '1.4.0' : '1.3.0', stateVersion: prepared.stateVersion,
+  return parseGameState({ ...prepared.position, ...prepared.facilityFields, ...prepared.roundFields, schemaVersion: prepared.previousFormat === '1.10.0' ? '1.10.0' : prepared.previousFormat === '1.9.0' ? '1.9.0' : prepared.previousFormat === '1.8.0' ? '1.8.0' : prepared.previousFormat === '1.7.0' ? '1.7.0' : prepared.previousFormat === '1.6.0' ? '1.6.0' : prepared.previousFormat === '1.5.0' ? '1.5.0' : prepared.previousFormat === '1.4.0' ? '1.4.0' : '1.3.0', stateVersion: prepared.stateVersion,
     phase: 'city-move', eventDecks: prepared.eventDecks, playerOrder: prepared.playerOrder,
     cityMove: { actorId: prepared.options.actorId, roundNumber: prepared.options.roundNumber, status: 'ready',
       sourceNodeId: null, targetNodeId: null, routeId: null, cardId: null, resolvedChoiceId: null } }, definition);
@@ -89,20 +89,13 @@ export function applyCityMoveCommand(input: GameState, definition: GameDefinitio
       if (next.players[move.actorId]!.balances.originium < 3) return reject('CANNOT_PAY', 'City movement requires 3 originium before any event');
       if (!getCityMoveOptions(current, definition, move.actorId).some(option => option.nodeId === command.nodeId && option.routeId === command.routeId)) return reject('MOVE_TARGET', 'Choose a free, open destination on the specified single route');
       const node = board.resourceNodes[command.nodeId]!;
-      const route = board.routes[command.routeId]!;
       const unexplored = next.board.resourceMarkerByNode[command.nodeId] === null;
       const cardId = unexplored ? next.eventDecks![node.eventDeckColor][0] : null;
       if (unexplored && !cardId) return reject('EVENT_DECK', 'No eligible event remains');
       next.players[move.actorId]!.balances.originium -= 3;
       progress.sourceNodeId = next.board.cityNodeByPlayer[move.actorId]!;
       next.board.cityNodeByPlayer[move.actorId] = command.nodeId;
-      for (const slotId of [...route.influenceSlotIds, ...node.influenceSlotIds]) {
-        const marker = next.board.influenceBySlot[slotId];
-        if (marker && marker.ownerPlayerId !== move.actorId) {
-          next.markerSupplyByPlayer[marker.ownerPlayerId]!.push(marker.markerId);
-          next.board.influenceBySlot[slotId] = null;
-        }
-      }
+      clearOpposingCityMoveInfluence(next, board, move.actorId, command.routeId, command.nodeId);
       progress.targetNodeId = command.nodeId; progress.routeId = command.routeId;
       if (cardId) {
         const card = getFoundersEventCard(cardId);

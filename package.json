@@ -21,6 +21,7 @@
     "check:influence": "npm run build && node scripts/check-influence.mjs",
     "check:harvest": "npm run build && node scripts/check-harvest.mjs",
     "check:scoring": "npm run build && node scripts/check-scoring.mjs",
+    "check:schemes": "npm run build && node scripts/check-role-schemes.mjs",
     "check:liskarm": "npm run build && node scripts/check-liskarm.mjs",
     "check:roles": "npm run build && node scripts/check-role-effects.mjs",
     "check:rounds": "npm run build && node scripts/check-rounds.mjs",

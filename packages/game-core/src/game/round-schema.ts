@@ -8,7 +8,7 @@ export const FOUNDERS_BASE_ROLES = deepFreeze([
 ] as const);
 export const ROUND_RULE_SOURCE = deepFreeze({
   rulebookSha256: '6b87c026e317606de2324276ff117480b8e104f5b925a21d43b95af176ddbf42',
-  printedPages: [3, 4, 5, 8, 10, 11, 14, 23], roleEffectsImplemented: false,
+  printedPages: [3, 4, 5, 8, 10, 11, 14, 23], roleEffectsImplemented: true,
 });
 export const baseRoleIdSchema = z.enum(['ROLE-01', 'ROLE-02', 'ROLE-03', 'ROLE-04', 'ROLE-05']);
 const roleIds = z.array(baseRoleIdSchema).max(5);
@@ -19,6 +19,8 @@ export const roundFlowSchema = z.strictObject({
   rolePlacementCount: z.number().int().min(0).max(4),
   turnIndex: z.number().int().min(0).max(8),
   majorActionOpened: z.boolean(),
+  // Only 1.10.0: retire a completed action before a subsequent quick role changes its facts.
+  completedMajorAction: z.enum(['deploy', 'dispatch', 'explore', 'city-move', 'construct']).nullable().optional(),
   rolesByPlayer: z.array(z.strictObject({
     playerId: z.string().min(1), hand: roleIds, discarded: roleIds, placed: baseRoleIdSchema.nullable(),
     // Reference to a card in discarded, not an additional physical card zone. Absent in 1.7.0.

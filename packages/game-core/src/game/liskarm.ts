@@ -29,7 +29,7 @@ export function enableLiskarmEffects(input: GameState, definition: GameDefinitio
 /** Trusted cleanup entry AFTER simultaneous harvest, automatically skipping only impossible removals. */
 export function openManagedCleanup(input: GameState, definition: GameDefinition, options: Options): GameState {
   const state = parseGameState(input, definition); checkedOptions(state, options);
-  if (state.schemaVersion !== '1.9.0') return reject('ROLE_FORMAT', 'Explicit role cleanup requires format 1.9.0');
+  if (!['1.9.0', '1.10.0'].includes(state.schemaVersion)) return reject('ROLE_FORMAT', 'Explicit role cleanup requires format 1.9.0');
   if (state.phase !== 'harvest' || state.harvest?.status !== 'complete' || state.roundFlow!.stage !== 'harvest') return reject('HARVEST_PENDING', 'Finish every harvest plan before cleanup');
   const next = gameStateSchema.parse(state);
   for (const playerId of pendingLiskarmPlayers(state)) if (!ownBoardInfluenceSlotIds(state, playerId).length) next.roundFlow!.rolesByPlayer.find(role => role.playerId === playerId)!.used!.cleanupResolved = true;
@@ -52,7 +52,7 @@ export function applyRoleCleanupCommand(input: GameState, definition: GameDefini
   const command = parsed.data;
   if (command.gameId !== state.gameId) return reject('GAME_REFERENCE', 'Wrong cleanup game');
   if (command.expectedVersion !== state.stateVersion) return reject('STALE_VERSION', 'Expected state version is stale');
-  if (state.schemaVersion !== '1.9.0' || state.roundFlow!.stage !== 'cleanup') return reject('CLEANUP_STAGE', 'No open role cleanup');
+  if (!['1.9.0', '1.10.0'].includes(state.schemaVersion) || state.roundFlow!.stage !== 'cleanup') return reject('CLEANUP_STAGE', 'No open role cleanup');
   const actorId = getRoundTurn(state, definition).actorId;
   if (!actorId || actorId !== context.authenticatedPlayerId) return reject('WRONG_ACTOR', 'Only the next cleanup effect owner may choose');
   if (!getRoleCleanupOptions(state, definition, actorId).includes(command.slotId)) return reject('CLEANUP_TARGET', 'Choose any ONE of your current board influence markers');

@@ -80,7 +80,7 @@ describe('explicit 1.9.0 Liskarm support and complete strategy', () => {
     const f = fixture(count), before = structuredClone(f.legacy), upgraded = enableLiskarmEffects(f.legacy, f.definition, { expectedVersion: f.legacy.stateVersion });
     expect(upgraded.schemaVersion).toBe('1.9.0'); expect(upgraded.stateVersion).toBe(f.legacy.stateVersion + 1);
     expect(upgraded.roundFlow).toEqual(f.legacy.roundFlow); expect(upgraded.board).toEqual(f.legacy.board); expect(upgraded.players).toEqual(f.legacy.players); expect(upgraded.facilities).toEqual(f.legacy.facilities);
-    expect(f.legacy).toEqual(before); expect(getBaseRoleEffectSupport()).toMatchObject({ supportedModeCount: 7, liskarmMinimumSnapshotVersion: '1.9.0', allBaseRoleEffectsImplemented: false });
+    expect(f.legacy).toEqual(before); expect(getBaseRoleEffectSupport()).toMatchObject({ supportedModeCount: 10, liskarmMinimumSnapshotVersion: '1.9.0', allBaseRoleEffectsImplemented: true });
     errorCode(() => enableLiskarmEffects(upgraded, f.definition, { expectedVersion: upgraded.stateVersion }), 'ROLE_FORMAT', RoleCleanupError);
     errorCode(() => enableLiskarmEffects(f.legacy, f.definition, { expectedVersion: 0 }), 'STALE_VERSION', RoleCleanupError);
   });

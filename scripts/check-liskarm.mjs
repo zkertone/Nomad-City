@@ -5,7 +5,7 @@ assert.equal(core.enableLiskarmEffects, game.enableLiskarmEffects);
 assert.equal(core.openManagedCleanup, game.openManagedCleanup);
 assert.equal(core.applyRoleCleanupCommand, game.applyRoleCleanupCommand);
 assert.equal(core.getRoleCleanupOptions, game.getRoleCleanupOptions);
-assert.equal(game.getBaseRoleEffectSupport().supportedModeCount, 7);
+assert.equal(game.getBaseRoleEffectSupport().supportedModeCount, 10);
 const seats = [{ id: 'p1', color: 'red' }, { id: 'p2', color: 'blue' }, { id: 'p3', color: 'green' }, { id: 'p4', color: 'yellow' }];
 const deck = core.FOUNDERS_FACILITY_STOCK.cards.filter(card => card.group === 'ordinary').map(card => card.id);
 const env = state => ({ gameId: state.gameId, expectedVersion: state.stateVersion });

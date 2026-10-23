@@ -18,7 +18,7 @@ export interface HarvestActorContext { readonly authenticatedPlayerId: string }
 /** Trusted phase grant after both action cycles. Full round scheduling remains external. */
 export function openHarvestPhase(input: GameState, definition: GameDefinition, options: OpenHarvestPhaseOptions): GameState {
   const prepared = preparePhaseWindow(input, definition, options, rejectHarvest);
-  return parseGameState({ ...prepared.position, ...prepared.facilityFields, ...prepared.roundFields, schemaVersion: prepared.previousFormat === '1.9.0' ? '1.9.0' : prepared.previousFormat === '1.8.0' ? '1.8.0' : prepared.previousFormat === '1.7.0' ? '1.7.0' : prepared.previousFormat === '1.6.0' ? '1.6.0' : '1.5.0', stateVersion: prepared.stateVersion,
+  return parseGameState({ ...prepared.position, ...prepared.facilityFields, ...prepared.roundFields, schemaVersion: prepared.previousFormat === '1.10.0' ? '1.10.0' : prepared.previousFormat === '1.9.0' ? '1.9.0' : prepared.previousFormat === '1.8.0' ? '1.8.0' : prepared.previousFormat === '1.7.0' ? '1.7.0' : prepared.previousFormat === '1.6.0' ? '1.6.0' : '1.5.0', stateVersion: prepared.stateVersion,
     phase: 'harvest', eventDecks: prepared.eventDecks, playerOrder: prepared.playerOrder,
     harvest: { roundNumber: prepared.options.roundNumber, status: 'planning',
       plansByPlayer: Object.fromEntries(definition.players.map(player => [player.id, null])) } }, definition);

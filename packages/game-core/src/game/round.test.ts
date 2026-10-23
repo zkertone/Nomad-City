@@ -72,7 +72,7 @@ function firstChoice(state: GameState, definition: GameDefinition, actorId: stri
 describe('verified base role identities and new managed round setup', () => {
   it('preserves exactly the five initial base roles without enterprise or Infected additions', () => {
     expect(FOUNDERS_BASE_ROLES).toEqual([{ id: 'ROLE-01', name: '雷蛇' }, { id: 'ROLE-02', name: '极境' }, { id: 'ROLE-03', name: '德克萨斯' }, { id: 'ROLE-04', name: '坎诺特' }, { id: 'ROLE-05', name: '锡人' }]);
-    expect(ROUND_RULE_SOURCE.printedPages).toEqual([3, 4, 5, 8, 10, 11, 14, 23]); expect(ROUND_RULE_SOURCE.roleEffectsImplemented).toBe(false);
+    expect(ROUND_RULE_SOURCE.printedPages).toEqual([3, 4, 5, 8, 10, 11, 14, 23]); expect(ROUND_RULE_SOURCE.roleEffectsImplemented).toBe(true);
     expect(Object.isFrozen(FOUNDERS_BASE_ROLES[0])).toBe(true);
   });
   it.each([2, 3, 4])('starts %i players only after real entry and conserves all setup facts', count => {

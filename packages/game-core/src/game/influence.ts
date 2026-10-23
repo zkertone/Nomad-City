@@ -1,3 +1,5 @@
+import type { z } from 'zod';
+import type { gamePositionSchema } from './schema.js';
 import type { BoardDefinition } from '../board/types.js';
 import type { GamePosition } from './types.js';
 
@@ -27,4 +29,15 @@ export function availableTargetInfluenceSlots(position: GamePosition, board: Boa
     const slot = board.influenceSlots[id]!;
     return slot.kind === 'resource-node' && slot.nodeId === nodeId;
   });
+}
+
+/** Shared ordinary/free city-move clearing: chosen route and destination only, original owners regain markers. */
+export function clearOpposingCityMoveInfluence(position: z.infer<typeof gamePositionSchema>, board: BoardDefinition, actorId: string, routeId: string, nodeId: string): void {
+  for (const slotId of [...board.routes[routeId]!.influenceSlotIds, ...board.resourceNodes[nodeId]!.influenceSlotIds]) {
+    const marker = position.board.influenceBySlot[slotId];
+    if (marker && marker.ownerPlayerId !== actorId) {
+      position.markerSupplyByPlayer[marker.ownerPlayerId]!.push(marker.markerId);
+      position.board.influenceBySlot[slotId] = null;
+    }
+  }
 }

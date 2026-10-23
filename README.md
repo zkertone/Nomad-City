@@ -356,3 +356,12 @@ getFacilityCopyCountRecords() 默认仅返回基础版 18 种设施、48 个实�
 通过 `enableLiskarmEffects` 显式升级1.8.0→**1.9.0**，保留已有角色使用和弃牌历史。全员采集后用 `openManagedCleanup` 开启选择，当前待结算玩家通过 `applyRoleCleanupCommand` 移除任意本人现存棋盘影响力；未结算不能推进回合，没有本人影响力才自动跳过。所有主要行动和采集继续保持新格式。
 
 当前基础角色支持 **7/10模式**（五名角色的策略、雷蛇与锡人计谋）；先前章节的五模式/雷蛇待完成为历史记录。极境、德克萨斯、坎诺特计谋仍待实现，全角色完成标志仍false。运行 `npm run verify`、`npm run check:liskarm`；本次实际 **1488/1488（19文件）**、strict/构建及15项编译检查通过。[API、规则与边界](docs/Liskarm-Effects-2026-10-23.md)，[真实验证记录](docs/testing/liskarm-validation-2026-10-23.md)。
+
+
+## 基础初始角色十种模式齐备 · 2026-10-23
+
+极境、德克萨斯、坎诺特三种计谋已接入：3异铁换免费相邻移城（目标至少1本人影响力且无对手）、3金券按替换→移动→移除顺序结算、全体强制将一种基础资源按2金券全部出售并由本人得1分。起始玩家both策略先于计谋，费用/市场/标记/全体余额/分数/弃牌仍原子提交。
+
+`enableRemainingBaseRoleEffects` 显式升级1.9.0→**1.10.0**，保留旧使用历史和雷蛇义务；新增completedMajorAction记录角色使用前已经完成的主要行动，结清旧动作进度，支持主要行动后免费移城且不授予额外行动。旧1.0.0–1.9.0、默认入口及旧格式能力限制保留。
+
+当前**5张基础初始角色的策略/计谋10/10**，能力完成标志为true；先前五模式/七模式及三计谋待完成章节保留为历史。城市样式、剩余设施、最终计分提交和联机仍待完成。运行 `npm run verify`、`npm run check:schemes`；本轮实际 **1558/1558（20文件）**、strict/构建及16项编译检查通过。[规则、API与格式](docs/Remaining-Role-Schemes-2026-10-23.md)，[真实验证和早期错误](docs/testing/remaining-role-schemes-validation-2026-10-23.md)。

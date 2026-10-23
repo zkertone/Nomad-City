@@ -256,3 +256,18 @@
 修改 `packages/game-core/src/game/schema.ts`、`round-schema.ts`、`round-invariants.ts`、`round.ts`、`role-rules.ts`、`role-effects.ts`、`role-effects.test.ts`、`index.ts`、`exploration.ts`、`city-move.ts`、`influence-actions.ts`、`harvest.ts`、`construction.ts`；`scripts/check-role-effects.mjs`；`package.json`（仅新增check:liskarm脚本）；`README.md`、`docs/Base-Role-Effects-2026-10-23.md`、`docs/Round-Flow-2026-10-23.md`、`docs/Game-State-Foundation-2026-10-17.md`、`docs/DevLog.md`及本清单。合计6个新增、21个修改文件。
 
 最终实际verify退出0：**1488/1488（19文件）**、strict/构建通过；构建后15项编译检查全部退出0。当前7/10角色模式，雷蛇策略/both必须完成可执行的本人移除后才推进回合，旧格式和默认入口保持兼容。GameDefinition/原静态JSON/摘要/已确认文字/Accepted ADR/项目版本/依赖锁不变。其余三角色计谋、样式、完整设施及最终计分待完成，无UI/联机/部署或对外发布。
+
+
+## 2026-10-23 三种剩余基础初始角色计谋增量
+
+新增可编辑文件（相对于仓库根目录）：
+
+- packages/game-core/src/game/role-schemes.ts：极境/德克萨斯/坎诺特计谋strict选择与内部原子处理器。
+- packages/game-core/src/game/role-schemes.test.ts：70项新增正反向/真实回合回归。
+- scripts/check-role-schemes.mjs：根与/game导出、2/3/4人三计谋的真实入场/行动/回合编译检查。
+- docs/Remaining-Role-Schemes-2026-10-23.md：规则来源、各效果、API、新格式及边界。
+- docs/testing/remaining-role-schemes-validation-2026-10-23.md：实际命令、早期测试错误和最终结果。
+
+修改packages/game-core/src/game下schema.ts、round-schema.ts、round-invariants.ts、round.ts、role-rules.ts、role-effects.ts、role-effects.test.ts、round.test.ts、liskarm.ts、liskarm.test.ts、influence.ts、city-move.ts、exploration.ts、influence-actions.ts、harvest.ts、construction.ts；scripts/check-role-effects.mjs与check-liskarm.mjs更新能力断言；package.json仅增加check:schemes；README.md及docs/Base-Role-Effects-2026-10-23.md、Round-Flow-2026-10-23.md、Game-State-Foundation-2026-10-17.md、Liskarm-Effects-2026-10-23.md、City-Move-Flow-2026-10-18.md、DevLog.md和本清单。共5新增、27修改。
+
+最终实际1558/1558（20文件）、strict/构建通过；16项编译检查全部退出0。新格式1.10.0显式启用10/10基础初始角色模式、保留旧格式限制，行动后角色结清旧进度但不额外授权。旧历史/静态数据/固定摘要/已确认文字/GameDefinition/Accepted ADR/项目版本/依赖锁不变。城市样式、剩余设施、最终计分及联机仍待完成，无UI、部署或对外发布。

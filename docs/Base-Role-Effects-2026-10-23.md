@@ -88,3 +88,12 @@ mode='both'必须两种模式都有完整handler，只有锡人当前满足此�
 雷蛇策略选择为 `{kind:'liskarm-place',slotIds:[...]}`，逐次尽量执行两次，不能主动少选可执行目标；计谋为 `{kind:'liskarm-replace',costDecision:'pay'|'decline',slotId?:SlotId}`，支付3金券后先移除再尝试同槽放置。策略/both还记录 `cleanupResolved=false`；收尾依本人当前实际棋盘标记选择移除1枚，不限定刚放置的标记。详细不可执行跳过、库存和对手城市规则见新文档。
 
 真实1488/1488、strict/构建和15项编译检查通过；原五模式90项测试保留，只更新能力和格式断言。验证及首次测试辅助类型错误见 [新增验证记录](testing/liskarm-validation-2026-10-23.md)。
+
+
+## 同日后续：五张基础初始角色的十种模式已齐备
+
+[剩余三种计谋](Remaining-Role-Schemes-2026-10-23.md) 已实现极境免费移城、德克萨斯顺序影响力操作和坎诺特全体强制出售/本人1分。当前supportedModeCount=10、allBaseRoleEffectsImplemented=true，ROUND_RULE_SOURCE.roleEffectsImplemented也更新为true；含义严格限定5张初始基础角色，不表示城市样式、设施或完整桌游已完成。上文五/七模式及完成标志false仅为历史进度。
+
+显式enableRemainingBaseRoleEffects从1.9.0升级1.10.0；旧1.8.0/1.9.0仍不允许这三种计谋或相关used记录。所有5张角色现在均允许起始玩家both，仍先策略后计谋、失败整次回滚。新格式支持在主要行动完成后结清旧动作进度，保存completedMajorAction而不增加额度，避免第二次移城与旧城市目标校验冲突。具体选择格式、不可执行跳过、所有玩家强制出售及边界见新文档。
+
+实际1558/1558、strict/构建和16项编译检查全部通过；既有90项原角色测试保留，只更新能力元数据和旧格式拒绝理由。详见 [验证记录](testing/remaining-role-schemes-validation-2026-10-23.md)。

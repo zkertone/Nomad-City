@@ -66,6 +66,7 @@ function currentActor(state: GameState, playerCount: number): string | null {
   return flow.stage === 'player-actions' ? state.playerOrder![flow.turnIndex % playerCount]! : null;
 }
 function actionComplete(state: GameState): boolean {
+  if (state.roundFlow?.completedMajorAction != null) return true;
   const action = state.phase === 'exploration' ? state.exploration : state.phase === 'city-move' ? state.cityMove
     : state.phase === 'influence-action' ? state.influenceAction : state.phase === 'construction' ? state.construction : undefined;
   return action?.status === 'complete';
@@ -138,6 +139,7 @@ export function applyRoundCommand(input: GameState, definition: GameDefinition, 
       if (progress.turnIndex === definition.players.length * 2) progress.stage = 'harvest';
     }
     progress.majorActionOpened = false;
+    if (progress.completedMajorAction !== undefined) progress.completedMajorAction = null;
     delete next.exploration; delete next.cityMove; delete next.influenceAction; delete next.construction;
     next.phase = 'round-control';
   }
@@ -164,6 +166,7 @@ export function finishManagedRound(input: GameState, definition: GameDefinition,
   }
   next.playerOrder!.push(next.playerOrder!.shift()!);
   next.phase = 'round-control'; delete next.harvest;
+  if (flow.completedMajorAction !== undefined) flow.completedMajorAction = null;
   flow.supplyRemovalCount = 0; flow.rolePlacementCount = 0; flow.turnIndex = 0; flow.majorActionOpened = false;
   if (flow.roundNumber === 8) flow.stage = 'finished';
   else { flow.roundNumber++; flow.stage = definition.players.length === 2 ? 'role-removal' : 'role-placement'; }

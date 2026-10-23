@@ -94,3 +94,10 @@ GameDefinition 必须来自服务器持有的可信对局配置；不能让客�
 [雷蛇策略、计谋与收尾](Liskarm-Effects-2026-10-23.md) 通过可信 `enableLiskarmEffects` 显式从1.8.0升级，保留已有角色使用/弃牌、设施、资源和回合历史。雷蛇strategy/both的used引用增加必须存在的 `cleanupResolved:boolean`，scheme-only和其他角色不得携带；格式1.9.0才接受雷蛇记录及cleanup阶段。完成标志只可在收尾阶段出现，不能提前伪造已结算。
 
 采集全部完成后可显式打开cleanup，按当前玩家顺序处理本人标记移除；未处理可执行义务时不能结束回合，无法执行的义务才跳过。所有现有动作继续保持1.9.0，不复制标记位置或余额账本。旧1.0.0–1.8.0读取和默认入口保留，GameDefinition及Accepted ADR不变。实际1488/1488、strict/构建和15项编译检查通过；完整角色、设施、样式及服务器持久化仍待完成。
+
+
+## 2026-10-23 后续格式1.10.0
+
+[三种剩余基础角色计谋](Remaining-Role-Schemes-2026-10-23.md) 通过enableRemainingBaseRoleEffects显式升级已验证1.9.0，保留已有角色、雷蛇义务和全部游戏事实。新格式要求roundFlow.completedMajorAction显式为null或动作类型，旧格式禁止该字段；角色在主要行动完成后使用时，结清并删除旧活动进度，以单个完成事实保留本轮额度，不能再授权动作。finish-player-turn/收尾清空，不复制活动进度、经济或标记账本。
+
+新计谋及其used记录仅1.10.0接受，旧1.0.0–1.9.0读取及默认入口保留；各动作、采集和雷蛇cleanup保持1.10.0。5张基础初始角色10/10模式已执行并测试，城市样式、完整设施、最终计分及服务端持久化仍待完成。实际1558/1558（20文件）、strict/构建及16项编译检查通过，GameDefinition、静态摘要和Accepted ADR未改。
