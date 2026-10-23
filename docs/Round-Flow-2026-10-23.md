@@ -81,3 +81,10 @@ state = applyRoundCommand(state, definition, { authenticatedPlayerId }, {
 `getRoundPublicView(state,definition,viewerPlayerId)` 是角色与供应区的局部公开投影，viewerPlayerId必须来自未来认证层。包含回合/阶段/当前行动玩家、顺序、角色数量、公开弃牌、自己手牌和盖放牌；其他玩家只有手牌数和是否盖放，不能看到手牌或盖放身份。供应复用现有公开投影，不泄露暗牌序。它不是完整整局公开状态，也不应将原GameState广播给客户端。
 
 实际测试与早期错误见 [验证记录](testing/round-flow-validation-2026-10-23.md)。
+
+
+## 同日后续：五种角色模式已接入
+
+[首批基础角色效果](Base-Role-Effects-2026-10-23.md) 已实现极境/德克萨斯/坎诺特策略与锡人策略/计谋，通过显式1.7.0→1.8.0升级启用；默认入口继续1.7.0兼容。使用记录used引用本人弃牌，不额外保存一张牌；盖放前缀校验同时承认未用盖放或本回合已使用的角色，收尾只回收未使用牌，保留真实弃牌历史。
+
+先前“所有角色保持未用/没有角色执行入口”现在仅描述旧1.7.0流程；1.8.0允许上述五模式在主要行动前后执行，不增加主要行动，不允许中断动作，未实现模式仍拒绝。原ROUND_RULE_SOURCE.roleEffectsImplemented=false继续表示全角色未齐备，当前能力明细以getBaseRoleEffectSupport为准。实际1439/1439和14项编译检查见新验证记录。

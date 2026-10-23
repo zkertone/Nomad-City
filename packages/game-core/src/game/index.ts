@@ -13,3 +13,5 @@ export * from './scoring.js';
 export * from './construction.js';
 export * from './round-schema.js';
 export * from './round.js';
+export * from './role-rules.js';
+export * from './role-effects.js';

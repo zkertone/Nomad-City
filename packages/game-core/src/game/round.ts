@@ -151,10 +151,13 @@ export function finishManagedRound(input: GameState, definition: GameDefinition,
   if (checked.data.expectedVersion !== state.stateVersion) return reject('STALE_VERSION', 'Expected state version is stale');
   if (state.roundFlow!.stage !== 'harvest' || state.phase !== 'harvest' || state.harvest?.status !== 'complete') return reject('HARVEST_PENDING', 'Every player must finish harvest before cleanup');
   if (state.stateVersion === Number.MAX_SAFE_INTEGER) return reject('VERSION_OVERFLOW', 'State version exhausted');
-  // No role-effect execution is offered yet; all placed roles remain unused and have no delayed effect.
-  // roundFlowIssues rejects unsupported built facilities, including unimplemented cleanup effects.
+  // Implemented role modes have no delayed effect; validation rejects unsupported modes/facilities.
   const next = gameStateSchema.parse(state), flow = next.roundFlow!;
-  for (const role of flow.rolesByPlayer) { role.hand.push(role.placed!); role.placed = null; }
+  for (const role of flow.rolesByPlayer) {
+    if (role.placed !== null) role.hand.push(role.placed);
+    role.placed = null;
+    if (role.used !== undefined) role.used = null;
+  }
   next.playerOrder!.push(next.playerOrder!.shift()!);
   next.phase = 'round-control'; delete next.harvest;
   flow.supplyRemovalCount = 0; flow.rolePlacementCount = 0; flow.turnIndex = 0; flow.majorActionOpened = false;
@@ -170,7 +173,8 @@ export function getRoundPublicView(input: GameState, definition: GameDefinition,
   if (!definition.players.some(player => player.id === viewerPlayerId)) return reject('VIEWER_REFERENCE', 'Viewer must be a registered player');
   return deepFreeze({ gameId: state.gameId, stateVersion: state.stateVersion, ...getRoundTurn(state, definition), playerOrder: state.playerOrder!,
     roles: state.roundFlow!.rolesByPlayer.map(role => ({ playerId: role.playerId, handCount: role.hand.length, discarded: role.discarded,
-      hasPlacedRole: role.placed !== null, ...(role.playerId === viewerPlayerId ? { hand: role.hand, placedRoleId: role.placed } : {}) })),
+      hasPlacedRole: role.placed !== null, ...(role.used !== undefined ? { usedRole: role.used } : {}),
+      ...(role.playerId === viewerPlayerId ? { hand: role.hand, placedRoleId: role.placed } : {}) })),
     facilitySupply: getFacilitySupplyPublicView(state.facilities!.supply),
   });
 }

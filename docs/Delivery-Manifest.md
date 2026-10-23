@@ -224,3 +224,19 @@
 修改 `packages/game-core/src/game/schema.ts`、`state.ts`、`action-window.ts`、`construction.ts`、`exploration.ts`、`city-move.ts`、`influence-actions.ts`、`harvest.ts`、`index.ts`；另更新 `package.json`（仅新增check:rounds）、`README.md`、`docs/Game-State-Foundation-2026-10-17.md`、`docs/Construction-Window-2026-10-23.md`、`docs/Harvest-Phase-2026-10-18.md`、`docs/Facility-Supply-2026-10-22.md`、`docs/DevLog.md` 与本清单。
 
 最终真实verify：1349/1349（17文件）、strict和构建通过；13项编译检查退出0。GameState新1.7.0、旧格式保留；GameDefinition/静态原数据/摘要/已确认原文/依赖锁/项目版本/Accepted ADR不变。角色效果/优惠/样式、完整设施及最终分数提交待完成，无UI、联机、部署或对外发布。
+
+
+## 2026-10-23 首批角色效果增量
+
+新增可编辑文件（仓库根目录下）：
+
+- `packages/game-core/src/game/role-rules.ts`：5模式支持明细与规则来源。
+- `packages/game-core/src/game/role-effects.ts`：显式1.8.0升级、角色命令与5模式原子执行。
+- `packages/game-core/src/game/role-effects.test.ts`：90项新测试与真实跨回合弃牌/回收。
+- `scripts/check-role-effects.mjs`：根与/game编译包、2/3/4人真实使用流程。
+- `docs/Base-Role-Effects-2026-10-23.md`：数值、选择格式、能力边界与版本行为。
+- `docs/testing/role-effects-validation-2026-10-23.md`：真实命令、编译夹具修正、结果与未测范围。
+
+修改 `packages/game-core/src/game/schema.ts`、`round-schema.ts`、`round-invariants.ts`、`round.ts`、`index.ts`、`construction.ts`、`exploration.ts`、`city-move.ts`、`influence-actions.ts`、`harvest.ts`；另更新 `package.json`（仅增加check:roles）、`README.md`、`docs/Round-Flow-2026-10-23.md`、`docs/Game-State-Foundation-2026-10-17.md`、`docs/DevLog.md`与本清单。
+
+最终实际verify：1439/1439（18文件）、strict/构建通过；14项编译检查最终退出0。4名角色5模式可执行，未实现模式仍拒绝；1.8.0显式升级、旧格式/默认入口保留。原静态JSON/摘要/全文、GameDefinition/Accepted ADR、项目版本/依赖锁不变。其余角色、样式、设施与最终计分待完成，无UI/联机/部署或对外发布。

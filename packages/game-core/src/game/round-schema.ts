@@ -21,5 +21,7 @@ export const roundFlowSchema = z.strictObject({
   majorActionOpened: z.boolean(),
   rolesByPlayer: z.array(z.strictObject({
     playerId: z.string().min(1), hand: roleIds, discarded: roleIds, placed: baseRoleIdSchema.nullable(),
+    // Reference to a card in discarded, not an additional physical card zone. Absent in 1.7.0.
+    used: z.strictObject({ roleId: baseRoleIdSchema, mode: z.enum(['strategy', 'scheme', 'both']), turnIndex: z.number().int().min(0).max(7) }).nullable().optional(),
   })).min(2).max(4),
 });

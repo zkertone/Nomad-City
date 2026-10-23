@@ -3,6 +3,7 @@ import type { GameDefinition, GameState } from './types.js';
 import { FOUNDERS_BASE_ROLES } from './round-schema.js';
 import { getFacilityConstructionSpec } from '../facilities/construction-spec.js';
 import { getFoundersPhysicalFacilityCard } from '../facilities/stock.js';
+import { isBaseRoleModeSupported } from './role-rules.js';
 
 /** Cross-check the sole round cursor against existing action progress; never duplicate economic state. */
 export function roundFlowIssues(state: GameState, definition: GameDefinition): ValidationIssue[] {
@@ -14,6 +15,11 @@ export function roundFlowIssues(state: GameState, definition: GameDefinition): V
   for (const role of flow.rolesByPlayer) {
     const ids = [...role.hand, ...role.discarded, ...(role.placed === null ? [] : [role.placed])];
     if (JSON.stringify([...ids].sort()) !== JSON.stringify(FOUNDERS_BASE_ROLES.map(role => role.id))) report(`Five distinct initial roles must be conserved for ${role.playerId}`);
+    if (role.used) {
+      if (role.placed !== null || !role.discarded.includes(role.used.roleId)) report('Used role must be in discard, with no unused placed role');
+      if (!['player-actions', 'harvest'].includes(flow.stage) || role.used.turnIndex > flow.turnIndex || order[role.used.turnIndex % count] !== role.playerId) report('Role use must belong to this player in a reached action turn');
+      if (!isBaseRoleModeSupported(role.used.roleId, role.used.mode) || (role.used.mode === 'both' && role.playerId !== order[0])) report('Role-use mode must be supported and both modes require the starting player');
+    }
   }
   // This managed flow currently supports ordinary base-price construction only. Do not silently
   // skip delayed/continuous effects from a facility that the implementation cannot execute.
@@ -21,7 +27,7 @@ export function roundFlowIssues(state: GameState, definition: GameDefinition): V
     try { if (getFoundersPhysicalFacilityCard(id).group !== 'core-command-tower') getFacilityConstructionSpec(id); }
     catch { report('Managed rounds cannot contain an unsupported built facility'); }
   }
-  const placedPlayers = new Set(flow.rolesByPlayer.filter(row => row.placed !== null).map(row => row.playerId));
+  const placedPlayers = new Set(flow.rolesByPlayer.filter(row => row.placed !== null || row.used != null).map(row => row.playerId));
   if (flow.stage === 'role-removal') {
     if (count !== 2 || flow.supplyRemovalCount >= 2 || flow.rolePlacementCount !== 0) report('Two-player removals precede every role placement');
   } else if (flow.stage === 'finished') {
