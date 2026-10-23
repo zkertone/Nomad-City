@@ -10,11 +10,17 @@ export class FacilityConstructionError extends Error {
 export const rejectFacilityConstruction = (code: string, message: string): never => { throw new FacilityConstructionError(code, message); };
 export type SupportedFacilityEntry =
   | { readonly kind: 'none' }
+  | { readonly kind: 'remove-two-influence' }
+  | { readonly kind: 'replace-or-remove-influence' }
+  | { readonly kind: 'sell-resources' }
   | { readonly kind: 'gain'; readonly asset: 'orirock' | 'originium' | 'iron'; readonly amount: number }
   | { readonly kind: 'choose-five-resources' }
   | { readonly kind: 'core-neighbor-vouchers' };
 const supported = deepFreeze([
+  { facilityId: 'FAC-002', entry: { kind: 'remove-two-influence' } },
+  { facilityId: 'FAC-003', entry: { kind: 'replace-or-remove-influence' } },
   { facilityId: 'FAC-005', entry: { kind: 'core-neighbor-vouchers' } },
+  { facilityId: 'FAC-006', entry: { kind: 'sell-resources' } },
   { facilityId: 'FAC-008', entry: { kind: 'choose-five-resources' } },
   { facilityId: 'FAC-009', entry: { kind: 'none' } },
   { facilityId: 'FAC-010', entry: { kind: 'gain', asset: 'iron', amount: 4 } },

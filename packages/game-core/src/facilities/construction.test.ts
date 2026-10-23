@@ -54,10 +54,10 @@ const simple = [
 ] as const;
 
 describe('supported pictured facility variants and fail-closed boundaries', () => {
-  it('reports precisely seven types and fifteen matching physical copies', () => {
+  it('reports precisely ten types and twenty-three matching physical copies', () => {
     const support = getFacilityConstructionSupport();
-    expect(support.supportedFacilityIds).toEqual(['FAC-005', 'FAC-008', 'FAC-009', 'FAC-010', 'FAC-011', 'FAC-012', 'FAC-013']);
-    expect(support.supportedPhysicalCardIds).toHaveLength(15); expect(support.allFacilitiesImplemented).toBe(false);
+    expect(support.supportedFacilityIds).toEqual(['FAC-002', 'FAC-003', 'FAC-005', 'FAC-006', 'FAC-008', 'FAC-009', 'FAC-010', 'FAC-011', 'FAC-012', 'FAC-013']);
+    expect(support.supportedPhysicalCardIds).toHaveLength(23); expect(support.allFacilitiesImplemented).toBe(false);
     expect(FACILITY_CONSTRUCTION_SOURCE_HASH).toBe(FOUNDERS_FACILITY_FACES_HASH);
     expect(Object.isFrozen(support.supportedPhysicalCardIds)).toBe(true);
   });
@@ -65,9 +65,9 @@ describe('supported pictured facility variants and fail-closed boundaries', () =
     const f = fixture(id, color), before = JSON.stringify(f.state);
     errorCode(() => run(f), 'UNCONFIRMED_COLOR_VARIANT'); expect(JSON.stringify(f.state)).toBe(before);
   });
-  it.each(['FAC-001', 'FAC-002', 'FAC-003', 'FAC-004', 'FAC-006', 'FAC-007', 'FAC-014', 'FAC-015', 'FAC-016'])('rejects %s until its entire entry handler exists', id => {
+  it.each(['FAC-001', 'FAC-002', 'FAC-003', 'FAC-004', 'FAC-006', 'FAC-007', 'FAC-014', 'FAC-015', 'FAC-016'])('rejects %s with an unavailable handler or missing mandatory entry choice', id => {
     const f = fixture(id), before = JSON.stringify(f.state);
-    errorCode(() => run(f), 'UNSUPPORTED_ENTRY_EFFECT'); expect(JSON.stringify(f.state)).toBe(before);
+    errorCode(() => run(f), ['FAC-002', 'FAC-003', 'FAC-006'].includes(id) ? 'ENTRY_CHOICE' : 'UNSUPPORTED_ENTRY_EFFECT'); expect(JSON.stringify(f.state)).toBe(before);
   });
   it('rejects ordinary extension/core construction and unknown physical IDs', () => {
     const extension = fixture('FAC-018', 'yellow'); errorCode(() => run(extension), 'CARD_SOURCE');

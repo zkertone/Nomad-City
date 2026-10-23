@@ -1,7 +1,8 @@
 import { z } from 'zod';
+import { loadFoundersBoard } from '../board/index.js';
 import { deepFreeze } from '../board/hash.js';
 import { gameEntityIdSchema, gamePositionSchema } from '../game/schema.js';
-import { validateGameDefinition, validateGamePosition, parseGamePosition } from '../game/state.js';
+import { validateGameDefinition, validateGamePosition, parseGamePosition, getFoundersMapSide } from '../game/state.js';
 import { canAffordResources } from '../game/resources.js';
 import type { DeepReadonly, GameDefinition, ResourceCost } from '../game/types.js';
 import { facilitySupplyStateSchema, validateFacilitySupplyState, replenishFacilitySupply } from './supply.js';
@@ -10,6 +11,9 @@ import { FOUNDERS_FACILITY_PANEL } from './panel-definition.js';
 import { getFoundersPhysicalFacilityCard } from './stock.js';
 import type { FacilityModuleValidation } from './stock.js';
 import { getFoundersFacilityFace } from './faces.js';
+import { facilityEntryChoiceSchema, requiredFacilityEntryChoiceKind, settleFacilityBoardOrSaleEntry } from './entry-effects.js';
+import type { FacilityEntryInfluenceChange } from './entry-effects.js';
+import type { ResourceSaleLine } from '../game/resource-sales.js';
 import { getFacilityConstructionSpec, rejectFacilityConstruction as reject } from './construction-spec.js';
 
 /** Internal transaction bundle, not a new GameState format or a second balance ledger. */
@@ -51,12 +55,8 @@ export const facilityConstructionContextSchema = z.strictObject({
   expectedSupplyRevision: z.number().int().nonnegative().safe(), expectedPanelRevision: z.number().int().nonnegative().safe(),
 });
 export type FacilityConstructionContext = DeepReadonly<z.infer<typeof facilityConstructionContextSchema>>;
-const allocationSchema = z.strictObject({
-  kind: z.literal('resource-allocation'),
-  gains: z.strictObject({ orirock: z.number().int().min(0).max(5), originium: z.number().int().min(0).max(5), iron: z.number().int().min(0).max(5) }),
-}).refine(value => value.gains.orirock + value.gains.originium + value.gains.iron === 5, 'Must allocate exactly five resources in total');
 export const facilityConstructionCommandSchema = z.strictObject({
-  cardId: z.string().min(1), cellId: z.string().min(1), paymentMode: z.enum(['resources', 'vouchers']), entryChoice: allocationSchema.optional(),
+  cardId: z.string().min(1), cellId: z.string().min(1), paymentMode: z.enum(['resources', 'vouchers']), entryChoice: facilityEntryChoiceSchema.optional(),
 });
 export type FacilityConstructionCommand = DeepReadonly<z.infer<typeof facilityConstructionCommandSchema>>;
 
@@ -97,6 +97,7 @@ export function getFacilityConstructionQuote(input: unknown, definition: GameDef
   const prepared = prepare(input, definition, context, payload);
   return deepFreeze({ actorId: prepared.context.actorId, cardId: prepared.command.cardId, cellId: prepared.command.cellId,
     facilityId: prepared.spec.card.facilityId, costs: prepared.costs, orirockDiscount: prepared.orirockDiscount,
+    entryChoiceKind: requiredFacilityEntryChoiceKind(prepared.spec.entry),
     printedPoints: prepared.spec.face.printedScore, requiresResourceAllocation: prepared.spec.entry.kind === 'choose-five-resources',
     canPay: canAffordResources(prepared.state.position.players[prepared.context.actorId]!.balances, prepared.costs) });
 }
@@ -104,6 +105,7 @@ export interface FacilityConstructionReceipt {
   readonly actorId: string; readonly cardId: string; readonly facilityId: string; readonly cellId: string;
   readonly paymentMode: 'resources' | 'vouchers'; readonly paid: readonly ResourceCost[]; readonly orirockDiscount: number;
   readonly points: number; readonly refilledCardIds: readonly string[];
+  readonly entryInfluenceChanges: readonly FacilityEntryInfluenceChange[]; readonly entrySales: readonly ResourceSaleLine[];
   readonly entryGains: readonly { readonly asset: ResourceCost['asset']; readonly amount: number }[];
   readonly order: readonly ['pay', 'take-and-refill', 'place', 'score', 'entry'];
 }
@@ -114,7 +116,8 @@ export interface FacilityConstructionResult { readonly state: FacilityConstructi
  */
 export function settleFacilityConstruction(input: unknown, definition: GameDefinition, context: FacilityConstructionContext, payload: unknown): FacilityConstructionResult {
   const p = prepare(input, definition, context, payload);
-  if (p.spec.entry.kind === 'choose-five-resources' ? !p.command.entryChoice : p.command.entryChoice !== undefined) return reject('ENTRY_CHOICE', 'Resource allocation is required only for the mining shovel');
+  const choiceKind = requiredFacilityEntryChoiceKind(p.spec.entry);
+  if (choiceKind === null ? p.command.entryChoice !== undefined : p.command.entryChoice?.kind !== choiceKind) return reject('ENTRY_CHOICE', 'Provide exactly the choice kind required by this facility entry');
   if (!canAffordResources(p.state.position.players[p.context.actorId]!.balances, p.costs)) return reject('CANNOT_PAY', 'All construction costs must be payable before entry rewards');
   const next = facilityConstructionPositionSchema.parse(p.state), actor = next.position.players[p.context.actorId]!;
   for (const cost of p.costs) actor.balances[cost.asset] -= cost.amount;
@@ -127,6 +130,7 @@ export function settleFacilityConstruction(input: unknown, definition: GameDefin
   panel.placements.push({ cardId: p.command.cardId, cellId: p.command.cellId }); panel.revision++;
   if (!Number.isSafeInteger(actor.score + p.spec.face.printedScore)) return reject('SCORE_OVERFLOW', 'Construction score exceeds safe integer range');
   actor.score += p.spec.face.printedScore;
+  const entryInfluenceChanges: FacilityEntryInfluenceChange[] = [], entrySales: ResourceSaleLine[] = [];
   const entryGains: { asset: ResourceCost['asset']; amount: number }[] = [];
   const gain = (asset: ResourceCost['asset'], amount: number) => {
     if (!Number.isSafeInteger(actor.balances[asset] + amount)) return reject('BALANCE_OVERFLOW', 'Entry gain exceeds safe integer range');
@@ -136,12 +140,25 @@ export function settleFacilityConstruction(input: unknown, definition: GameDefin
     case 'none': break;
     case 'gain': gain(p.spec.entry.asset, p.spec.entry.amount); break;
     case 'core-neighbor-vouchers': gain('columbia-voucher', getOrthogonallyAdjacentPanelFacilities(panel, next.supply, FOUNDERS_FACILITY_PANEL.initialCoreCellId).length * 4); break;
-    case 'choose-five-resources': for (const asset of ['orirock', 'originium', 'iron'] as const) gain(asset, p.command.entryChoice!.gains[asset]); break;
+    case 'choose-five-resources': {
+      const choice = p.command.entryChoice!;
+      if (choice.kind !== 'resource-allocation') return reject('ENTRY_CHOICE', 'Expected mining allocation');
+      for (const asset of ['orirock', 'originium', 'iron'] as const) gain(asset, choice.gains[asset]);
+      break;
+    }
+    case 'remove-two-influence': case 'replace-or-remove-influence': case 'sell-resources': {
+      const choice = p.command.entryChoice!;
+      if (choice.kind === 'resource-allocation') return reject('ENTRY_CHOICE', 'Wrong immediate entry choice');
+      const entry = settleFacilityBoardOrSaleEntry(next.position, loadFoundersBoard(getFoundersMapSide(definition.players.length)), p.context.actorId, choice, reject);
+      entryInfluenceChanges.push(...entry.influenceChanges); entrySales.push(...entry.sales);
+      if (entry.saleProceeds) entryGains.push({ asset: 'columbia-voucher', amount: entry.saleProceeds });
+      break;
+    }
   }
   next.position = gamePositionSchema.parse(parseGamePosition(next.position, definition));
   return deepFreeze({ state: parseFacilityConstructionPosition(next, definition), receipt: {
     actorId: p.context.actorId, cardId: p.command.cardId, facilityId: p.spec.card.facilityId, cellId: p.command.cellId,
     paymentMode: p.command.paymentMode, paid: p.costs, orirockDiscount: p.orirockDiscount, points: p.spec.face.printedScore,
-    refilledCardIds: refill.drawnCardIds, entryGains, order: ['pay', 'take-and-refill', 'place', 'score', 'entry'],
+    refilledCardIds: refill.drawnCardIds, entryGains, entryInfluenceChanges, entrySales, order: ['pay', 'take-and-refill', 'place', 'score', 'entry'],
   } });
 }

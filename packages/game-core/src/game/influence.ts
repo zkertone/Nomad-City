@@ -41,3 +41,26 @@ export function clearOpposingCityMoveInfluence(position: z.infer<typeof gamePosi
     }
   }
 }
+
+/** Internal physical-marker return; caller validates the occupied slot and permission first. */
+export function returnBoardInfluence(position: z.infer<typeof gamePositionSchema>, slotId: string): void {
+  const marker = position.board.influenceBySlot[slotId]!;
+  position.markerSupplyByPlayer[marker.ownerPlayerId]!.push(marker.markerId);
+  position.board.influenceBySlot[slotId] = null;
+}
+/** Cost-free replacement primitive: remove first, then try own placement in the SAME slot (p14). */
+export function replaceBoardInfluence(position: z.infer<typeof gamePositionSchema>, board: BoardDefinition, actorId: string,
+  slotId: string | undefined, reject: (code: string, message: string) => never): void {
+  const occupied = Object.entries(position.board.influenceBySlot).filter(([, marker]) => marker !== null).map(([id]) => id);
+  if (!occupied.length) {
+    if (slotId !== undefined) return reject('REPLACEMENT_TARGET', 'There is no board influence to replace');
+    return;
+  }
+  if (slotId === undefined) return reject('REPLACEMENT_REQUIRED', 'An executable replacement needs a target');
+  if (!occupied.includes(slotId)) return reject('REPLACEMENT_TARGET', 'Replacement must select existing board influence');
+  returnBoardInfluence(position, slotId);
+  if (availableInfluenceSlots(position, board, actorId).includes(slotId)) {
+    const markerId = position.markerSupplyByPlayer[actorId]!.shift()!;
+    position.board.influenceBySlot[slotId] = { markerId, ownerPlayerId: actorId };
+  }
+}

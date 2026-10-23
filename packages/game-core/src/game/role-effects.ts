@@ -9,6 +9,7 @@ import { isBaseRoleModeAvailableInFormat } from './role-rules.js';
 import { emptyInfluenceSlots } from './influence.js';
 import { facilitySupplyStateSchema, replenishFacilitySupply } from '../facilities/supply.js';
 import type { DeepReadonly, GameDefinition, GameState } from './types.js';
+import { sellStandardResources } from './resource-sales.js';
 import { deepFreeze } from '../board/hash.js';
 import { elysiumSchemeChoiceSchema, texasSchemeChoiceSchema, cannotSchemeChoiceSchema, elysiumDestinations, resolveElysiumScheme, resolveTexasScheme, resolveCannotScheme } from './role-schemes.js';
 import { placeLiskarmInfluence, replaceLiskarmInfluence } from './liskarm-rules.js';
@@ -133,16 +134,7 @@ export function applyBaseRoleCommand(input: GameState, definition: GameDefinitio
         if (refill.status !== 'replenished') return reject('REFILL_UNRESOLVED', 'Texas must complete the immediate market refill');
         next.facilities!.supply = facilitySupplyStateSchema.parse(refill.state); break;
       }
-      case 'sell-resources': {
-        let proceeds = 0;
-        for (const [asset, rate] of [['orirock', 3], ['originium', 3], ['iron', 4], ['pure-originium', 15]] as const) {
-          const amount = choice.amounts[asset];
-          if (actor.balances[asset] < amount) return reject('INSUFFICIENT_RESOURCE', 'Cannot sell resources not owned');
-          if (!Number.isSafeInteger(amount * rate) || !Number.isSafeInteger(proceeds + amount * rate)) return reject('BALANCE_OVERFLOW', 'Sale proceeds exceed safe integer range');
-          proceeds += amount * rate; actor.balances[asset] -= amount;
-        }
-        gain('columbia-voucher', proceeds); break;
-      }
+      case 'sell-resources': sellStandardResources(next, actorId, choice.amounts, reject); break;
       case 'tin-point': {
         if (!Number.isSafeInteger(actor.score + 1)) return reject('SCORE_OVERFLOW', 'Role point exceeds safe integer range');
         actor.score++; break;

@@ -365,3 +365,12 @@ getFacilityCopyCountRecords() 默认仅返回基础版 18 种设施、48 个实�
 `enableRemainingBaseRoleEffects` 显式升级1.9.0→**1.10.0**，保留旧使用历史和雷蛇义务；新增completedMajorAction记录角色使用前已经完成的主要行动，结清旧动作进度，支持主要行动后免费移城且不授予额外行动。旧1.0.0–1.9.0、默认入口及旧格式能力限制保留。
 
 当前**5张基础初始角色的策略/计谋10/10**，能力完成标志为true；先前五模式/七模式及三计谋待完成章节保留为历史。城市样式、剩余设施、最终计分提交和联机仍待完成。运行 `npm run verify`、`npm run check:schemes`；本轮实际 **1558/1558（20文件）**、strict/构建及16项编译检查通过。[规则、API与格式](docs/Remaining-Role-Schemes-2026-10-23.md)，[真实验证和早期错误](docs/testing/remaining-role-schemes-validation-2026-10-23.md)。
+
+
+## 三种即时设施入场效果 · 2026-10-23
+
+护航调度中心、佣兵指挥部、贸易街区已完整接入内部事务和正式建设命令，当前支持 **10类/23张匹配已拍颜色实体牌**。依次移除2枚、替换或移除1枚、自选数量按3/3/4/15出售，均在支付→拿牌补牌→摆放→印刷分数之后原子结算。佣兵替换不收角色费用，贸易不能卖掉刚支付的资源或用未来收入垫付造价。
+
+新增facilityEntryChoiceSchema和报价entryChoiceKind；回执记录实际影响力变化及出售明细，GameState不添加第二份账本或新格式。已支持1.6.0–1.10.0的设施状态继续读写；其余嵌套入场和未拍颜色仍明确拒绝，allFacilitiesImplemented=false。
+
+运行 `npm run verify`、`npm run check:facility-entries`；本轮真实 **1629/1629（21文件）**、strict/构建及17项编译检查全部通过，新增71项测试。新编译流程实际2/3/4人从入场、部署、雷蛇标记及德克萨斯收入完成三设施建设至下一回合。[规则与API](docs/Facility-Immediate-Entries-2026-10-23.md)，[实际验证](docs/testing/facility-immediate-entries-validation-2026-10-23.md)。下一步为载具仓库等嵌套入场行动，城市样式、剩余设施和最终计分仍待完成。

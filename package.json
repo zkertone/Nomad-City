@@ -26,6 +26,7 @@
     "check:roles": "npm run build && node scripts/check-role-effects.mjs",
     "check:rounds": "npm run build && node scripts/check-rounds.mjs",
     "check:construction": "npm run build && node scripts/check-construction.mjs",
+    "check:facility-entries": "npm run build && node scripts/check-facility-entries.mjs",
     "check:facilities": "npm run build && node scripts/check-facilities.mjs",
     "archive": "python3 scripts/archive.py"
   },

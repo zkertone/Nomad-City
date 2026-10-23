@@ -271,3 +271,19 @@
 修改packages/game-core/src/game下schema.ts、round-schema.ts、round-invariants.ts、round.ts、role-rules.ts、role-effects.ts、role-effects.test.ts、round.test.ts、liskarm.ts、liskarm.test.ts、influence.ts、city-move.ts、exploration.ts、influence-actions.ts、harvest.ts、construction.ts；scripts/check-role-effects.mjs与check-liskarm.mjs更新能力断言；package.json仅增加check:schemes；README.md及docs/Base-Role-Effects-2026-10-23.md、Round-Flow-2026-10-23.md、Game-State-Foundation-2026-10-17.md、Liskarm-Effects-2026-10-23.md、City-Move-Flow-2026-10-18.md、DevLog.md和本清单。共5新增、27修改。
 
 最终实际1558/1558（20文件）、strict/构建通过；16项编译检查全部退出0。新格式1.10.0显式启用10/10基础初始角色模式、保留旧格式限制，行动后角色结清旧进度但不额外授权。旧历史/静态数据/固定摘要/已确认文字/GameDefinition/Accepted ADR/项目版本/依赖锁不变。城市样式、剩余设施、最终计分及联机仍待完成，无UI、部署或对外发布。
+
+
+## 2026-10-23 三种即时设施入场增量
+
+新增可编辑文件（相对于仓库根目录）：
+
+- packages/game-core/src/facilities/entry-effects.ts：strict选择、护航/佣兵/贸易即时入场和真实变化回执。
+- packages/game-core/src/game/resource-sales.ts：内部自选资源3/3/4/15售卖公共算术。
+- packages/game-core/src/game/facility-entries.test.ts：71项新增规则/原子性/权限/存档及回合测试。
+- scripts/check-facility-entries.mjs：根、/game及/facilities加载，2/3/4人三设施无注入真实回合。
+- docs/Facility-Immediate-Entries-2026-10-23.md：规则来源、选择/报价/回执、状态与边界。
+- docs/testing/facility-immediate-entries-validation-2026-10-23.md：全部真实命令、结果及未测范围。
+
+修改packages/game-core/src/facilities下construction-spec.ts、construction.ts、construction.test.ts、index.ts；packages/game-core/src/game下influence.ts、liskarm-rules.ts、role-effects.ts；scripts/check-facilities.mjs能力断言；package.json仅新增check:facility-entries；README.md及docs/Facility-Construction-2026-10-23.md、Construction-Window-2026-10-23.md、Facility-Faces-Review-2026-10-22.md、Round-Flow-2026-10-23.md、DevLog.md和本清单。共6新增、16修改。
+
+实际定向156/156（旧85+新71）、全量1629/1629（21文件）、strict/构建及17项编译检查全部退出0。当前10类/23张匹配已拍颜色实体；不新增GameState版本，1.6.0–1.10.0继续兼容，效果不另存账本。原静态JSON/固定摘要/确认文本/GameDefinition/Accepted ADR/项目版本/依赖锁未改。嵌套入场、其余设施/颜色、城市样式和最终计分待完成，无UI/联机/部署或对外发布。
