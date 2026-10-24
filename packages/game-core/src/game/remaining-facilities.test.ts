@@ -47,8 +47,8 @@ function build(f: Fixture, state: GameState = f.state, cellId = 'CP-1-1', paymen
 function send(f: Fixture, state: GameState, payload: Record<string, unknown>, actor = 'p1') {
   return applyNestedFacilityEntryCommand(state, f.definition, { authenticatedPlayerId: actor }, { ...env(state), ...payload });
 }
-function addBuilt(state: Mutable, id: string, cellId: string, actor = 'p1') {
-  const card = FOUNDERS_FACILITY_STOCK.cards.find(card => card.facilityId === id && card.color === getFoundersFacilityFace(id).observedColor && !state.facilities!.supply.playerHoldings.some(row => row.cardIds.includes(card.id)))!;
+function addBuilt(state: Mutable, id: string, cellId: string, actor = 'p1', color = getFoundersFacilityFace(id).observedColor) {
+  const card = FOUNDERS_FACILITY_STOCK.cards.find(card => card.facilityId === id && card.color === color && !state.facilities!.supply.playerHoldings.some(row => row.cardIds.includes(card.id)))!;
   const supply = state.facilities!.supply;
   for (const zone of [supply.supply, supply.drawPile, supply.extensionReserve]) { const index = zone.indexOf(card.id); if (index >= 0) zone.splice(index, 1); }
   if (supply.supply.length < 6) supply.supply.push(supply.drawPile.shift()!);
@@ -74,9 +74,9 @@ function finishTurns(state: GameState, definition: GameDefinition) {
 }
 
 describe('complete pictured base facilities and explicit 1.12 upgrade', () => {
-  it('reports all sixteen pictured ordinary types /38 physical cards with unresolved colour variants explicit', () => {
+  it('reports sixteen ordinary types /41 physical cards and all confirmed colour variants', () => {
     const support = getFacilityConstructionSupport(); expect(support.supportedFacilityIds).toEqual(Array.from({ length: 16 }, (_, i) => `FAC-${String(i + 1).padStart(3, '0')}`));
-    expect(support.supportedPhysicalCardIds).toHaveLength(38); expect(support.picturedOrdinaryTypesImplemented).toBe(true); expect(support.allFacilitiesImplemented).toBe(false);
+    expect(support.supportedPhysicalCardIds).toHaveLength(41); expect(support.picturedOrdinaryTypesImplemented).toBe(true); expect(support.allFacilitiesImplemented).toBe(true);
   });
   it('upgrades without replacing facts, decks, role inventory or an existing action', () => {
     const f = fixture(); const next = enableNestedFacilityEntries(f.legacy, f.definition, { expectedVersion: f.legacy.stateVersion });
@@ -109,11 +109,11 @@ describe('logistics and the reserve-only extension', () => {
     const f = fixture('FAC-004'), state = build(f), next = send(f, state, { type: 'build-logistics-extension', placement: null });
     expect(next.construction!.status).toBe('complete'); expect(next.facilities).toEqual(state.facilities); expect(next.players).toEqual(state.players);
   });
-  it.each(['unpictured', 'market', 'occupied', 'unknown-cell'])('rejects %s extension transaction without losing the committed logistics', problem => {
+  it.each(['already-owned', 'market', 'occupied', 'unknown-cell'])('rejects %s extension transaction without losing the committed logistics', problem => {
     const f = fixture('FAC-004'), state = build(f), before = structuredClone(state);
-    const placement = { cardId: problem === 'unpictured' ? state.facilities!.supply.extensionReserve.find(id => id !== cardOf('FAC-018').id)! : problem === 'market' ? state.facilities!.supply.supply[0]! : cardOf('FAC-018').id,
+    const placement = { cardId: problem === 'already-owned' ? f.cardId : problem === 'market' ? state.facilities!.supply.supply[0]! : cardOf('FAC-018').id,
       cellId: problem === 'occupied' ? 'CP-3-2' : problem === 'unknown-cell' ? 'CP-9-9' : 'CP-2-1' };
-    code(() => send(f, state, { type: 'build-logistics-extension', placement }), problem === 'unpictured' ? 'UNCONFIRMED_COLOR_VARIANT' : problem === 'market' ? 'EXTENSION_SOURCE' : 'EXTENSION_CELL'); expect(state).toEqual(before);
+    code(() => send(f, state, { type: 'build-logistics-extension', placement }), problem === 'already-owned' || problem === 'market' ? 'EXTENSION_SOURCE' : 'EXTENSION_CELL'); expect(state).toEqual(before);
   });
   it('does not permit ordinary construction from the extension reserve', () => {
     const f = fixture(); code(() => applyConstructionCommand(f.state, f.definition, { authenticatedPlayerId: 'p1' }, { ...env(f.state), type: 'construct-facility', cardId: cardOf('FAC-018').id, cellId: 'CP-1-1', paymentMode: 'vouchers' }), 'CARD_SOURCE');
@@ -402,4 +402,34 @@ it('rejects a persisted ready warehouse child whose exploration is actually unaf
   state = send(f, state, { type: 'construct-entry-facility', cardId: cardOf('FAC-001').id, cellId: 'CP-2-1', paymentMode: 'vouchers', entryChoice: deferred });
   state = send(f, state, { type: 'resolve-facility-entry', entryChoice: { kind: 'warehouse-explore' } });
   const raw = gameStateSchema.parse(state); raw.players.p1!.balances['columbia-voucher'] = 0; expect(validateGameState(raw, f.definition).success).toBe(false);
+});
+
+
+describe('confirmed colours through resumable facility entries', () => {
+  it.each(['red', 'blue', 'yellow'] as const)('offers and builds the %s extension, then restores and advances the round', color => {
+    const f = fixture('FAC-004'), state = build(f), extension = FOUNDERS_FACILITY_STOCK.cards.find(card => card.group === 'extension-hub' && card.color === color)!;
+    const options = getNestedFacilityEntryOptions(state, f.definition, 'p1');
+    expect('extensionCardIds' in options && options.extensionCardIds).toEqual(state.facilities!.supply.extensionReserve);
+    const next = send(f, saved(state, f.definition), { type: 'build-logistics-extension', placement: { cardId: extension.id, cellId: 'CP-2-1' } });
+    expect(next.players.p1!.score).toBe(1); expect(next.players.p1!.balances).toEqual(state.players.p1!.balances);
+    expect(next.facilities!.supply.drawPile).toEqual(state.facilities!.supply.drawPile); expect(next.facilities!.supply.supply).toEqual(state.facilities!.supply.supply);
+    expect(saved(next, f.definition)).toEqual(next); expect(finishTurns(next, f.definition).roundFlow!.roundNumber).toBe(2);
+    code(() => send(f, next, { type: 'build-logistics-extension', placement: { cardId: extension.id, cellId: 'CP-1-2' } }), 'ENTRY_STAGE');
+  });
+  it.each([['FAC-010', 'blue', 'iron', 4], ['FAC-011', 'yellow', 'originium', 6], ['FAC-012', 'red', 'orirock', 7]] as const)('copies the %s/%s entry after save and restore', (id, color, asset, gain) => {
+    const f = fixture('FAC-014'), raw = gameStateSchema.parse(f.state), target = addBuilt(raw, id, 'CP-2-1', 'p1', color), state = build(f, raw);
+    const next = send(f, saved(state, f.definition), { type: 'copy-facility-entry', targetCardId: target });
+    expect(next.players.p1!.balances[asset]).toBe(state.players.p1!.balances[asset] + gain); expect(next.facilities).toEqual(state.facilities);
+    expect(next.players.p1!.score).toBe(state.players.p1!.score); expect(next.construction!.constructionsCompleted).toBe(1); expect(saved(next, f.definition)).toEqual(next);
+  });
+  it('extra construction offers and builds the newly confirmed blue iron card', () => {
+    const f = fixture('FAC-016'), raw = gameStateSchema.parse(f.state), blue = FOUNDERS_FACILITY_STOCK.cards.find(card => card.facilityId === 'FAC-010' && card.color === 'blue')!.id;
+    const market = raw.facilities!.supply.supply, pile = raw.facilities!.supply.drawPile;
+    const at = pile.indexOf(blue); if (at >= 0) [market[1], pile[at]] = [blue, market[1]!];
+    const state = build(f, raw), options = getNestedFacilityEntryOptions(state, f.definition, 'p1');
+    expect('constructionOptions' in options && options.constructionOptions.choices).toContainEqual({ cardId: blue, paymentMode: 'vouchers' });
+    const next = send(f, saved(state, f.definition), { type: 'construct-entry-facility', cardId: blue, cellId: 'CP-2-1', paymentMode: 'vouchers' });
+    expect(next.players.p1!.balances.iron).toBe(34); expect(next.players.p1!.balances['columbia-voucher']).toBe(77);
+    expect(next.construction!.constructionsCompleted).toBe(1); expect(next.construction!.status).toBe('complete'); expect(saved(next, f.definition)).toEqual(next);
+  });
 });

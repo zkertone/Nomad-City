@@ -87,9 +87,9 @@ function assertBuilt(f: Fixture, before: GameState, next: GameState) {
 }
 
 describe('source scope, runtime choices and construction quotes', () => {
-  it('reports sixteen complete pictured types and 38 physical cards while keeping the original face hash pinned', () => {
+  it('reports sixteen complete types and 41 physical cards while keeping the original face hash pinned', () => {
     const support = getFacilityConstructionSupport(); expect(support.supportedFacilityIds).toEqual(Array.from({ length: 16 }, (_, i) => `FAC-${String(i + 1).padStart(3, '0')}`));
-    expect(support.supportedPhysicalCardIds).toHaveLength(38); expect(support.sourceHash).toBe(FOUNDERS_FACILITY_FACES_HASH); expect(support.allFacilitiesImplemented).toBe(false);
+    expect(support.supportedPhysicalCardIds).toHaveLength(41); expect(support.sourceHash).toBe(FOUNDERS_FACILITY_FACES_HASH); expect(support.allFacilitiesImplemented).toBe(true);
     expect(support.supportedPhysicalCardIds.filter(id => getFoundersPhysicalFacilityCard(id).facilityId === 'FAC-002')).toHaveLength(2);
     expect(support.supportedPhysicalCardIds.filter(id => getFoundersPhysicalFacilityCard(id).facilityId === 'FAC-003')).toHaveLength(3);
     expect(support.supportedPhysicalCardIds.filter(id => getFoundersPhysicalFacilityCard(id).facilityId === 'FAC-006')).toHaveLength(3);
@@ -232,11 +232,13 @@ describe('full construction atomicity, permissions, save formats and managed-rou
     if (format === '1.7.0') for (const role of state.roundFlow!.rolesByPlayer) delete role.used;
     const next = run(f, mercenary('remove'), state); expect(next.schemaVersion).toBe(format); expect(validateGameState(next, f.definition).success).toBe(true); expect(next).not.toHaveProperty('facilityEntry');
   });
-  it('does not call a missing entry handler or permit unpictured variants after capability expansion', () => {
+  it('preserves format guards and constructs the confirmed blue iron variant', () => {
     const f = fixture('FAC-004'); errorCode(() => run(f, removal([])), 'FACILITY_FORMAT');
     const g = fixture('FAC-010'), state = gameStateSchema.parse(g.state), supply = state.facilities!.supply, blue = FOUNDERS_FACILITY_STOCK.cards.find(card => card.facilityId === 'FAC-010' && card.color === 'blue')!.id;
     const at = supply.drawPile.indexOf(blue); const replaced = supply.supply[0]!; supply.supply[0] = blue; supply.drawPile[at] = replaced;
-    errorCode(() => applyConstructionCommand(state, g.definition, { authenticatedPlayerId: 'p1' }, { ...command(g, undefined, state), cardId: blue }), 'UNCONFIRMED_COLOR_VARIANT');
+    const next = applyConstructionCommand(state, g.definition, { authenticatedPlayerId: 'p1' }, { ...command(g, undefined, state), cardId: blue });
+    expect(next.players.p1!.balances.iron).toBe(state.players.p1!.balances.iron + 4);
+    expect(parseGameState(JSON.parse(JSON.stringify(next)), g.definition)).toEqual(next);
   });
   it.each([2, 3, 4])('keeps the new built facility valid through role use, both cycles, harvest and the next round for %i players', count => {
     const f = fixture('FAC-003', count), built = run(f, mercenary('remove'));

@@ -53,17 +53,18 @@ const simple = [
   ['FAC-013', 3, 3, 3, 0, 30, 3, {}],
 ] as const;
 
-describe('supported pictured facility variants and fail-closed boundaries', () => {
-  it('reports precisely sixteen types and thirty-eight matching physical copies', () => {
+describe('confirmed facility colour variants and construction boundaries', () => {
+  it('reports sixteen types and forty-one ordinary physical copies', () => {
     const support = getFacilityConstructionSupport();
     expect(support.supportedFacilityIds).toEqual(Array.from({ length: 16 }, (_, i) => `FAC-${String(i + 1).padStart(3, '0')}`));
-    expect(support.supportedPhysicalCardIds).toHaveLength(38); expect(support.allFacilitiesImplemented).toBe(false);
+    expect(support.supportedPhysicalCardIds).toHaveLength(41); expect(support.allFacilitiesImplemented).toBe(true);
     expect(FACILITY_CONSTRUCTION_SOURCE_HASH).toBe(FOUNDERS_FACILITY_FACES_HASH);
     expect(Object.isFrozen(support.supportedPhysicalCardIds)).toBe(true);
   });
-  it.each([['FAC-010', 'blue'], ['FAC-011', 'yellow'], ['FAC-012', 'red']] as const)('rejects unpictured %s/%s without altering anything', (id, color) => {
+  it.each([['FAC-010', 'blue'], ['FAC-011', 'yellow'], ['FAC-012', 'red']] as const)('constructs confirmed %s/%s without mutating the input', (id, color) => {
     const f = fixture(id, color), before = JSON.stringify(f.state);
-    errorCode(() => run(f), 'UNCONFIRMED_COLOR_VARIANT'); expect(JSON.stringify(f.state)).toBe(before);
+    const next = run(f); expect(next.state.supply.playerHoldings[0]!.cardIds).toContain(f.cardId);
+    expect(validateFacilityConstructionPosition(next.state, f.definition).success).toBe(true); expect(JSON.stringify(f.state)).toBe(before);
   });
   it.each(['FAC-001', 'FAC-002', 'FAC-003', 'FAC-004', 'FAC-006', 'FAC-007', 'FAC-014', 'FAC-015', 'FAC-016'])('rejects %s with an unavailable handler or missing mandatory entry choice', id => {
     const f = fixture(id), before = JSON.stringify(f.state);
@@ -162,10 +163,10 @@ describe('atomic failures, unique restrictions and outer-caller responsibilities
     const f = fixture(); existing(f, 'FAC-013', 'rainbow', 'CP-1-2'); errorCode(() => run(f), 'UNIQUE_FACILITY');
     const g = fixture(); existing(g, 'FAC-013', 'rainbow', 'CP-1-2', 1); expect(run(g).state.position.players.p1!.score).toBe(3);
   });
-  it('rejects an already-invalid duplicate unique or unpictured built variant snapshot', () => {
+  it('rejects duplicate unique snapshots while accepting confirmed colour variants', () => {
     const f = fixture(); existing(f, 'FAC-013', 'rainbow', 'CP-1-2'); existing(f, 'FAC-013', 'rainbow', 'CP-1-3');
     expect(validateFacilityConstructionPosition(f.state, f.definition).success).toBe(false);
-    const g = fixture(); existing(g, 'FAC-010', 'blue', 'CP-1-2'); errorCode(() => run(g), 'POSITION_INVALID');
+    const g = fixture(); existing(g, 'FAC-010', 'blue', 'CP-1-2'); expect(validateFacilityConstructionPosition(g.state, g.definition).success).toBe(true); expect(run(g).receipt.facilityId).toBe('FAC-013');
   });
   it.each(['game', 'supply-version', 'panel-version', 'actor', 'hidden-card', 'occupied', 'unknown-cell', 'fee-override', 'actor-override'] as const)('rejects %s without mutations', reason => {
     const f = fixture(); let payload: unknown = f.command;
@@ -214,5 +215,39 @@ describe('atomic failures, unique restrictions and outer-caller responsibilities
     expect(result.state.panels.find(row => row.playerId === 'p1')!.placements).toContainEqual({ cardId: f.cardId, cellId: 'CP-1-1' });
     expect(result.state.supply.playerHoldings.find(row => row.playerId === 'p1')!.cardIds).toContain(f.cardId);
     expect(result.state.position.players.p1!.score).toBe(3); expect(result.state.position.players.p3!.score).toBe(0);
+  });
+});
+
+
+describe('same-name values and actual physical colours', () => {
+  const variants = [
+    ['FAC-010', 'blue', 2, 2, 1, 15, 1, 'iron', 4],
+    ['FAC-011', 'yellow', 1, 1, 1, 10, 0, 'originium', 6],
+    ['FAC-012', 'red', 1, 1, 1, 10, 0, 'orirock', 7],
+  ] as const;
+  for (const mode of ['resources', 'vouchers'] as const) it.each(variants)(`${mode}: %s/%s uses the confirmed price, points and gain`, (id, color, rock, ori, iron, cash, points, asset, gain) => {
+    const f = fixture(id, color); f.command.paymentMode = mode;
+    const next = run(f), balances = next.state.position.players.p1!.balances;
+    expect(balances.orirock).toBe(30 - (mode === 'resources' ? rock : 0) + (asset === 'orirock' ? gain : 0));
+    expect(balances.originium).toBe(30 - (mode === 'resources' ? ori : 0) + (asset === 'originium' ? gain : 0));
+    expect(balances.iron).toBe(30 - (mode === 'resources' ? iron : 0) + (asset === 'iron' ? gain : 0));
+    expect(balances['columbia-voucher']).toBe(30 - (mode === 'vouchers' ? cash : 0));
+    expect(next.receipt.points).toBe(points); expect(next.receipt.entryGains).toEqual([{ asset, amount: gain }]);
+    expect(getFacilityConstructionSpec(f.cardId).card.color).toBe(color);
+  });
+  it('counts different colours of the same name separately for the industrial discount', () => {
+    const f = fixture('FAC-009'); existing(f, 'FAC-010', 'red', 'CP-1-2'); existing(f, 'FAC-010', 'blue', 'CP-1-3');
+    expect(getFacilityConstructionQuote(f.state, f.definition, f.context, f.command).orirockDiscount).toBe(2);
+  });
+  it('does not count two same-colour different-name cards twice', () => {
+    const f = fixture('FAC-009'); existing(f, 'FAC-010', 'red', 'CP-1-2'); existing(f, 'FAC-012', 'red', 'CP-1-3');
+    expect(getFacilityConstructionQuote(f.state, f.definition, f.context, f.command).orirockDiscount).toBe(1);
+  });
+  it('reports all 48 distinct physical cards via ordinary, special and setup groups', () => {
+    const support = getFacilityConstructionSupport();
+    expect(support.unconfirmedPhysicalCardIds).toEqual([]); expect(support.supportedExtensionPhysicalCardIds).toHaveLength(3);
+    const core = FOUNDERS_FACILITY_STOCK.cards.filter(card => card.group === 'core-command-tower').map(card => card.id);
+    expect(new Set([...support.supportedPhysicalCardIds, ...support.supportedExtensionPhysicalCardIds, ...core]).size).toBe(48);
+    expect(support.colorVariantRule).toMatchObject({ source: 'project-owner-confirmation', confirmedOn: '2026-10-24' });
   });
 });

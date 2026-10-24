@@ -396,3 +396,32 @@
 - `scripts/check-facility-entries.mjs`（更新）
 - `scripts/check-remaining-facilities.mjs`（新增）
 - `scripts/check-warehouse.mjs`（更新）
+
+
+## 2026-10-24 · 同名设施跨颜色确认批次
+
+普通建设16类41张、延伸3张、设置核心4张，共18类48张；保留实体颜色。规则依据：[Facility-Variants-2026-10-24.md](Facility-Variants-2026-10-24.md)，实际验证：[测试记录](testing/facility-variants-validation-2026-10-24.md)。原照片/数据摘要、状态格式、依赖和Accepted ADR保持不变。
+
+共19份变更，新增2份，其余更新，无删除。
+
+- `README.md`
+- `docs/Delivery-Manifest.md`
+- `docs/DevLog.md`
+- `docs/Facility-Faces-Review-2026-10-22.md`
+- `docs/Facility-Variants-2026-10-24.md`
+- `docs/Remaining-Facilities-2026-10-23.md`
+- `docs/testing/facility-variants-validation-2026-10-24.md`
+- `packages/game-core/src/facilities/construction-spec.ts`
+- `packages/game-core/src/facilities/construction.test.ts`
+- `packages/game-core/src/facilities/construction.ts`
+- `packages/game-core/src/game/construction.test.ts`
+- `packages/game-core/src/game/facility-entries.test.ts`
+- `packages/game-core/src/game/facility-entries.ts`
+- `packages/game-core/src/game/facility-entry-rules.ts`
+- `packages/game-core/src/game/remaining-facilities.test.ts`
+- `scripts/check-facilities.mjs`
+- `scripts/check-facility-entries.mjs`
+- `scripts/check-remaining-facilities.mjs`
+- `scripts/check-warehouse.mjs`
+
+本批最终验证：1810/1810（23文件）、strict/build及19项编译检查全部通过，其中33段新旧真实设施流程覆盖2/3/4人。

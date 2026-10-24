@@ -15,9 +15,9 @@
 | FAC-016 简陋工程营 | 虹 / 2 | 源岩2＋源石1，或8金券 | -1 | 唯一；再进行一次正常付费建设，完整结算子设施 |
 | FAC-018 延伸枢纽 | 黄 / 1 | 卡面未印建设费用；仅从物流效果指定的预留区取用 | -1 | 不进入普通建设供应链，不补普通供应，不增加主要行动 |
 
-普通建设当前支持16类、38张已拍颜色实体，另有黄延伸1张和设置阶段已实现的虹色核心4张，共43/48张已确认颜色可执行。18种基础设施的已拍卡面均已有对应设置/普通建设/特殊建设处理，但仍有5张其他颜色未经卡面核对：蓝色异铁冶炼厂、黄色源石精炼厂、红色固源岩提纯厂、红色和蓝色延伸枢纽。不能把同名卡的费用、得分或效果推给它们。
+2026-10-24负责人确认同名卡仅颜色不同后，普通建设支持16类41张，另有3色延伸共3张和设置核心4张，共18类48/48张。蓝铁厂、黄源石厂、红源岩厂及红/蓝延伸的限制已解除，费用、得分、效果复用同一设施类型，实体颜色保持独立。原43/48为本批最初交付的历史范围。
 
-`getFacilityConstructionSupport()` 返回16类普通设施、38张普通实体、1张特殊延伸，以及5张unconfirmedPhysicalCardIds。picturedOrdinaryTypesImplemented=true仅描述已拍普通类型；allFacilitiesImplemented仍false。静态目录executionReady和完整游戏readyForDeckSetup也仍false。
+`getFacilityConstructionSupport()` 当前返回16类普通设施、41张普通实体、3张特殊延伸，unconfirmedPhysicalCardIds为空，allFacilitiesImplemented=true指全部基础设施类型/颜色处理。colorVariantRule保存负责人确认来源和日期；picturedOrdinaryTypesImplemented保留兼容。原照片转录executionReady和完整游戏readyForDeckSetup不改，不代表完整游戏已完成。
 
 ## 结算时序与存档
 
@@ -63,4 +63,6 @@
 
 已设计/已实现：六类上述处理、局部父子继续、保存恢复、版本/身份/额度边界及延迟标记传递。已测试：以 [真实验证记录](testing/remaining-facilities-validation-2026-10-23.md) 的最终命令结果为准。
 
-待完成：5张未拍颜色卡面、普通设施牌堆耗尽规则、城市样式/特殊行动、最终分数提交、完整公开整局视图、认证/Socket.IO/数据库CAS及UI/3D。没有混入扩展、部署或对外发布。Accepted ADR、地图表示、GameDefinition、项目/依赖版本和依赖锁未改。
+待完成：普通设施牌堆耗尽规则、城市样式/特殊行动、最终分数提交、完整公开整局视图、认证/Socket.IO/数据库CAS及UI/3D。没有混入扩展、部署或对外发布。Accepted ADR、地图表示、GameDefinition、项目/依赖版本和依赖锁未改。
+
+2026-10-24更新依据与测试见 [同名跨颜色确认](Facility-Variants-2026-10-24.md)。原照片与哈希未改。

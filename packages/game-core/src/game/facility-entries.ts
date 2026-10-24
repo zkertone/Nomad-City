@@ -108,7 +108,7 @@ export function getNestedFacilityEntryOptions(input: GameState, definition: Game
   const entry = facilityEntrySpec(frame.sourceCardId).entry.kind;
   return deepFreeze({ kind: entry, sourceCardId: frame.sourceCardId,
     copyCardIds: entry === 'copy-entry' ? copyEntryTargets(p.state, actorId, frame.sourceCardId) : [],
-    extensionCardIds: entry === 'logistics' ? p.state.facilities!.supply.extensionReserve.filter(id => getFoundersPhysicalFacilityCard(id).color === getFoundersFacilityFace('FAC-018').observedColor) : [],
+    extensionCardIds: entry === 'logistics' ? p.state.facilities!.supply.extensionReserve : [],
     constructionOptions: entry === 'extra-construction' ? extraConstructionOptions(p.state, definition, actorId) : { choices: [], unresolvedCardIds: [] } });
 }
 export function getPendingFacilityEventRequirements(input: GameState, definition: GameDefinition, actorId: string, choiceId: string) {
@@ -190,7 +190,7 @@ export function applyNestedFacilityEntryCommand(input: GameState, definition: Ga
         const { cardId, cellId } = command.placement, supply = next.facilities!.supply, panel = next.facilities!.panels.find(row => row.playerId === actor)!;
         if (!supply.extensionReserve.includes(cardId)) return reject('EXTENSION_SOURCE', 'Choose one remaining extension reserve card');
         const card = getFoundersPhysicalFacilityCard(cardId), face = getFoundersFacilityFace(card.facilityId);
-        if (card.group !== 'extension-hub' || card.color !== face.observedColor) return reject('UNCONFIRMED_COLOR_VARIANT', 'Only the pictured extension face is executable');
+        if (card.group !== 'extension-hub') return reject('EXTENSION_SOURCE', 'Only extension cards belong to this effect');
         if (!getEmptyFacilityPanelCells(panel, supply).some(cell => cell.id === cellId)) return reject('EXTENSION_CELL', 'Choose an empty cell on your panel');
         if (supply.revision === Number.MAX_SAFE_INTEGER || panel.revision === Number.MAX_SAFE_INTEGER) return reject('VERSION_OVERFLOW', 'Facility version exhausted');
         if (!Number.isSafeInteger(next.players[actor]!.score + face.printedScore)) return reject('SCORE_OVERFLOW', 'Extension score exceeds safe integer range');

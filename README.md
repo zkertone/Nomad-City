@@ -1,6 +1,6 @@
 # Nomad City Online · v0.2.0
 
-《游城拓荒：铸基者》私人非商业线上桌游项目。当前为独立的TypeScript规则核心：已实现地图、全部基础事件选项、入场、主要行动、采集、受管回合、5张初始角色的10种模式，以及全部已拍基础设施卡面的设置/建设/入场处理。普通建设支持16类/38张，另支持黄色延伸和4张核心；5张其他颜色尚待卡面核对。区块/计分可只读预览，完整桌游、UI及联机仍待完成。
+《游城拓荒：铸基者》私人非商业线上桌游项目。当前为独立的TypeScript规则核心：已实现地图、全部基础事件选项、入场、主要行动、采集、受管回合、5张初始角色的10种模式，以及全部18类基础设施的设置/建设/入场处理。按负责人确认的同名卡仅颜色不同，普通建设支持16类/41张，另支持3色延伸枢纽和4张核心，共48/48张。区块/计分可只读预览，完整桌游、UI及联机仍待完成。
 
 最新一批见 [剩余基础设施](docs/Remaining-Facilities-2026-10-23.md)：物流/延伸、免费完整移城及航道标记、复制入场、额外付费建设、理事处本回合最后生效与保存恢复。显式升级GameState1.12.0后使用；已有旧格式路径继续兼容。
 
@@ -288,7 +288,7 @@ getFacilityCopyCountRecords() 默认仅返回基础版 18 种设施、48 个实�
 
 ## 基础设施卡面转录 · 2026-10-22
 
-`FOUNDERS_FACILITY_FACES` / `getFoundersFacilityFace(id)` 提供图片中可见卡面的分数、费用、入场/唯一标识、文字及图标序列；与实体数量目录分离。目录状态为 `mixed-source-transcription`，18 份风味和两处补充说明单独标记用户来源；图标另附规则书术语与页码。适用范围 `pictured-face-only`，不将一种颜色照片推为所有颜色版本的确认规则。
+`FOUNDERS_FACILITY_FACES` / `getFoundersFacilityFace(id)` 提供图片中可见卡面的分数、费用、入场/唯一标识、文字及图标序列；与实体数量目录分离。目录状态为 `mixed-source-transcription`，18 份风味和两处补充说明单独标记用户来源；图标另附规则书术语与页码。照片转录的适用范围仍为 `pictured-face-only`；运行规则另记录2026-10-24负责人确认：同名卡仅颜色不同，费用、分数和效果按设施类型共用，实体颜色独立保留。
 
 `getFacilityFaceTranscriptionProgress()` 明确报告 18 个分数、16 套资源组合/金券替代费用、2 张未印普通费用；效果区及风味全文均为 18/18，缺字已由用户原文补齐；分数/费用仍保留图片转录状态。未印费用不等于免费建设。模块只提供静态转录和校验，`executionReady=false`；没有接入建设、计分或入场效果执行。
 
@@ -390,3 +390,10 @@ getFacilityCopyCountRecords() 默认仅返回基础版 18 种设施、48 个实�
 `enableWarehouseEntries` 显式1.10.0→**1.11.0**；branch-choice、event-choice、final-influence都可保存恢复，子进度只在父construction内，不增加主要行动、重复收费或抽牌。入场未完成时角色、轮次结束、旧行动窗口、采集及收尾均不能越过。旧格式继续读取，不补造仓库历史。
 
 运行 `npm run verify`、`npm run check:warehouse`；最终实际 **1705/1705（22文件）**、strict/构建及18项编译检查全部通过，新增76项测试。真实2/3/4人两分支均从原收入走到第2回合。[规则/API及1.11.0](docs/Warehouse-Entries-2026-10-23.md)，[真实验证与首轮断言修正](docs/testing/warehouse-validation-2026-10-23.md)。后续继续高性能动力系统免费移城与航道放置，其他设施/样式/最终计分仍待完成。
+
+
+### 2026-10-24 · 同名设施跨颜色规则确认
+
+负责人确认“同名卡数据是一样的，只有颜色有区别”。已统一解除蓝色异铁冶炼厂、黄色源石精炼厂、红色固源岩提纯厂及红/蓝延伸枢纽的颜色限制，覆盖普通16类41张、延伸3张和设置核心4张，共18类48张。`getFacilityConstructionSupport()` 的 `unconfirmedPhysicalCardIds=[]`、`allFacilitiesImplemented=true` 描述这些基础设施类型和颜色处理；普通牌堆耗尽规则、城市样式、最终计分提交及联机仍待完成，完整游戏 `readyForDeckSetup` 不变。
+
+颜色仍取实体牌的 `color`，参与工业区折扣、能源复制条件与后续颜色规则；`observedColor` 只表示原照片颜色。原照片JSON、摘要、实体数量及GameState 1.12.0格式不改，无需迁移既有存档。规则依据与接口：[同名跨颜色确认](docs/Facility-Variants-2026-10-24.md)，实际验证：[验证记录](docs/testing/facility-variants-validation-2026-10-24.md)。此前各阶段的38/43张及未确认说明属于历史，当前以上述范围为准。

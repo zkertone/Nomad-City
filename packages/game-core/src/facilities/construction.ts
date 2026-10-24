@@ -38,7 +38,6 @@ export function validateFacilityConstructionPosition(input: unknown, inputDefini
     const definitions = holding.cardIds.map(getFoundersPhysicalFacilityCard);
     for (const card of definitions) {
       const face = getFoundersFacilityFace(card.facilityId);
-      if (face.observedColor !== card.color) issues.push(`Unconfirmed built color variant: ${card.id}`);
       if (face.effect.uniqueMarker && definitions.filter(other => other.facilityId === card.facilityId).length > 1) issues.push(`Duplicate unique facility: ${card.facilityId}`);
     }
   }
@@ -113,7 +112,7 @@ export interface FacilityConstructionReceipt {
 export interface FacilityConstructionResult { readonly state: FacilityConstructionPosition; readonly receipt: FacilityConstructionReceipt }
 /**
  * Atomic INTERNAL settlement. The future action owner must grant/consume the action once and CAS its outer GameState version.
- * Unsupported effects/variants fail before publishing any costs, placement, score or refill changes.
+ * Unsupported effects fail before publishing any costs, placement, score or refill changes.
  */
 export interface FacilityConstructionStartResult extends FacilityConstructionResult { readonly pendingEntry: 'warehouse-exploration' | 'warehouse-choice' | 'facility-entry' | null }
 export function beginFacilityConstruction(input: unknown, definition: GameDefinition, context: FacilityConstructionContext, payload: unknown): FacilityConstructionStartResult {

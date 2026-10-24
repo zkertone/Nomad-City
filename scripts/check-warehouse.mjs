@@ -5,7 +5,7 @@ assert.equal(core.enableWarehouseEntries, game.enableWarehouseEntries);
 assert.equal(core.applyWarehouseEntryCommand, game.applyWarehouseEntryCommand);
 assert.equal(core.getPendingWarehouseEventRequirements, game.getPendingWarehouseEventRequirements);
 assert.equal(core.getWarehouseEntryFinalSlotIds, game.getWarehouseEntryFinalSlotIds);
-assert.equal(core.getFacilityConstructionSupport().supportedPhysicalCardIds.length, 38);
+assert.equal(core.getFacilityConstructionSupport().supportedPhysicalCardIds.length, 41);
 const seats = [{ id: 'p1', color: 'red' }, { id: 'p2', color: 'blue' }, { id: 'p3', color: 'green' }, { id: 'p4', color: 'yellow' }];
 const ordinary = core.FOUNDERS_FACILITY_STOCK.cards.filter(card => card.group === 'ordinary').map(card => card.id);
 const env = state => ({ gameId: state.gameId, expectedVersion: state.stateVersion });

@@ -9,7 +9,7 @@ import type { GameDefinition, GameState } from './types.js';
 
 export function facilityEntrySpec(cardId: string) {
   const card = getFoundersPhysicalFacilityCard(cardId), face = getFoundersFacilityFace(card.facilityId);
-  if (card.group === 'extension-hub' && card.color === face.observedColor) return { card, face, entry: { kind: 'none' as const } };
+  if (card.group === 'extension-hub') return { card, face, entry: { kind: 'none' as const } };
   return getFacilityConstructionSpec(cardId);
 }
 export const boardFor = (definition: GameDefinition) => loadFoundersBoard(getFoundersMapSide(definition.players.length));

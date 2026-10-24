@@ -152,15 +152,15 @@ describe('single trusted construction window and authoritative snapshot', () => 
 });
 
 describe('command boundary, failure atomicity and window guards', () => {
-  it.each(['wrong-game', 'stale', 'other-player', 'unknown-player', 'card-source', 'occupied', 'unconfirmed-color', 'unsupported', 'cannot-pay', 'choice', 'state-overflow', 'panel-overflow', 'supply-overflow', 'gain-overflow', 'score-overflow'] as const)('rejects %s without consuming a grant or changing any ledger', problem => {
-    const f = problem === 'unconfirmed-color' ? fixture('FAC-010', 3, 'p1', 'blue') : problem === 'unsupported' ? fixture('FAC-004') : problem === 'gain-overflow' ? fixture('FAC-011') : fixture();
+  it.each(['wrong-game', 'stale', 'other-player', 'unknown-player', 'card-source', 'occupied', 'variant-cannot-pay', 'unsupported', 'cannot-pay', 'choice', 'state-overflow', 'panel-overflow', 'supply-overflow', 'gain-overflow', 'score-overflow'] as const)('rejects %s without consuming a grant or changing any ledger', problem => {
+    const f = problem === 'variant-cannot-pay' ? fixture('FAC-010', 3, 'p1', 'blue') : problem === 'unsupported' ? fixture('FAC-004') : problem === 'gain-overflow' ? fixture('FAC-011') : fixture();
     const state = gameStateSchema.parse(f.state), payload: Record<string, unknown> = { ...f.command }; let actor = 'p1', expected = '';
     if (problem === 'wrong-game') { payload.gameId = 'other'; expected = 'GAME_REFERENCE'; }
     if (problem === 'stale') { payload.expectedVersion = state.stateVersion - 1; expected = 'STALE_VERSION'; }
     if (problem === 'other-player' || problem === 'unknown-player') { actor = problem === 'other-player' ? 'p2' : 'nobody'; expected = 'WRONG_ACTOR'; }
     if (problem === 'card-source') { payload.cardId = state.facilities!.supply.drawPile[0]; expected = 'PLACEMENT_INVALID'; }
     if (problem === 'occupied') { payload.cellId = 'CP-3-2'; expected = 'PLACEMENT_INVALID'; }
-    if (problem === 'unconfirmed-color') expected = 'UNCONFIRMED_COLOR_VARIANT';
+    if (problem === 'variant-cannot-pay') { state.players.p1!.balances['columbia-voucher'] = 0; expected = 'CANNOT_PAY'; }
     if (problem === 'unsupported') expected = 'FACILITY_FORMAT';
     if (problem === 'cannot-pay') { state.players.p1!.balances['columbia-voucher'] = 0; expected = 'CANNOT_PAY'; }
     if (problem === 'choice') { payload.entryChoice = { kind: 'resource-allocation', gains: { orirock: 5, originium: 0, iron: 0 } }; expected = 'ENTRY_CHOICE'; }

@@ -100,7 +100,7 @@ console.log('PASS: compiled player panel, 2/3/4-player core positions, empty-cel
 
 assert.equal(core.settleFacilityConstruction, facilities.settleFacilityConstruction);
 assert.equal(facilities.getFacilityConstructionSupport().supportedFacilityIds.length, 16);
-assert.equal(facilities.getFacilityConstructionSupport().supportedPhysicalCardIds.length, 38);
+assert.equal(facilities.getFacilityConstructionSupport().supportedPhysicalCardIds.length, 41);
 const constructionGame = core.createPreEntryGame('compiled-construction', [{ id: 'p1', color: 'red' }, { id: 'p2', color: 'blue' }]);
 const adminCard = facilities.FOUNDERS_FACILITY_STOCK.cards.find(card => card.facilityId === 'FAC-013').id;
 const constructionOrder = [adminCard, ...order.filter(id => id !== adminCard)];
@@ -120,6 +120,7 @@ assert.equal(built.state.panels[0].placements.length, 2); assert.equal(built.sta
 assert.equal(facilities.validateFacilityConstructionPosition(built.state, constructionGame.definition).success, true);
 assert.equal(JSON.stringify(constructionInput), constructionBefore);
 assert.throws(() => facilities.settleFacilityConstruction(built.state, constructionGame.definition, constructionContext, constructionCommand), facilities.FacilityConstructionError);
-const unpicturedIron = facilities.FOUNDERS_FACILITY_STOCK.cards.find(card => card.facilityId === 'FAC-010' && card.color === 'blue').id;
-assert.throws(() => facilities.getFacilityConstructionSpec(unpicturedIron), facilities.FacilityConstructionError);
-console.log('PASS: compiled construction quote, exact payment, physical transfer, placement, score, refill, atomic immutability, stale replay and unpictured-variant rejection');
+const blueIron = facilities.FOUNDERS_FACILITY_STOCK.cards.find(card => card.facilityId === 'FAC-010' && card.color === 'blue').id;
+assert.equal(facilities.getFacilityConstructionSpec(blueIron).entry.amount, 4);
+assert.equal(facilities.getFacilityConstructionSpec(blueIron).card.color, 'blue');
+console.log('PASS: compiled construction quote, exact payment, physical transfer, placement, score, refill, atomic immutability, stale replay and confirmed cross-colour values');

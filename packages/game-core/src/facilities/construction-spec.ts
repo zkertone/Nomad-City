@@ -36,7 +36,14 @@ const supported = deepFreeze([
   { facilityId: 'FAC-012', entry: { kind: 'gain', asset: 'orirock', amount: 7 } },
   { facilityId: 'FAC-013', entry: { kind: 'none' } },
 ] as const);
-/** Card type + pictured color only. No fee/effect is inferred for unpictured color variants. */
+/** Owner confirmation on 2026-10-24: same-name base cards differ only in colour.
+ * Keep the photographed face/hash unchanged; execute its values by facility identity.
+ */
+export const FACILITY_COLOR_VARIANT_RULE = deepFreeze({
+  source: 'project-owner-confirmation', confirmedOn: '2026-10-24',
+  statement: '同名卡数据是一样的，只有颜色有区别',
+  scope: 'founders-same-facility-id',
+});
 export function getFacilityConstructionSpec(cardId: string) {
   if (FOUNDERS_FACILITY_FACES.contentHash !== FACILITY_CONSTRUCTION_SOURCE_HASH) return rejectFacilityConstruction('CARD_SOURCE_VERSION', 'Executable facility interpretation needs review for this text version');
   let card;
@@ -44,7 +51,6 @@ export function getFacilityConstructionSpec(cardId: string) {
   catch { return rejectFacilityConstruction('CARD_REFERENCE', 'Unknown physical facility card'); }
   if (card.group !== 'ordinary') return rejectFacilityConstruction('CARD_SOURCE', 'Core/extension cards cannot use ordinary construction');
   const face = getFoundersFacilityFace(card.facilityId);
-  if (card.color !== face.observedColor) return rejectFacilityConstruction('UNCONFIRMED_COLOR_VARIANT', 'No matching pictured color cost/effect is confirmed');
   const handler = supported.find(row => row.facilityId === card.facilityId);
   if (!handler) return rejectFacilityConstruction('UNSUPPORTED_ENTRY_EFFECT', 'This facility needs an entry handler before construction can run');
   if (face.constructionCost.kind !== 'printed-alternatives') return rejectFacilityConstruction('COST_NOT_CONFIRMED', 'No ordinary printed construction cost');
@@ -54,11 +60,10 @@ export function getFacilityConstructionSupport() {
   return deepFreeze({
     supportedFacilityIds: supported.map(row => row.facilityId).sort(),
     supportedPhysicalCardIds: FOUNDERS_FACILITY_STOCK.cards.filter(card => card.group === 'ordinary'
-      && supported.some(row => row.facilityId === card.facilityId)
-      && getFoundersFacilityFace(card.facilityId).observedColor === card.color).map(card => card.id),
-    supportedExtensionPhysicalCardIds: FOUNDERS_FACILITY_STOCK.cards.filter(card => card.group === 'extension-hub' && card.color === getFoundersFacilityFace(card.facilityId).observedColor).map(card => card.id),
-    unconfirmedPhysicalCardIds: FOUNDERS_FACILITY_STOCK.cards.filter(card => card.color !== getFoundersFacilityFace(card.facilityId).observedColor).map(card => card.id),
+      && supported.some(row => row.facilityId === card.facilityId)).map(card => card.id),
+    supportedExtensionPhysicalCardIds: FOUNDERS_FACILITY_STOCK.cards.filter(card => card.group === 'extension-hub').map(card => card.id),
+    unconfirmedPhysicalCardIds: [] as string[], colorVariantRule: FACILITY_COLOR_VARIANT_RULE,
     picturedOrdinaryTypesImplemented: true, nestedEntriesMinimumSnapshotVersion: '1.12.0',
-    warehouseMinimumSnapshotVersion: '1.11.0', sourceHash: FACILITY_CONSTRUCTION_SOURCE_HASH, allFacilitiesImplemented: false as const,
+    warehouseMinimumSnapshotVersion: '1.11.0', sourceHash: FACILITY_CONSTRUCTION_SOURCE_HASH, allFacilitiesImplemented: true as const,
   });
 }
