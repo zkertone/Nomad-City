@@ -1,5 +1,8 @@
 import { CITY_PATTERNS_HASH, getCityPattern, getEligibleCityPatterns } from '../patterns/catalog.js';
-import { IMPLEMENTED_PATTERN_SPECIALS } from './city-pattern-rules.js';
+import { getCityPatternActionSupport } from './city-pattern-rules.js';
+import { cityMoveOptionsFor } from './city-move.js';
+import { patternRouteSlots, patternConstructionOptions } from './city-pattern-continuations.js';
+import { getCityPatternBoard, findCityPatternMatches } from '../patterns/matching.js';
 import type { ValidationIssue } from '../board/types.js';
 import type { GameDefinition, GameState } from './types.js';
 
@@ -32,7 +35,7 @@ export function cityPatternIssues(state: GameState, definition: GameDefinition):
   for (const used of facts.usedSpecialActions) {
     const key = `${used.playerId}:${used.patternId}`;
     if (keys.has(key)) report('Each player can use a particular special at most once per round'); keys.add(key);
-    if (!facts.publicPatternIds.includes(used.patternId) || !(IMPLEMENTED_PATTERN_SPECIALS as readonly string[]).includes(used.patternId)) report('Special use needs an implemented public pattern');
+    if (!facts.publicPatternIds.includes(used.patternId) || !getCityPatternActionSupport(state.schemaVersion).specialActionPatternIds.includes(used.patternId)) report('Special use needs an implemented public pattern');
     if (!['player-actions', 'harvest', 'cleanup'].includes(flow.stage) || used.turnIndex > flow.turnIndex || state.playerOrder?.[used.turnIndex % players.length] !== used.playerId) report('Special must belong to a reached turn of its actor');
     let usedPattern; try { usedPattern = getCityPattern(used.patternId); } catch { report('Unknown used special'); continue; }
     const consumed = facts.useTracks.find(track => track.playerId === used.playerId && track.patternId === used.patternId);
@@ -40,5 +43,31 @@ export function cityPatternIssues(state: GameState, definition: GameDefinition):
     if (usedPattern.forbidsRoleInTurn && flow.rolesByPlayer.some(role => role.playerId === used.playerId && role.used?.turnIndex === used.turnIndex)) report('This special forbids using a role in its action turn');
   }
   if (flow.completedMajorAction === 'special' && !facts.usedSpecialActions.some(used => used.turnIndex === flow.turnIndex && used.playerId === state.playerOrder?.[flow.turnIndex % players.length])) report('Special completion needs its actual use in this exact turn');
+  const pending = state.cityPatternContinuation;
+  if (pending) {
+    const actorId = state.playerOrder?.[flow.turnIndex % players.length];
+    if (flow.stage !== 'player-actions' || !actorId || !players.includes(actorId) || !state.players[actorId] || !state.facilities?.panels.some(p => p.playerId === actorId) || !facts.publicPatternIds.includes(pending.patternId)) { report('Continuation needs the scheduled actor and public pattern'); return issues; }
+    if (pending.kind === 'declaration-build') {
+      const exhausted = facts.exhaustedFacilityIdsByPlayer[actorId] ?? [], panel = state.facilities!.panels.find(p => p.playerId === actorId)!;
+      let matches: ReturnType<typeof findCityPatternMatches> = [];
+      try { matches = findCityPatternMatches(getCityPatternBoard(panel, state.facilities!.supply), 'PAT-013'); } catch { report('Declaration needs a valid physical facility panel'); }
+      if (!state.patternMarkers?.some(m => m.ownerPlayerId === actorId && m.patternId === 'PAT-013') || !matches.some(m => m.facilityCardIds.every(id => exhausted.includes(id)))) report('Declaration construction needs a real announced pattern and exhausted facilities');
+    } else if (!flow.majorActionOpened || flow.completedMajorAction !== null || !facts.usedSpecialActions.some(u => u.playerId === actorId && u.patternId === pending.patternId && u.turnIndex === flow.turnIndex) || !state.patternMarkers?.some(m => m.ownerPlayerId === actorId && m.patternId === pending.patternId)) report('Special continuation needs its actual current-turn activation and major quota');
+    if (pending.kind === 'city-move') {
+      if (state.phase !== 'city-move' || !state.cityMove || state.cityMove.actorId !== actorId) report('Pattern city movement needs its unique owned progress');
+      else {
+        if (pending.patternId === 'PAT-004' && pending.remainingMoves !== 1) report('Composite power grants exactly one movement');
+        if (state.cityMove.status === 'ready' && !cityMoveOptionsFor(state, definition, actorId, flow.roundNumber).length) report('Impossible movement must advance automatically');
+        if (state.cityMove.status === 'complete' && (pending.patternId !== 'PAT-004' || !patternRouteSlots(state, definition).length)) report('Only an executable composite route placement may retain completed movement');
+      }
+    } else {
+      if (pending.kind === 'deck-build' && state.facilities!.supply.revision === Number.MAX_SAFE_INTEGER) report('Deck construction must retain revision capacity for its required final shuffle');
+      if (state.phase !== 'construction' || !state.construction || state.construction.actorId !== actorId || state.construction.status === 'complete') report('Pattern construction needs its unfinished owned construction');
+      else if (state.construction.status === 'ready') {
+        try { if (!patternConstructionOptions(state, definition, actorId, pending.kind === 'deck-build' ? 'draw-pile' : 'supply').choices.length) report('Impossible pattern construction must advance automatically'); }
+        catch { report('Pending construction requires a valid physical source and panel'); }
+      }
+    }
+  }
   return issues;
 }

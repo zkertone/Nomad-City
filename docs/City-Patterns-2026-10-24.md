@@ -4,6 +4,8 @@
 
 后续已接入[GameState1.13.0城市样式行动](City-Pattern-Actions-2026-10-24.md)：基础版2/3/4人支持12种宣告、4种完整特殊行动。下文保留资料/匹配批次的历史边界；当前逐牌能力以getCityPatternActionSupport为准，目录的false表示尚未覆盖全部样式执行。
 
+最新[1.14.0批次](City-Pattern-Continuations-2026-10-24.md)扩至基础版13种宣告/7种完整特殊行动；运行状态调用getCityPatternActionSupport(state.schemaVersion)核对能力，省略参数仍保留1.13.0兼容结果。资料与风味的固定摘要不变。
+
 ## 来源与命名
 
 图片为2026-10-24新提供的image(6).png、image(7).png、image(8).png，身份与原始SHA-256保存在patterns/catalog.json。读取前将照片转正用于核对，原图不改，不把原版卡面作为项目美术上传。规则对照《铸基者》印刷p02、p08–11、p13、p15–16及《感染者》p02、p06–07，PDF摘要同样记录在目录中。

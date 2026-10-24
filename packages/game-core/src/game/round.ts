@@ -67,12 +67,14 @@ function currentActor(state: GameState, playerCount: number): string | null {
   return flow.stage === 'player-actions' ? state.playerOrder![flow.turnIndex % playerCount]! : null;
 }
 function actionComplete(state: GameState): boolean {
+  if (state.cityPatternContinuation) return false;
   if (state.roundFlow?.completedMajorAction != null) return true;
   const action = state.phase === 'exploration' ? state.exploration : state.phase === 'city-move' ? state.cityMove
     : state.phase === 'influence-action' ? state.influenceAction : state.phase === 'construction' ? state.construction : undefined;
   return action?.status === 'complete';
 }
 function actionUnstarted(state: GameState): boolean {
+  if (state.cityPatternContinuation) return false;
   if (state.phase === 'exploration') return state.exploration?.status === 'ready';
   if (state.phase === 'city-move') return state.cityMove?.status === 'ready';
   if (state.phase === 'construction') return state.construction?.status === 'ready';
@@ -83,7 +85,7 @@ export function getRoundTurn(input: GameState, definition: GameDefinition) {
   const state = checkedRound(input, definition), flow = state.roundFlow!;
   return deepFreeze({ roundNumber: flow.roundNumber, stage: flow.stage, actorId: currentActor(state, definition.players.length),
     cycle: flow.stage === 'player-actions' ? Math.floor(flow.turnIndex / definition.players.length) + 1 : null,
-    majorActionStatus: flow.stage !== 'player-actions' ? null : !flow.majorActionOpened ? 'not-started' : actionComplete(state) ? 'complete' : 'pending',
+    majorActionStatus: flow.stage !== 'player-actions' ? null : state.cityPatternContinuation ? 'pending' : !flow.majorActionOpened ? 'not-started' : actionComplete(state) ? 'complete' : 'pending',
   });
 }
 

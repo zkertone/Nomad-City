@@ -40,7 +40,8 @@ export function preparePhaseWindow(input: GameState, definition: GameDefinition,
     if (state.stateVersion === Number.MAX_SAFE_INTEGER) return reject('VERSION_OVERFLOW', 'State version exhausted');
     return { position: getGamePosition(state, definition), eventDecks: state.eventDecks!, playerOrder: state.playerOrder!,
       stateVersion: state.stateVersion + 1, options, previousFormat: state.schemaVersion,
-      facilityFields: { facilities: state.facilities! }, roundFields: { ...(state.cityPatterns ? { cityPatterns: state.cityPatterns } : {}), roundFlow: { ...flow, majorActionOpened: actorId !== undefined } } };
+      facilityFields: { facilities: state.facilities! }, roundFields: { ...(state.cityPatterns ? { cityPatterns: state.cityPatterns } : {}),
+        ...(state.cityPatternContinuation !== undefined ? { cityPatternContinuation: state.cityPatternContinuation } : {}), roundFlow: { ...flow, majorActionOpened: actorId !== undefined } } };
   }
   const initializing = state.phase === 'entry';
   const previous = state.phase === 'exploration' ? state.exploration : state.phase === 'city-move' ? state.cityMove : state.phase === 'influence-action' ? state.influenceAction : state.phase === 'construction' ? state.construction : state.harvest;

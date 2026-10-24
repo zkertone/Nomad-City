@@ -20,7 +20,7 @@ export function roundFlowIssues(state: GameState, definition: GameDefinition): V
       if (role.placed !== null || !role.discarded.includes(role.used.roleId)) report('Used role must be in discard, with no unused placed role');
       if (!['player-actions', 'harvest', 'cleanup'].includes(flow.stage) || role.used.turnIndex > flow.turnIndex || order[role.used.turnIndex % count] !== role.playerId) report('Role use must belong to this player in a reached action turn');
       if (!isBaseRoleModeAvailableInFormat(role.used.roleId, role.used.mode, state.schemaVersion) || (role.used.mode === 'both' && role.playerId !== order[0])) report('Role-use mode must be supported and both modes require the starting player');
-      if (role.used.roleId === 'ROLE-01' && !['1.9.0', '1.10.0', '1.11.0', '1.12.0', '1.13.0'].includes(state.schemaVersion)) report('Liskarm requires snapshot 1.9.0');
+      if (role.used.roleId === 'ROLE-01' && !['1.9.0', '1.10.0', '1.11.0', '1.12.0', '1.13.0', '1.14.0'].includes(state.schemaVersion)) report('Liskarm requires snapshot 1.9.0');
       if (hasLiskarmCleanup(role.used)) {
         if (typeof role.used.cleanupResolved !== 'boolean') report('Liskarm strategy requires an explicit cleanup obligation');
         if (role.used.cleanupResolved && flow.stage !== 'cleanup') report('Delayed removal cannot be resolved before cleanup');
@@ -42,14 +42,14 @@ export function roundFlowIssues(state: GameState, definition: GameDefinition): V
   } else if (flow.supplyRemovalCount !== (count === 2 ? 2 : 0)) report('Required supply removals must be complete before placing roles');
   if (flow.stage === 'role-placement' && flow.rolePlacementCount >= count) report('Completed role placement must enter player actions');
   if (['player-actions', 'harvest', 'cleanup'].includes(flow.stage) && flow.rolePlacementCount !== count) report('All players must place a role before actions');
-  if (flow.stage === 'cleanup' && !['1.9.0', '1.10.0', '1.11.0', '1.12.0', '1.13.0'].includes(state.schemaVersion)) report('Explicit role cleanup requires snapshot 1.9.0');
+  if (flow.stage === 'cleanup' && !['1.9.0', '1.10.0', '1.11.0', '1.12.0', '1.13.0', '1.14.0'].includes(state.schemaVersion)) report('Explicit role cleanup requires snapshot 1.9.0');
   const expectedPlaced = order.slice(0, flow.rolePlacementCount);
   if (placedPlayers.size !== expectedPlaced.length || expectedPlaced.some(id => !placedPlayers.has(id))) report('Placed roles must follow clockwise placement progress');
-  if (flow.completedMajorAction != null && (flow.stage !== 'player-actions' || !flow.majorActionOpened || state.phase !== 'round-control' || (state.schemaVersion !== '1.13.0' && !flow.rolesByPlayer.some(role => role.playerId === order[flow.turnIndex % count] && role.used?.turnIndex === flow.turnIndex)))) report('Retired major action requires a role used after completion in this exact turn');
+  if (flow.completedMajorAction != null && (flow.stage !== 'player-actions' || !flow.majorActionOpened || (state.phase !== 'round-control' && state.cityPatternContinuation?.kind !== 'declaration-build') || (!['1.13.0', '1.14.0'].includes(state.schemaVersion) && !flow.rolesByPlayer.some(role => role.playerId === order[flow.turnIndex % count] && role.used?.turnIndex === flow.turnIndex)))) report('Retired major action must preserve completion in its exact turn');
   if (flow.stage === 'player-actions') {
     if (flow.turnIndex >= count * 2) report('Each player receives one turn in each of two cycles');
     const actorId = order[flow.turnIndex % count];
-    if (flow.majorActionOpened && flow.completedMajorAction == null) {
+    if ((flow.majorActionOpened && flow.completedMajorAction == null) || state.cityPatternContinuation) {
       const action = state.phase === 'exploration' ? state.exploration : state.phase === 'city-move' ? state.cityMove
         : state.phase === 'influence-action' ? state.influenceAction : state.phase === 'construction' ? state.construction : undefined;
       if (!action || action.actorId !== actorId || action.roundNumber !== flow.roundNumber) report('Active major action must belong to the current turn and round');

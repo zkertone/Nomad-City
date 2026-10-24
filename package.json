@@ -29,6 +29,7 @@
     "check:warehouse": "npm run build && node scripts/check-warehouse.mjs",
     "check:remaining-facilities": "npm run build && node scripts/check-remaining-facilities.mjs",
     "check:facility-entries": "npm run build && node scripts/check-facility-entries.mjs",
+    "check:pattern-continuations": "npm run build && node scripts/check-pattern-continuations.mjs",
     "check:pattern-actions": "npm run build && node scripts/check-pattern-actions.mjs",
     "check:patterns": "npm run build && node scripts/check-patterns.mjs",
     "check:facilities": "npm run build && node scripts/check-facilities.mjs",

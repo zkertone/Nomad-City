@@ -21,3 +21,4 @@ export * from './warehouse.js';
 export { FacilityEntryError, enableNestedFacilityEntries, nestedFacilityEntryCommandSchema, applyNestedFacilityEntryCommand, getNestedFacilityEntryOptions, getPendingFacilityEventRequirements } from './facility-entries.js';
 export * from './city-pattern-actions.js';
 export { getCityPatternActionSupport } from './city-pattern-rules.js';
+export { CityPatternContinuationError, enableCityPatternContinuations, getCityPatternContinuationOptions, getPendingPatternCityMoveRequirements, applyCityPatternContinuationCommand } from './city-pattern-continuations.js';

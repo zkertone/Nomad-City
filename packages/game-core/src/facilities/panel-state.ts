@@ -91,10 +91,11 @@ const placementRequestSchema = z.strictObject({
   actorId: identifier, cardId: identifier, cellId: identifier,
   expectedPanelRevision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
   expectedSupplyRevision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
+  source: z.enum(['supply', 'draw-pile']).optional(),
 });
 export type FacilityPanelPlacementPreview =
   | { readonly status: 'position-unavailable'; readonly issues: readonly string[] }
-  | { readonly status: 'position-available'; readonly placement: { readonly cellId: string; readonly cardId: string }; readonly source: 'supply' | 'extension-reserve' };
+  | { readonly status: 'position-available'; readonly placement: { readonly cellId: string; readonly cardId: string }; readonly source: 'supply' | 'extension-reserve' | 'draw-pile' };
 /** Reference/position preflight only. It neither authorizes construction nor transfers/deducts/executes anything. */
 export function previewFacilityPanelPlacement(panelInput: unknown, supplyInput: unknown, requestInput: unknown): FacilityPanelPlacementPreview {
   const parsed = placementRequestSchema.safeParse(requestInput);
@@ -107,7 +108,8 @@ export function previewFacilityPanelPlacement(panelInput: unknown, supplyInput: 
   if (request.expectedSupplyRevision !== supply.revision) issues.push('Stale supply revision');
   if (!FOUNDERS_FACILITY_PANEL.cells.some(cell => cell.id === request.cellId)) issues.push('Unknown target panel cell');
   else if (panel.placements.some(row => row.cellId === request.cellId)) issues.push('Target cell is occupied');
-  const source = supply.supply.includes(request.cardId) ? 'supply' as const : supply.extensionReserve.includes(request.cardId) ? 'extension-reserve' as const : null;
+  const source = request.source === 'draw-pile' ? (supply.drawPile.includes(request.cardId) ? 'draw-pile' as const : null)
+    : supply.supply.includes(request.cardId) ? 'supply' as const : supply.extensionReserve.includes(request.cardId) ? 'extension-reserve' as const : null;
   if (!source) issues.push('Candidate card is not in supply or extension reserve');
   if (issues.length || !source) return deepFreeze({ status: 'position-unavailable', issues });
   return deepFreeze({ status: 'position-available', placement: { cellId: request.cellId, cardId: request.cardId }, source });

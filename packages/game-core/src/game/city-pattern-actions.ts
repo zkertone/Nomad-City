@@ -8,7 +8,8 @@ import { findCityPatternMatches, getCityPatternBoard, matchCityPatternSelection 
 import { gameEntityIdSchema, gameStateSchema } from './schema.js';
 import { getFoundersMapSide, parseGameState } from './state.js';
 import { getRoundTurn } from './round.js';
-import { getCityPatternActionSupport, IMPLEMENTED_PATTERN_SPECIALS } from './city-pattern-rules.js';
+import { getCityPatternActionSupport } from './city-pattern-rules.js';
+import { beginPatternCityMoves, beginPatternConstruction } from './city-pattern-continuations.js';
 import { availableInfluenceSlots, availableTargetInfluenceSlots, emptyInfluenceSlots, dispatchSourceSlots, replaceBoardInfluence, returnBoardInfluence } from './influence.js';
 import type { GameDefinition, GameState, DeepReadonly } from './types.js';
 
@@ -42,6 +43,9 @@ const effectSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('military'), slotIds: z.array(slotIdSchema).max(3) }),
   z.strictObject({ kind: z.literal('security'), choices: z.array(tacticalSchema).length(2) }),
   z.strictObject({ kind: z.literal('outpost'), slotIds: z.array(slotIdSchema).max(2), moves: z.array(moveSchema).max(29) }),
+  z.strictObject({ kind: z.literal('composite-move'), orirock: z.number().int().min(0).max(3), iron: z.number().int().min(0).max(3) }),
+  z.strictObject({ kind: z.literal('double-move') }),
+  z.strictObject({ kind: z.literal('deck-construction') }),
 ]);
 export const cityPatternPlayerCommandSchema = z.discriminatedUnion('type', [
   z.strictObject({ ...envelope, type: z.literal('declare-city-pattern'), patternId: cityPatternIdSchema,
@@ -51,7 +55,7 @@ export const cityPatternPlayerCommandSchema = z.discriminatedUnion('type', [
 export type CityPatternPlayerCommand = DeepReadonly<z.infer<typeof cityPatternPlayerCommandSchema>>;
 function scheduled(input: GameState, definition: GameDefinition, actorId: string) {
   const state = parseGameState(input, definition);
-  if (state.schemaVersion !== '1.13.0') return reject('PATTERN_FORMAT', 'Explicitly initialize city patterns');
+  if (!['1.13.0', '1.14.0'].includes(state.schemaVersion)) return reject('PATTERN_FORMAT', 'Explicitly initialize city patterns');
   const turn = getRoundTurn(state, definition);
   if (turn.stage !== 'player-actions' || turn.actorId !== actorId) return reject('PATTERN_WINDOW', 'Only the scheduled player can act');
   return { state, turn };
@@ -66,7 +70,7 @@ export function getCityPatternDeclarationOptions(input: GameState, definition: G
   if (turn.majorActionStatus === 'pending') return deepFreeze([]);
   const board = getCityPatternBoard(panel, state.facilities!.supply, state.cityPatterns!.exhaustedFacilityIdsByPlayer[actorId]);
   return deepFreeze(state.cityPatterns!.publicPatternIds.map(patternId => ({ patternId,
-    supported: getCityPatternActionSupport().declarationPatternIds.includes(patternId),
+    supported: getCityPatternActionSupport(state.schemaVersion).declarationPatternIds.includes(patternId),
     hasAvailableMarker: state.markerSupplyByPlayer[actorId]!.length > 0, matches: findCityPatternMatches(board, patternId) })));
 }
 /** Advisory first-step choices only; sequential targets are revalidated after every private effect. */
@@ -74,7 +78,7 @@ export function getCityPatternSpecialOptions(input: GameState, definition: GameD
   const { state, turn } = scheduled(input, definition, actorId);
   if (turn.majorActionStatus !== 'not-started') return deepFreeze([]);
   const board = loadFoundersBoard(getFoundersMapSide(definition.players.length));
-  return deepFreeze(state.cityPatterns!.publicPatternIds.filter(patternId => (IMPLEMENTED_PATTERN_SPECIALS as readonly string[]).includes(patternId)).flatMap(patternId => {
+  return deepFreeze(state.cityPatterns!.publicPatternIds.filter(patternId => getCityPatternActionSupport(state.schemaVersion).specialActionPatternIds.includes(patternId)).flatMap(patternId => {
     const pattern = getCityPattern(patternId), markers = state.patternMarkers!.filter(row => row.ownerPlayerId === actorId && row.patternId === patternId);
     const track = state.cityPatterns!.useTracks.find(row => row.playerId === actorId && row.patternId === patternId);
     if (!markers.length || !track?.remainingUses || state.cityPatterns!.usedSpecialActions.some(row => row.playerId === actorId && row.patternId === patternId) || (pattern.forbidsRoleInTurn && state.roundFlow!.rolesByPlayer.some(role => role.playerId === actorId && role.used?.turnIndex === state.roundFlow!.turnIndex))) return [];
@@ -101,7 +105,7 @@ export function applyCityPatternCommand(input: GameState, definition: GameDefini
   };
   if (command.type === 'declare-city-pattern') {
     if (turn.majorActionStatus === 'pending') return reject('ACTION_PENDING', 'Quick declaration cannot interrupt a major action');
-    if (!getCityPatternActionSupport().declarationPatternIds.includes(command.patternId)) return reject('PATTERN_EFFECT_UNSUPPORTED', 'This declaration needs its complete construction continuation');
+    if (!getCityPatternActionSupport(state.schemaVersion).declarationPatternIds.includes(command.patternId)) return reject('PATTERN_EFFECT_UNSUPPORTED', 'This declaration needs its complete construction continuation');
     if (!next.markerSupplyByPlayer[actorId]!.length) return reject('NO_AVAILABLE_MARKER', 'A declaration requires a supply marker before rewards');
     const panel = state.facilities!.panels.find(row => row.playerId === actorId)!, exhausted = state.cityPatterns!.exhaustedFacilityIdsByPlayer[actorId]!;
     if (!matchCityPatternSelection(getCityPatternBoard(panel, state.facilities!.supply, exhausted), command.patternId, command.facilityCardIds)) return reject('PATTERN_LAYOUT', 'Select exactly one unused, owned, valid facility layout');
@@ -120,16 +124,17 @@ export function applyCityPatternCommand(input: GameState, definition: GameDefini
       if (index < 0) return reject('PATTERN_MARKER_TARGET', 'Return one of your actual level-I pattern markers');
       next.markerSupplyByPlayer[actorId]!.push(next.patternMarkers!.splice(index, 1)[0]!.markerId); gain('pure-originium', 1);
     }
+    if (command.patternId === 'PAT-013') beginPatternConstruction(next, definition, 'declaration-build', actorId);
   } else {
     if (turn.majorActionStatus !== 'not-started' || state.phase !== 'round-control') return reject('MAJOR_ACTION_USED', 'A special replaces the one normal major action');
-    if (!(IMPLEMENTED_PATTERN_SPECIALS as readonly string[]).includes(command.patternId)) return reject('PATTERN_SPECIAL_UNSUPPORTED', 'This special needs its full nested action implementation');
+    if (!getCityPatternActionSupport(state.schemaVersion).specialActionPatternIds.includes(command.patternId)) return reject('PATTERN_SPECIAL_UNSUPPORTED', 'This special needs its full nested action implementation');
     const marker = next.patternMarkers!.find(row => row.markerId === command.markerId && row.ownerPlayerId === actorId && row.patternId === command.patternId);
     const track = next.cityPatterns!.useTracks.find(row => row.playerId === actorId && row.patternId === command.patternId);
     if (!marker || !track?.remainingUses) return reject('PATTERN_SPECIAL_LOCKED', 'Use your own marker with remaining charges');
     if (next.cityPatterns!.usedSpecialActions.some(row => row.patternId === command.patternId && row.playerId === actorId)) return reject('PATTERN_ALREADY_USED', 'This player already used this pattern this round');
     const role = state.roundFlow!.rolesByPlayer.find(row => row.playerId === actorId)!;
     if (pattern.forbidsRoleInTurn && role.used?.turnIndex === state.roundFlow!.turnIndex) return reject('ROLE_CONFLICT', 'A role was already used in this action turn');
-    const expected = ({ 'PAT-001': 'replace', 'PAT-005': 'military', 'PAT-009': 'security', 'PAT-011': 'outpost' } as Record<string, string>)[command.patternId];
+    const expected = ({ 'PAT-001': 'replace', 'PAT-005': 'military', 'PAT-009': 'security', 'PAT-011': 'outpost', 'PAT-004': 'composite-move', 'PAT-006': 'double-move', 'PAT-012': 'deck-construction' } as Record<string, string>)[command.patternId];
     if (command.effect.kind !== expected) return reject('PATTERN_CHOICE', 'Effect choice must belong to the selected pattern');
     const board = loadFoundersBoard(getFoundersMapSide(definition.players.length));
     const place = (slotId: string | undefined, nodeId?: string) => {
@@ -161,7 +166,7 @@ export function applyCityPatternCommand(input: GameState, definition: GameDefini
           gain('iron', 2);
         }
       }
-    } else {
+    } else if (effect.kind === 'outpost') {
       for (let i = 0; i < 2; i++) place(effect.slotIds[i], next.board.cityNodeByPlayer[actorId]!);
       const count = next.patternMarkers!.filter(row => row.patternId === command.patternId && row.ownerPlayerId === actorId).length;
       if (effect.moves.length > count) return reject('PATTERN_CHOICE', 'Too many outpost movements');
@@ -177,6 +182,18 @@ export function applyCityPatternCommand(input: GameState, definition: GameDefini
     track.remainingUses--;
     next.cityPatterns!.usedSpecialActions.push({ playerId: actorId, patternId: command.patternId, turnIndex: next.roundFlow!.turnIndex });
     next.roundFlow!.majorActionOpened = true; next.roundFlow!.completedMajorAction = 'special';
+    if (effect.kind === 'composite-move') {
+      if (effect.orirock + effect.iron !== 3) return reject('PATTERN_CHOICE', 'Pay a combined three orirock/iron');
+      if (actor.balances.originium < 1 || actor.balances.orirock < effect.orirock || actor.balances.iron < effect.iron) return reject('CANNOT_PAY', 'Pay the complete special cost before moving');
+      actor.balances.originium--; actor.balances.orirock -= effect.orirock; actor.balances.iron -= effect.iron;
+      beginPatternCityMoves(next, definition, 'PAT-004', actorId);
+    } else if (effect.kind === 'double-move') {
+      if (actor.balances.originium < 3) return reject('CANNOT_PAY', 'Pay three originium before either free movement');
+      actor.balances.originium -= 3; beginPatternCityMoves(next, definition, 'PAT-006', actorId);
+    } else if (effect.kind === 'deck-construction') {
+      if (!Number.isSafeInteger(actor.score - 1)) return reject('SCORE_OVERFLOW', 'Cannot lose one point safely');
+      actor.score--; beginPatternConstruction(next, definition, 'deck-build', actorId);
+    }
   }
   next.stateVersion++;
   return parseGameState(next, definition);

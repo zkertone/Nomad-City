@@ -52,6 +52,7 @@ export function parseFacilityConstructionPosition(input: unknown, definition: Ga
 export const facilityConstructionContextSchema = z.strictObject({
   gameId: gameEntityIdSchema, actorId: gameEntityIdSchema,
   expectedSupplyRevision: z.number().int().nonnegative().safe(), expectedPanelRevision: z.number().int().nonnegative().safe(),
+  source: z.enum(['supply', 'draw-pile']).optional(),
 });
 export type FacilityConstructionContext = DeepReadonly<z.infer<typeof facilityConstructionContextSchema>>;
 export const facilityConstructionCommandSchema = z.strictObject({
@@ -71,11 +72,12 @@ function prepare(input: unknown, definition: GameDefinition, rawContext: Facilit
   const checkedPreview = previewFacilityPanelPlacement(panel, state.supply, {
     actorId: context.actorId, expectedSupplyRevision: context.expectedSupplyRevision, expectedPanelRevision: context.expectedPanelRevision,
     cardId: command.cardId, cellId: command.cellId,
+    ...(context.source ? { source: context.source } : {}),
   });
   if (checkedPreview.status !== 'position-available') return reject('PLACEMENT_INVALID', checkedPreview.issues.join('; '));
-  if (checkedPreview.source !== 'supply') return reject('CARD_SOURCE', 'Extension reserve needs a logistics effect, not ordinary construction');
+  if (checkedPreview.source !== (context.source ?? 'supply')) return reject('CARD_SOURCE', 'Construction needs its granted physical source');
   if (state.supply.supply.length !== 6) return reject('SUPPLY_NOT_READY', 'Finish the prior immediate refill first');
-  if (!state.supply.drawPile.length) return reject('REFILL_RULE_UNRESOLVED', 'Cannot resolve immediate refill with an exhausted draw pile');
+  if (context.source !== 'draw-pile' && !state.supply.drawPile.length) return reject('REFILL_RULE_UNRESOLVED', 'Cannot resolve immediate refill with an exhausted draw pile');
   if (panel.revision === Number.MAX_SAFE_INTEGER || state.supply.revision === Number.MAX_SAFE_INTEGER) return reject('VERSION_OVERFLOW', 'Facility version exhausted');
   const spec = getFacilityConstructionSpec(command.cardId);
   if (spec.face.effect.uniqueMarker && panel.placements.some(row => getFoundersPhysicalFacilityCard(row.cardId).facilityId === spec.card.facilityId)) return reject('UNIQUE_FACILITY', 'Player already owns this unique facility');
@@ -107,7 +109,7 @@ export interface FacilityConstructionReceipt {
   readonly points: number; readonly refilledCardIds: readonly string[];
   readonly entryInfluenceChanges: readonly FacilityEntryInfluenceChange[]; readonly entrySales: readonly ResourceSaleLine[];
   readonly entryGains: readonly { readonly asset: ResourceCost['asset']; readonly amount: number }[];
-  readonly order: readonly ['pay', 'take-and-refill', 'place', 'score', 'entry'];
+  readonly order: readonly ['pay', 'take-and-refill' | 'take-from-deck', 'place', 'score', 'entry'];
 }
 export interface FacilityConstructionResult { readonly state: FacilityConstructionPosition; readonly receipt: FacilityConstructionReceipt }
 /**
@@ -122,11 +124,16 @@ export function beginFacilityConstruction(input: unknown, definition: GameDefini
   if (!canAffordResources(p.state.position.players[p.context.actorId]!.balances, p.costs)) return reject('CANNOT_PAY', 'All construction costs must be payable before entry rewards');
   const next = facilityConstructionPositionSchema.parse(p.state), actor = next.position.players[p.context.actorId]!;
   for (const cost of p.costs) actor.balances[cost.asset] -= cost.amount;
-  next.supply.supply.splice(next.supply.supply.indexOf(p.command.cardId), 1);
+  const source = p.context.source === 'draw-pile' ? next.supply.drawPile : next.supply.supply;
+  source.splice(source.indexOf(p.command.cardId), 1);
   next.supply.playerHoldings.find(row => row.playerId === p.context.actorId)!.cardIds.push(p.command.cardId);
-  const refill = replenishFacilitySupply(next.supply, p.context.expectedSupplyRevision);
-  if (refill.status !== 'replenished') return reject('REFILL_RULE_UNRESOLVED', 'Immediate refill did not finish');
-  next.supply = facilitySupplyStateSchema.parse(refill.state);
+  let refilledCardIds: readonly string[] = [];
+  if (p.context.source === 'draw-pile') next.supply.revision++;
+  else {
+    const refill = replenishFacilitySupply(next.supply, p.context.expectedSupplyRevision);
+    if (refill.status !== 'replenished') return reject('REFILL_RULE_UNRESOLVED', 'Immediate refill did not finish');
+    next.supply = facilitySupplyStateSchema.parse(refill.state); refilledCardIds = refill.drawnCardIds;
+  }
   const panel = next.panels.find(row => row.playerId === p.context.actorId)!;
   panel.placements.push({ cardId: p.command.cardId, cellId: p.command.cellId }); panel.revision++;
   if (!Number.isSafeInteger(actor.score + p.spec.face.printedScore)) return reject('SCORE_OVERFLOW', 'Construction score exceeds safe integer range');
@@ -165,7 +172,7 @@ export function beginFacilityConstruction(input: unknown, definition: GameDefini
   return deepFreeze({ pendingEntry, state: parseFacilityConstructionPosition(next, definition), receipt: {
     actorId: p.context.actorId, cardId: p.command.cardId, facilityId: p.spec.card.facilityId, cellId: p.command.cellId,
     entryStatus: pendingEntry ? 'pending' : 'complete', paymentMode: p.command.paymentMode, paid: p.costs, orirockDiscount: p.orirockDiscount, points: p.spec.face.printedScore,
-    refilledCardIds: refill.drawnCardIds, entryGains, entryInfluenceChanges, entrySales, order: ['pay', 'take-and-refill', 'place', 'score', 'entry'],
+    refilledCardIds, entryGains, entryInfluenceChanges, entrySales, order: ['pay', p.context.source === 'draw-pile' ? 'take-from-deck' : 'take-and-refill', 'place', 'score', 'entry'],
   } });
 }
 

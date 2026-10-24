@@ -1,6 +1,7 @@
 import { boardFor, panelFor, facilityEntrySpec, copyEntryTargets, extraConstructionOptions } from './facility-entry-rules.js';
 import { getEmptyFacilityPanelCells, getOrthogonallyAdjacentPanelFacilities } from '../facilities/panel-state.js';
 import { z } from 'zod';
+import { advanceCityPatternContinuation } from './city-pattern-continuations.js';
 import { deepFreeze } from '../board/hash.js';
 import { slotIdSchema } from '../board/schema.js';
 import { getFoundersPhysicalFacilityCard } from '../facilities/stock.js';
@@ -91,7 +92,7 @@ export function beginNestedFacilityEntry(next: MutableState, definition: GameDef
 }
 function pending(input: GameState, definition: GameDefinition, actorId: string) {
   const state = parseGameState(input, definition), action = state.construction;
-  if (!['1.12.0', '1.13.0'].includes(state.schemaVersion) || state.phase !== 'construction' || action?.status !== 'entry-pending' || !action.entryStack?.length) return reject('ENTRY_STAGE', 'No pending nested facility entry');
+  if (!['1.12.0', '1.13.0', '1.14.0'].includes(state.schemaVersion) || state.phase !== 'construction' || action?.status !== 'entry-pending' || !action.entryStack?.length) return reject('ENTRY_STAGE', 'No pending nested facility entry');
   if (action.actorId !== actorId) return reject('WRONG_ACTOR', 'Only the construction owner resolves these effects');
   return { state, action, frame: action.entryStack.at(-1)! };
 }
@@ -201,6 +202,6 @@ export function applyNestedFacilityEntryCommand(input: GameState, definition: Ga
       stack.pop();
     } else return reject('ENTRY_STAGE', 'Command does not belong to the current facility entry');
   }
-  advanceFacilityEntries(next, definition); next.stateVersion++;
+  advanceFacilityEntries(next, definition); advanceCityPatternContinuation(next, definition); next.stateVersion++;
   return parseGameState(next, definition);
 }

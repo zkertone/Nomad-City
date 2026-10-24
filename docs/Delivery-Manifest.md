@@ -500,3 +500,51 @@
 - `packages/game-core/src/game/types.ts`（更新）
 - `packages/game-core/src/game/warehouse.ts`（更新）
 - `scripts/check-pattern-actions.mjs`（新增）
+
+
+## 2026-10-24 · 四张城市样式批量接入
+
+基准main提交039684da0c79bb34ed96fd8794e2c44983e24fe0。新增新兴建筑群宣告内正常建设，以及城建开拓区/复合动力系统/高效移动管理体系完整特殊行动，基础版2/3/4人共享；当前13种宣告/7种特殊行动。显式GameState1.14.0保留原状态与旧格式边界。
+
+规则/API见[四张样式说明](City-Pattern-Continuations-2026-10-24.md)，实际测试、失败修正及最终结果见[验证记录](testing/city-pattern-continuations-validation-2026-10-24.md)。最终2087/2087（27文件）、strict/build通过，原2024项保留，新增63项。原始JSON/固定摘要、全部风味、GameDefinition、Accepted ADR和依赖锁不变；没有上传卡面/PDF，没有UI、联机或部署。
+
+共36份变更，新增5份，无删除；下列路径相对于仓库根目录。
+
+- `README.md`（更新）
+- `docs/City-Pattern-Actions-2026-10-24.md`（更新）
+- `docs/City-Pattern-Continuations-2026-10-24.md`（新增）
+- `docs/City-Patterns-2026-10-24.md`（更新）
+- `docs/Construction-Window-2026-10-23.md`（更新）
+- `docs/Delivery-Manifest.md`（更新）
+- `docs/DevLog.md`（更新）
+- `docs/Game-State-Foundation-2026-10-17.md`（更新）
+- `docs/Round-Flow-2026-10-23.md`（更新）
+- `docs/testing/city-pattern-continuations-validation-2026-10-24.md`（新增）
+- `package.json`（更新）
+- `packages/game-core/src/facilities/construction.ts`（更新）
+- `packages/game-core/src/facilities/panel-state.ts`（更新）
+- `packages/game-core/src/game/action-window.ts`（更新）
+- `packages/game-core/src/game/city-move.ts`（更新）
+- `packages/game-core/src/game/city-pattern-actions.ts`（更新）
+- `packages/game-core/src/game/city-pattern-continuations.test.ts`（新增）
+- `packages/game-core/src/game/city-pattern-continuations.ts`（新增）
+- `packages/game-core/src/game/city-pattern-invariants.ts`（更新）
+- `packages/game-core/src/game/city-pattern-rules.ts`（更新）
+- `packages/game-core/src/game/construction-invariants.ts`（更新）
+- `packages/game-core/src/game/construction.ts`（更新）
+- `packages/game-core/src/game/exploration.ts`（更新）
+- `packages/game-core/src/game/facility-entries.ts`（更新）
+- `packages/game-core/src/game/facility-entry-invariants.ts`（更新）
+- `packages/game-core/src/game/harvest.ts`（更新）
+- `packages/game-core/src/game/index.ts`（更新）
+- `packages/game-core/src/game/influence-actions.ts`（更新）
+- `packages/game-core/src/game/liskarm.ts`（更新）
+- `packages/game-core/src/game/role-effects.ts`（更新）
+- `packages/game-core/src/game/role-rules.ts`（更新）
+- `packages/game-core/src/game/round-invariants.ts`（更新）
+- `packages/game-core/src/game/round.ts`（更新）
+- `packages/game-core/src/game/schema.ts`（更新）
+- `packages/game-core/src/game/warehouse.ts`（更新）
+- `scripts/check-pattern-continuations.mjs`（新增）
+
+恢复后最终核验：2087/2087、strict/build通过；全部22项编译检查再次22/22退出0（670.49秒），包括新增12段四张样式真实流程。无删除、无未完成的本批验证。

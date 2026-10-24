@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { advanceCityPatternContinuation } from './city-pattern-continuations.js';
 import { deepFreeze } from '../board/hash.js';
 import { loadFoundersBoard } from '../board/index.js';
 import { resourceNodeIdSchema, routeIdSchema, slotIdSchema } from '../board/schema.js';
@@ -30,7 +31,7 @@ export interface CityMoveOption { readonly nodeId: string; readonly routeId: str
 /** Trusted single-action grant. Full round/role/major-action authorization remains the caller's job. */
 export function openCityMoveWindow(input: GameState, definition: GameDefinition, options: OpenCityMoveWindowOptions): GameState {
   const prepared = prepareActionWindow(input, definition, options, reject);
-  return parseGameState({ ...prepared.position, ...prepared.facilityFields, ...prepared.roundFields, schemaVersion: prepared.previousFormat === '1.13.0' ? '1.13.0' : prepared.previousFormat === '1.12.0' ? '1.12.0' : prepared.previousFormat === '1.11.0' ? '1.11.0' : prepared.previousFormat === '1.10.0' ? '1.10.0' : prepared.previousFormat === '1.9.0' ? '1.9.0' : prepared.previousFormat === '1.8.0' ? '1.8.0' : prepared.previousFormat === '1.7.0' ? '1.7.0' : prepared.previousFormat === '1.6.0' ? '1.6.0' : prepared.previousFormat === '1.5.0' ? '1.5.0' : prepared.previousFormat === '1.4.0' ? '1.4.0' : '1.3.0', stateVersion: prepared.stateVersion,
+  return parseGameState({ ...prepared.position, ...prepared.facilityFields, ...prepared.roundFields, schemaVersion: prepared.previousFormat === '1.14.0' ? '1.14.0' : prepared.previousFormat === '1.13.0' ? '1.13.0' : prepared.previousFormat === '1.12.0' ? '1.12.0' : prepared.previousFormat === '1.11.0' ? '1.11.0' : prepared.previousFormat === '1.10.0' ? '1.10.0' : prepared.previousFormat === '1.9.0' ? '1.9.0' : prepared.previousFormat === '1.8.0' ? '1.8.0' : prepared.previousFormat === '1.7.0' ? '1.7.0' : prepared.previousFormat === '1.6.0' ? '1.6.0' : prepared.previousFormat === '1.5.0' ? '1.5.0' : prepared.previousFormat === '1.4.0' ? '1.4.0' : '1.3.0', stateVersion: prepared.stateVersion,
     phase: 'city-move', eventDecks: prepared.eventDecks, playerOrder: prepared.playerOrder,
     cityMove: { actorId: prepared.options.actorId, roundNumber: prepared.options.roundNumber, status: 'ready',
       sourceNodeId: null, targetNodeId: null, routeId: null, cardId: null, resolvedChoiceId: null } }, definition);
@@ -39,7 +40,7 @@ export function openCityMoveWindow(input: GameState, definition: GameDefinition,
 /** Every option retains its chosen route identity, even when another route joins the same endpoints. */
 export function getCityMoveOptions(input: GameState, definition: GameDefinition, actorId: string): readonly CityMoveOption[] {
   const state = parseGameState(input, definition); const move = state.cityMove;
-  if (state.phase !== 'city-move' || move?.status !== 'ready' || move.actorId !== actorId || state.players[actorId]!.balances.originium < 3) return Object.freeze([]);
+  if (state.phase !== 'city-move' || move?.status !== 'ready' || move.actorId !== actorId || (state.cityPatternContinuation?.kind !== 'city-move' && state.players[actorId]!.balances.originium < 3)) return Object.freeze([]);
   return cityMoveOptionsFor(state, definition, actorId, move.roundNumber);
 }
 /** Internal geometry/opening query, independent of payment or the top-level phase. */
@@ -86,7 +87,8 @@ export function applyCityMoveCommand(input: GameState, definition: GameDefinitio
   if (current.phase !== 'city-move' || !move || move.status === 'complete') return reject('ACTION_STAGE', 'No unfinished city-move grant');
   if (move.actorId !== context.authenticatedPlayerId) return reject('WRONG_ACTOR', 'Only the granted actor may move');
   const next = gameStateSchema.parse(current);
-  resolveCityMoveStep(next, definition, next.cityMove!, command, reject);
+  resolveCityMoveStep(next, definition, next.cityMove!, command, reject, current.cityPatternContinuation?.kind === 'city-move');
+  advanceCityPatternContinuation(next, definition);
   next.stateVersion = nextVersion(current.stateVersion);
   return parseGameState(next, definition);
 }

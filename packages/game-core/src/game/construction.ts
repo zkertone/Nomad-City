@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { advanceCityPatternContinuation } from './city-pattern-continuations.js';
+import { getFoundersPhysicalFacilityCard } from '../facilities/stock.js';
 import { beginNestedFacilityEntry } from './facility-entries.js';
 import { loadFoundersBoard } from '../board/index.js';
 import { resourceNodeIdSchema } from '../board/schema.js';
@@ -43,7 +45,7 @@ export function openConstructionWindow(input: GameState, definition: GameDefinit
     } catch (error) { return reject('FACILITY_SETUP_INVALID', error instanceof Error ? error.message : String(error)); }
   }
   if (facilities.panels.find(panel => panel.playerId === options.actorId)!.placements.length === 12) return reject('NO_EMPTY_CELL', 'Construction requires an empty panel cell');
-  return parseGameState({ ...prepared.position, facilities, ...prepared.roundFields, schemaVersion: prepared.previousFormat === '1.13.0' ? '1.13.0' : prepared.previousFormat === '1.12.0' ? '1.12.0' : prepared.previousFormat === '1.11.0' ? '1.11.0' : prepared.previousFormat === '1.10.0' ? '1.10.0' : prepared.previousFormat === '1.9.0' ? '1.9.0' : prepared.previousFormat === '1.8.0' ? '1.8.0' : prepared.previousFormat === '1.7.0' ? '1.7.0' : '1.6.0', stateVersion: prepared.stateVersion,
+  return parseGameState({ ...prepared.position, facilities, ...prepared.roundFields, schemaVersion: prepared.previousFormat === '1.14.0' ? '1.14.0' : prepared.previousFormat === '1.13.0' ? '1.13.0' : prepared.previousFormat === '1.12.0' ? '1.12.0' : prepared.previousFormat === '1.11.0' ? '1.11.0' : prepared.previousFormat === '1.10.0' ? '1.10.0' : prepared.previousFormat === '1.9.0' ? '1.9.0' : prepared.previousFormat === '1.8.0' ? '1.8.0' : prepared.previousFormat === '1.7.0' ? '1.7.0' : '1.6.0', stateVersion: prepared.stateVersion,
     phase: 'construction', eventDecks: prepared.eventDecks, playerOrder: prepared.playerOrder,
     construction: { actorId: options.actorId, roundNumber: options.roundNumber, status: 'ready', constructionsCompleted: 0, builtCardId: null },
   }, definition);
@@ -60,17 +62,19 @@ function prepare(input: GameState, definition: GameDefinition, context: Construc
   if (state.phase !== 'construction' || !action || action.status !== 'ready') return reject('ACTION_STAGE', 'No unused construction grant');
   if (action.actorId !== context.authenticatedPlayerId) return reject('WRONG_ACTOR', 'Only the granted player may construct');
   const panel = state.facilities!.panels.find(row => row.playerId === action.actorId)!;
+  if (state.cityPatternContinuation?.kind === 'declaration-build' && getFoundersPhysicalFacilityCard(command.cardId).color === 'rainbow') return reject('PATTERN_CONSTRUCTION_COLOR', 'This declaration only constructs non-rainbow facilities');
   return { state, command, warehouseExploration, bundle: { position: getGamePosition(state, definition), ...state.facilities! },
-    internalContext: { gameId: state.gameId, actorId: action.actorId, expectedSupplyRevision: state.facilities!.supply.revision, expectedPanelRevision: panel.revision } };
+    internalContext: { gameId: state.gameId, actorId: action.actorId, expectedSupplyRevision: state.facilities!.supply.revision, expectedPanelRevision: panel.revision,
+      ...(state.cityPatternContinuation?.kind === 'deck-build' ? { source: 'draw-pile' as const } : {}) } };
 }
 /** Read-only advisory quote; a subsequent command always recomputes costs and checks the current version. */
 export function getConstructionQuote(input: GameState, definition: GameDefinition, context: ConstructionActorContext, payload: unknown) {
   const p = prepare(input, definition, context, payload);
   requireEntryFormat(p.state, p.command.cardId);
-  if (p.command.entryChoice?.kind === 'deferred-entry' && !['1.12.0', '1.13.0'].includes(p.state.schemaVersion)) return reject('FACILITY_FORMAT', 'Deferred facility entry requires format 1.12.0');
+  if (p.command.entryChoice?.kind === 'deferred-entry' && !['1.12.0', '1.13.0', '1.14.0'].includes(p.state.schemaVersion)) return reject('FACILITY_FORMAT', 'Deferred facility entry requires format 1.12.0');
   const quote = getFacilityConstructionQuote(p.bundle, definition, p.internalContext, p.command);
   if (getFacilityConstructionSpec(p.command.cardId).entry.kind !== 'warehouse') return quote;
-  if (!['1.11.0', '1.12.0', '1.13.0'].includes(p.state.schemaVersion)) return reject('WAREHOUSE_FORMAT', 'Explicitly enable warehouse entries in 1.11.0');
+  if (!['1.11.0', '1.12.0', '1.13.0', '1.14.0'].includes(p.state.schemaVersion)) return reject('WAREHOUSE_FORMAT', 'Explicitly enable warehouse entries in 1.11.0');
   const afterPayment = gameStateSchema.parse(p.state);
   if (quote.canPay) for (const cost of quote.costs) afterPayment.players[p.state.construction!.actorId]!.balances[cost.asset] -= cost.amount;
   const warehouseExplorationTargets = quote.canPay ? affordableWarehouseTargets(afterPayment, loadFoundersBoard(getFoundersMapSide(definition.players.length)), p.state.construction!.actorId, p.state.construction!.roundNumber, definition.players.length) : [];
@@ -82,8 +86,8 @@ export function applyConstructionCommand(input: GameState, definition: GameDefin
   if (p.state.stateVersion === Number.MAX_SAFE_INTEGER) return reject('VERSION_OVERFLOW', 'State version exhausted');
   const spec = getFacilityConstructionSpec(p.command.cardId);
   requireEntryFormat(p.state, p.command.cardId);
-  if (p.command.entryChoice?.kind === 'deferred-entry' && !['1.12.0', '1.13.0'].includes(p.state.schemaVersion)) return reject('FACILITY_FORMAT', 'Deferred facility entry requires format 1.12.0');
-  if (spec.entry.kind === 'warehouse' && !['1.11.0', '1.12.0', '1.13.0'].includes(p.state.schemaVersion)) return reject('WAREHOUSE_FORMAT', 'Explicitly enable warehouse entries in 1.11.0');
+  if (p.command.entryChoice?.kind === 'deferred-entry' && !['1.12.0', '1.13.0', '1.14.0'].includes(p.state.schemaVersion)) return reject('FACILITY_FORMAT', 'Deferred facility entry requires format 1.12.0');
+  if (spec.entry.kind === 'warehouse' && !['1.11.0', '1.12.0', '1.13.0', '1.14.0'].includes(p.state.schemaVersion)) return reject('WAREHOUSE_FORMAT', 'Explicitly enable warehouse entries in 1.11.0');
   const explores = p.command.entryChoice?.kind === 'warehouse-explore';
   if (p.warehouseExploration !== undefined && !explores) return reject('ENTRY_CHOICE', 'An initial exploration belongs only to the warehouse explore branch');
   const settled = beginFacilityConstruction(p.bundle, definition, p.internalContext, p.command);
@@ -97,9 +101,10 @@ export function applyConstructionCommand(input: GameState, definition: GameDefin
     next.construction!.status = 'entry-pending';
     next.construction!.warehouseEntry = { kind: 'warehouse-choice', status: 'branch-choice', targetNodeId: null, cardId: null, resolvedChoiceId: null };
   } else if (settled.pendingEntry) beginWarehouseExploration(next, definition, p.warehouseExploration, reject);
+  advanceCityPatternContinuation(next, definition);
   return parseGameState(next, definition);
 }
 
 function requireEntryFormat(state: GameState, cardId: string): void {
-  if (['logistics', 'free-city-move', 'copy-entry', 'starting-player', 'extra-construction'].includes(getFacilityConstructionSpec(cardId).entry.kind) && !['1.12.0', '1.13.0'].includes(state.schemaVersion)) return reject('FACILITY_FORMAT', 'Explicitly enable nested facility entries in format 1.12.0');
+  if (['logistics', 'free-city-move', 'copy-entry', 'starting-player', 'extra-construction'].includes(getFacilityConstructionSpec(cardId).entry.kind) && !['1.12.0', '1.13.0', '1.14.0'].includes(state.schemaVersion)) return reject('FACILITY_FORMAT', 'Explicitly enable nested facility entries in format 1.12.0');
 }

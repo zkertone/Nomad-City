@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { advanceCityPatternContinuation } from './city-pattern-continuations.js';
 import { deepFreeze } from '../board/hash.js';
 import { loadFoundersBoard } from '../board/index.js';
 import { gameEntityIdSchema, gameStateSchema, explorationProgressSchema } from './schema.js';
@@ -26,7 +27,7 @@ export function enableWarehouseEntries(input: GameState, definition: GameDefinit
 }
 function pending(input: GameState, definition: GameDefinition, actorId: string) {
   const state = parseGameState(input, definition), action = state.construction;
-  if (!['1.11.0', '1.12.0', '1.13.0'].includes(state.schemaVersion) || state.phase !== 'construction' || action?.status !== 'entry-pending' || !action.warehouseEntry) return reject('ENTRY_STAGE', 'No pending warehouse exploration');
+  if (!['1.11.0', '1.12.0', '1.13.0', '1.14.0'].includes(state.schemaVersion) || state.phase !== 'construction' || action?.status !== 'entry-pending' || !action.warehouseEntry) return reject('ENTRY_STAGE', 'No pending warehouse exploration');
   if (action.actorId !== actorId) return reject('WRONG_ACTOR', 'Only the construction owner resolves this entry');
   return { state, action, entry: action.warehouseEntry };
 }
@@ -60,7 +61,7 @@ export function applyWarehouseEntryCommand(input: GameState, definition: GameDef
       settleFacilityBoardOrSaleEntry(next, loadFoundersBoard(getFoundersMapSide(definition.players.length)), p.action.actorId, choice, reject);
       next.construction!.status = 'complete'; delete next.construction!.warehouseEntry;
     } else return reject('ENTRY_CHOICE', 'Choose a complete warehouse branch');
-    next.stateVersion++; return parseGameState(next, definition);
+    advanceCityPatternContinuation(next, definition); next.stateVersion++; return parseGameState(next, definition);
   }
   if (p.entry.kind === 'warehouse-choice') return reject('ENTRY_STAGE', 'Choose the warehouse entry branch before its exploration');
   if (command.type === 'explore') return reject('ENTRY_STAGE', 'Warehouse initial exploration was already committed with construction');
@@ -72,6 +73,7 @@ export function applyWarehouseEntryCommand(input: GameState, definition: GameDef
   if (progress.status === 'ready') return reject('ENTRY_STAGE', 'Continuation cannot restart exploration');
   action.warehouseEntry = { kind: 'warehouse-exploration', status: progress.status, targetNodeId: progress.targetNodeId, cardId: progress.cardId, resolvedChoiceId: progress.resolvedChoiceId };
   if (progress.status === 'complete') action.status = 'complete';
+  advanceCityPatternContinuation(next, definition);
   next.stateVersion++;
   return parseGameState(next, definition);
 }
