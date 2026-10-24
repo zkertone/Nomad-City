@@ -91,7 +91,7 @@ export function beginNestedFacilityEntry(next: MutableState, definition: GameDef
 }
 function pending(input: GameState, definition: GameDefinition, actorId: string) {
   const state = parseGameState(input, definition), action = state.construction;
-  if (state.schemaVersion !== '1.12.0' || state.phase !== 'construction' || action?.status !== 'entry-pending' || !action.entryStack?.length) return reject('ENTRY_STAGE', 'No pending nested facility entry');
+  if (!['1.12.0', '1.13.0'].includes(state.schemaVersion) || state.phase !== 'construction' || action?.status !== 'entry-pending' || !action.entryStack?.length) return reject('ENTRY_STAGE', 'No pending nested facility entry');
   if (action.actorId !== actorId) return reject('WRONG_ACTOR', 'Only the construction owner resolves these effects');
   return { state, action, frame: action.entryStack.at(-1)! };
 }
@@ -174,7 +174,7 @@ export function applyNestedFacilityEntryCommand(input: GameState, definition: Ga
       facilityEntrySpec(command.targetCardId); frame.status = 'waiting'; stack.push(entryFrame(command.targetCardId));
     } else if (command.type === 'construct-entry-facility' && kind === 'extra-construction') {
       const panel = panelFor(next, actor), { type: _type, gameId: _game, expectedVersion: _version, ...build } = command;
-      const settled = beginFacilityConstruction({ position: { gameId: next.gameId, board: next.board, players: next.players, markerSupplyByPlayer: next.markerSupplyByPlayer }, ...next.facilities! }, definition,
+      const settled = beginFacilityConstruction({ position: { gameId: next.gameId, board: next.board, players: next.players, markerSupplyByPlayer: next.markerSupplyByPlayer, ...(next.patternMarkers ? { patternMarkers: next.patternMarkers } : {}) }, ...next.facilities! }, definition,
         { gameId: next.gameId, actorId: actor, expectedSupplyRevision: next.facilities!.supply.revision, expectedPanelRevision: panel.revision }, build);
       const built = facilityConstructionPositionSchema.parse(settled.state);
       Object.assign(next, built.position); next.facilities = { supply: built.supply, panels: built.panels };

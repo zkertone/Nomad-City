@@ -28,7 +28,7 @@ export function extraConstructionOptions(state: GameState, definition: GameDefin
     try { getFacilityConstructionSpec(cardId); } catch { unresolvedCardIds.push(cardId); continue; }
     for (const paymentMode of ['resources', 'vouchers'] as const) {
       try {
-        const quote = getFacilityConstructionQuote({ position: { gameId: state.gameId, board: state.board, players: state.players, markerSupplyByPlayer: state.markerSupplyByPlayer }, ...state.facilities! }, definition,
+        const quote = getFacilityConstructionQuote({ position: { gameId: state.gameId, board: state.board, players: state.players, markerSupplyByPlayer: state.markerSupplyByPlayer, ...(state.patternMarkers ? { patternMarkers: state.patternMarkers } : {}) }, ...state.facilities! }, definition,
           { gameId: state.gameId, actorId: actor, expectedSupplyRevision: state.facilities!.supply.revision, expectedPanelRevision: panel.revision }, { cardId, cellId: empty[0]!.id, paymentMode });
         if (quote.canPay) choices.push({ cardId, paymentMode });
       } catch (error) {

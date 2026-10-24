@@ -12,6 +12,7 @@ import { harvestIssues } from './harvest-invariants.js';
 import { influenceActionIssues } from './influence-action-invariants.js';
 import { constructionIssues } from './construction-invariants.js';
 import { roundFlowIssues } from './round-invariants.js';
+import { cityPatternIssues } from './city-pattern-invariants.js';
 
 /** Player-count setup rule; it is deliberately outside BoardDefinition. */
 export function getFoundersMapSide(playerCount: number): MapSide {
@@ -76,6 +77,8 @@ function markerUsages(state: GamePosition): MarkerLedgerEntry[] {
   for (const [slotId, marker] of Object.entries(state.board.influenceBySlot)) {
     if (marker) result.push({ markerId: marker.markerId, ownerPlayerId: marker.ownerPlayerId, location: { kind: 'board-slot', slotId } });
   }
+  for (const marker of state.patternMarkers ?? []) result.push({ markerId: marker.markerId, ownerPlayerId: marker.ownerPlayerId,
+    location: { kind: 'city-pattern', patternId: marker.patternId } });
   return result;
 }
 
@@ -140,7 +143,8 @@ export function parseGamePosition(input: unknown, definition: GameDefinition): G
 }
 
 function positionFields(state: GamePosition): GamePosition {
-  return { gameId: state.gameId, board: state.board, players: state.players, markerSupplyByPlayer: state.markerSupplyByPlayer };
+  return { gameId: state.gameId, board: state.board, players: state.players, markerSupplyByPlayer: state.markerSupplyByPlayer,
+    ...(state.patternMarkers ? { patternMarkers: state.patternMarkers } : {}) };
 }
 
 /** Cross-object snapshot checks. This is not the complete turn/action legality validator. */
@@ -152,6 +156,7 @@ export function validateGameState(input: unknown, definition: GameDefinition): V
   const board = loadFoundersBoard(getFoundersMapSide(definition.players.length));
   const issues = [...actionPositionIssues(parsed.data, definition), ...entryProgressIssues(parsed.data, definition, board), ...explorationProgressIssues(parsed.data, definition, board), ...cityMoveProgressIssues(parsed.data, definition, board), ...influenceActionIssues(parsed.data, definition, board), ...harvestIssues(parsed.data, definition, board), ...constructionIssues(parsed.data, definition)];
   issues.push(...roundFlowIssues(parsed.data, definition));
+  issues.push(...cityPatternIssues(parsed.data, definition));
   return issues.length ? { success: false, issues } : { success: true, data: deepFreeze(parsed.data) };
 }
 

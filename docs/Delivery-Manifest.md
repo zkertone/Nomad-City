@@ -453,3 +453,50 @@
 - `packages/game-core/src/patterns/preview.ts`
 - `packages/game-core/src/patterns/schema.ts`
 - `scripts/check-patterns.mjs`
+
+
+## 2026-10-24 · 城市样式宣告与首批完整特殊行动
+
+基准main提交813b08e42eb08dc8bac11fd0fe947272d1d55e02；基础版2/3/4人，显式GameState1.13.0接入12种宣告和4种完整特殊行动。规则与能力边界见[实现说明](City-Pattern-Actions-2026-10-24.md)，真实结果见[验证记录](testing/city-pattern-actions-validation-2026-10-24.md)。
+
+实际2024/2024（26文件）、strict/build及21项编译检查全部通过；新脚本12段无注入真实流程。原资料JSON/固定摘要、全部风味、依赖锁、GameDefinition及Accepted ADR不变。没有上传原图/PDF，没有UI、网络、部署或对外发布。
+
+本批共37份变更，新增8份，无删除；路径相对于仓库根目录。
+
+- `README.md`（更新）
+- `docs/City-Pattern-Actions-2026-10-24.md`（新增）
+- `docs/City-Patterns-2026-10-24.md`（更新）
+- `docs/Delivery-Manifest.md`（更新）
+- `docs/DevLog.md`（更新）
+- `docs/Game-State-Foundation-2026-10-17.md`（更新）
+- `docs/Round-Flow-2026-10-23.md`（更新）
+- `docs/testing/city-pattern-actions-validation-2026-10-24.md`（新增）
+- `package.json`（更新）
+- `packages/game-core/src/game/action-window.ts`（更新）
+- `packages/game-core/src/game/city-move.ts`（更新）
+- `packages/game-core/src/game/city-pattern-actions.test.ts`（新增）
+- `packages/game-core/src/game/city-pattern-actions.ts`（新增）
+- `packages/game-core/src/game/city-pattern-invariants.ts`（新增）
+- `packages/game-core/src/game/city-pattern-rules.ts`（新增）
+- `packages/game-core/src/game/city-pattern-schema.ts`（新增）
+- `packages/game-core/src/game/construction-invariants.ts`（更新）
+- `packages/game-core/src/game/construction.ts`（更新）
+- `packages/game-core/src/game/exploration-engine.ts`（更新）
+- `packages/game-core/src/game/exploration.ts`（更新）
+- `packages/game-core/src/game/facility-entries.ts`（更新）
+- `packages/game-core/src/game/facility-entry-invariants.ts`（更新）
+- `packages/game-core/src/game/facility-entry-rules.ts`（更新）
+- `packages/game-core/src/game/harvest.ts`（更新）
+- `packages/game-core/src/game/index.ts`（更新）
+- `packages/game-core/src/game/influence-actions.ts`（更新）
+- `packages/game-core/src/game/liskarm.ts`（更新）
+- `packages/game-core/src/game/role-effects.ts`（更新）
+- `packages/game-core/src/game/role-rules.ts`（更新）
+- `packages/game-core/src/game/round-invariants.ts`（更新）
+- `packages/game-core/src/game/round-schema.ts`（更新）
+- `packages/game-core/src/game/round.ts`（更新）
+- `packages/game-core/src/game/schema.ts`（更新）
+- `packages/game-core/src/game/state.ts`（更新）
+- `packages/game-core/src/game/types.ts`（更新）
+- `packages/game-core/src/game/warehouse.ts`（更新）
+- `scripts/check-pattern-actions.mjs`（新增）

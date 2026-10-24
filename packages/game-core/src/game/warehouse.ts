@@ -26,7 +26,7 @@ export function enableWarehouseEntries(input: GameState, definition: GameDefinit
 }
 function pending(input: GameState, definition: GameDefinition, actorId: string) {
   const state = parseGameState(input, definition), action = state.construction;
-  if (!['1.11.0', '1.12.0'].includes(state.schemaVersion) || state.phase !== 'construction' || action?.status !== 'entry-pending' || !action.warehouseEntry) return reject('ENTRY_STAGE', 'No pending warehouse exploration');
+  if (!['1.11.0', '1.12.0', '1.13.0'].includes(state.schemaVersion) || state.phase !== 'construction' || action?.status !== 'entry-pending' || !action.warehouseEntry) return reject('ENTRY_STAGE', 'No pending warehouse exploration');
   if (action.actorId !== actorId) return reject('WRONG_ACTOR', 'Only the construction owner resolves this entry');
   return { state, action, entry: action.warehouseEntry };
 }

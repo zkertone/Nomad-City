@@ -14,12 +14,12 @@ export function constructionIssues(state: GameState, definition: GameDefinition)
   const report = (path: string, message: string) => { issues.push({ code: 'CONSTRUCTION_STATE', path, message }); };
   if (state.facilities) {
     const checked = validateFacilityConstructionPosition({ position: {
-      gameId: state.gameId, board: state.board, players: state.players, markerSupplyByPlayer: state.markerSupplyByPlayer,
+      gameId: state.gameId, board: state.board, players: state.players, markerSupplyByPlayer: state.markerSupplyByPlayer, ...(state.patternMarkers ? { patternMarkers: state.patternMarkers } : {}),
     }, ...state.facilities }, definition);
     if (!checked.success) { for (const message of checked.issues) report('facilities', message); return issues; }
   }
   for (const holding of state.facilities?.supply.playerHoldings ?? []) for (const id of holding.cardIds) {
-    try { if (getFacilityConstructionSpec(id).entry.kind === 'warehouse' && !['1.11.0', '1.12.0'].includes(state.schemaVersion)) report('facilities', 'Built warehouse requires format 1.11.0'); } catch { /* Other invalid/unsupported cards are checked by their existing validators. */ }
+    try { if (getFacilityConstructionSpec(id).entry.kind === 'warehouse' && !['1.11.0', '1.12.0', '1.13.0'].includes(state.schemaVersion)) report('facilities', 'Built warehouse requires format 1.11.0'); } catch { /* Other invalid/unsupported cards are checked by their existing validators. */ }
   }
   issues.push(...nestedFacilityEntryIssues(state, definition));
   const action = state.construction;

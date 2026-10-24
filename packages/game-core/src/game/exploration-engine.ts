@@ -87,7 +87,7 @@ export function resolveExplorationStep(next: z.infer<typeof gameStateSchema>, de
     case 'choose-exploration-event': {
       if (progress.status !== 'event-choice') return reject('ACTION_STAGE', 'No unresolved event');
       try {
-        const settled = settleEventChoice({ gameId: current.gameId, board: current.board, players: current.players, markerSupplyByPlayer: current.markerSupplyByPlayer }, definition,
+        const settled = settleEventChoice({ gameId: current.gameId, board: current.board, players: current.players, markerSupplyByPlayer: current.markerSupplyByPlayer, ...(current.patternMarkers ? { patternMarkers: current.patternMarkers } : {}) }, definition,
           { gameId: current.gameId, actorId: progress.actorId, nodeId: progress.targetNodeId!, cardId: progress.cardId! }, command.choice);
         Object.assign(next, gamePositionSchema.parse(settled.position));
       } catch (error) {

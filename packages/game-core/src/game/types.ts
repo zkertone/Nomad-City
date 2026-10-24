@@ -20,7 +20,8 @@ export type EventDeckState = NonNullable<GameState['eventDecks']>;
 export type MarkerLocation =
   | { readonly kind: 'supply'; readonly playerId: string }
   | { readonly kind: 'score'; readonly playerId: string }
-  | { readonly kind: 'board-slot'; readonly slotId: string };
+  | { readonly kind: 'board-slot'; readonly slotId: string }
+  | { readonly kind: 'city-pattern'; readonly patternId: string };
 export interface MarkerLedgerEntry {
   readonly markerId: string;
   readonly ownerPlayerId: string;

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { getCityPattern } from '../patterns/catalog.js';
 import { loadFoundersBoard } from '../board/index.js';
 import { slotIdSchema } from '../board/schema.js';
 import { gameEntityIdSchema, gameStateSchema } from './schema.js';
@@ -85,6 +86,7 @@ export function applyBaseRoleCommand(input: GameState, definition: GameDefinitio
   const flow = state.roundFlow!, turn = getRoundTurn(state, definition);
   if (flow.stage !== 'player-actions' || turn.actorId !== context.authenticatedPlayerId) return reject('ROLE_WINDOW', 'Only the current action player may use their placed role');
   if (turn.majorActionStatus === 'pending') return reject('ACTION_PENDING', 'Quick actions cannot interrupt a major action');
+  if (state.cityPatterns?.usedSpecialActions.some(use => use.playerId === turn.actorId && use.turnIndex === flow.turnIndex && getCityPattern(use.patternId).forbidsRoleInTurn)) return reject('ROLE_CONFLICT', 'This special forbids a role in its action turn');
   const actorId = turn.actorId!, roles = flow.rolesByPlayer.find(role => role.playerId === actorId)!;
   if (roles.used || roles.placed === null) return reject('ROLE_ALREADY_USED', 'This round role has already been used');
   if (roles.placed !== command.roleId) return reject('PLACED_ROLE', 'Only the placed role can be used');
@@ -98,7 +100,7 @@ export function applyBaseRoleCommand(input: GameState, definition: GameDefinitio
   if (usesScheme && command.schemeChoice!.kind !== expectedScheme[command.roleId]) return reject('ROLE_CHOICES', 'Choice does not belong to this role scheme');
   if (state.stateVersion === Number.MAX_SAFE_INTEGER) return reject('VERSION_OVERFLOW', 'State version exhausted');
   const next = gameStateSchema.parse(state), actor = next.players[actorId]!, nextRoles = next.roundFlow!.rolesByPlayer.find(role => role.playerId === actorId)!;
-  if (['1.10.0', '1.11.0', '1.12.0'].includes(state.schemaVersion) && turn.majorActionStatus === 'complete') {
+  if (['1.10.0', '1.11.0', '1.12.0', '1.13.0'].includes(state.schemaVersion) && turn.majorActionStatus === 'complete' && state.phase !== 'round-control') {
     next.roundFlow!.completedMajorAction = state.phase === 'exploration' ? 'explore' : state.phase === 'city-move' ? 'city-move'
       : state.phase === 'construction' ? 'construct' : state.influenceAction!.kind;
     delete next.exploration; delete next.cityMove; delete next.influenceAction; delete next.construction;

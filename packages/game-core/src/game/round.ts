@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { resetCityPatternsForCleanup } from './city-pattern-rules.js';
 import { deepFreeze } from '../board/hash.js';
 import { gameEntityIdSchema, gameStateSchema } from './schema.js';
 import { parseGameState } from './state.js';
@@ -164,6 +165,7 @@ export function finishManagedRound(input: GameState, definition: GameDefinition,
     role.placed = null;
     if (role.used !== undefined) role.used = null;
   }
+  resetCityPatternsForCleanup(next);
   const override = flow.startingPlayerOverride;
   if (override) {
     const index = next.playerOrder!.indexOf(override.playerId);
