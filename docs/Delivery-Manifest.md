@@ -425,3 +425,31 @@
 - `scripts/check-warehouse.mjs`
 
 本批最终验证：1810/1810（23文件）、strict/build及19项编译检查全部通过，其中33段新旧真实设施流程覆盖2/3/4人。
+
+
+## 2026-10-24 · 三档玩法规范与城市样式资料/匹配批次
+
+新增[玩法规范](Gameplay-Versions-2026-10-24.md)、[城市样式说明](City-Patterns-2026-10-24.md)及[实际验证](testing/city-patterns-validation-2026-10-24.md)。15张卡面与风味完整保留；共用旋转/双色/虹色/已用牌匹配和只读宣告预检，未接入权威宣告或特殊行动。正式牌名为复合动力系统，原输入错字只留溯源。
+
+最终1962/1962（25文件）、strict/build及20项编译检查通过。原图/PDF不上传，原游戏数据、固定摘要、GameState、依赖版本/锁及Accepted ADR不改。以下相对于GitHub main 2eb9ed56039e86ae74a558e53efe2ac84b0f0160。
+
+共18份变更，新增12份，无删除。
+
+- `README.md`
+- `docs/City-Patterns-2026-10-24.md`
+- `docs/Delivery-Manifest.md`
+- `docs/DevLog.md`
+- `docs/Gameplay-Versions-2026-10-24.md`
+- `docs/testing/city-patterns-validation-2026-10-24.md`
+- `package.json`
+- `packages/game-core/package.json`
+- `packages/game-core/src/index.ts`
+- `packages/game-core/src/patterns/catalog.json`
+- `packages/game-core/src/patterns/catalog.ts`
+- `packages/game-core/src/patterns/index.ts`
+- `packages/game-core/src/patterns/matching.ts`
+- `packages/game-core/src/patterns/patterns.test.ts`
+- `packages/game-core/src/patterns/preview.test.ts`
+- `packages/game-core/src/patterns/preview.ts`
+- `packages/game-core/src/patterns/schema.ts`
+- `scripts/check-patterns.mjs`

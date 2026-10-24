@@ -1,0 +1,809 @@
+{
+  "catalogId": "founders-city-patterns",
+  "schemaVersion": "1.0.0",
+  "scope": "all-15-provided-patterns",
+  "sources": [
+    {
+      "id": "pattern-image-6",
+      "filename": "image(6).png",
+      "libraryFileId": "libfile_a850c9c4e2848191894486126f36ad2d",
+      "attachmentId": "file_00000000c6fc820bbbb76558235e6109",
+      "sha256": "3119547d309b3d4ded5731a59bba8b1148da476e9694c591004f3c47646846c5"
+    },
+    {
+      "id": "pattern-image-7",
+      "filename": "image(7).png",
+      "libraryFileId": "libfile_8f8bd6c680ac8191a1f91866e46135b3",
+      "attachmentId": "file_00000000ad80820b9d053dc25c1842c5",
+      "sha256": "cebae7b39b3dd55492deaa4824bf1ca756db7386384264f264d48c18c1261f39"
+    },
+    {
+      "id": "pattern-image-8",
+      "filename": "image(8).png",
+      "libraryFileId": "libfile_f0aa301d6e348191a1e0355d6677235a",
+      "attachmentId": "file_000000000934820b9823b3c366af1c81",
+      "sha256": "e8c4851450be67682dcedd9353d19e7dd5bcaeb197a790e8d99337442fe150e9"
+    }
+  ],
+  "textSources": [
+    {
+      "id": "user-pattern-flavor-2026-10-24",
+      "kind": "user-message",
+      "date": "2026-10-24"
+    }
+  ],
+  "ruleSources": [
+    {
+      "filename": "游城拓荒铸基者-规则书20230803.pdf",
+      "sha256": "6b87c026e317606de2324276ff117480b8e104f5b925a21d43b95af176ddbf42",
+      "printedPages": [
+        2,
+        8,
+        9,
+        10,
+        11,
+        13,
+        15,
+        16
+      ]
+    },
+    {
+      "filename": "游城拓荒感染者-规则书20241111.pdf",
+      "sha256": "f6d57d308d91bb90abee199c527b8b60650119ee73d2b4eb604db543e2404a0d",
+      "printedPages": [
+        2,
+        6,
+        7
+      ]
+    }
+  ],
+  "patterns": [
+    {
+      "id": "PAT-001",
+      "name": "动员配套体系",
+      "edition": "base",
+      "minimumGameplayVersion": "base",
+      "level": 1,
+      "printedScore": 3,
+      "cells": [
+        {
+          "row": 0,
+          "column": 0,
+          "colors": [
+            "yellow"
+          ]
+        },
+        {
+          "row": 0,
+          "column": 1,
+          "colors": [
+            "yellow"
+          ]
+        },
+        {
+          "row": 0,
+          "column": 2,
+          "colors": [
+            "red"
+          ]
+        }
+      ],
+      "declarationEffect": "unlock",
+      "specialAction": "replace-one",
+      "useCapacity": 1,
+      "effectText": "替换1个影响力。",
+      "forbidsRoleInTurn": false,
+      "sourceRef": "pattern-image-6",
+      "location": "top-middle",
+      "flavor": {
+        "text": "一杯荒地龙舌兰下肚，这里便都是可以一起赴汤蹈火的兄弟。",
+        "sourceRef": "user-pattern-flavor-2026-10-24",
+        "submittedName": "动员配套体系"
+      }
+    },
+    {
+      "id": "PAT-002",
+      "name": "物资中转站",
+      "edition": "base",
+      "minimumGameplayVersion": "base",
+      "level": 1,
+      "printedScore": 2,
+      "cells": [
+        {
+          "row": 0,
+          "column": 0,
+          "colors": [
+            "red",
+            "blue"
+          ]
+        },
+        {
+          "row": 0,
+          "column": 1,
+          "colors": [
+            "yellow"
+          ]
+        }
+      ],
+      "declarationEffect": "gain-resources",
+      "specialAction": "none",
+      "useCapacity": 0,
+      "effectText": "获得1源岩、1源石、1异铁。",
+      "forbidsRoleInTurn": false,
+      "sourceRef": "pattern-image-6",
+      "location": "top-right",
+      "flavor": {
+        "text": "“我们和聚居区居民的交易一向公平。”",
+        "sourceRef": "user-pattern-flavor-2026-10-24",
+        "submittedName": "物资中转站"
+      }
+    },
+    {
+      "id": "PAT-003",
+      "name": "源石工业中枢",
+      "edition": "base",
+      "minimumGameplayVersion": "base",
+      "level": 2,
+      "printedScore": 6,
+      "cells": [
+        {
+          "row": 0,
+          "column": 0,
+          "colors": [
+            "blue"
+          ]
+        },
+        {
+          "row": 1,
+          "column": 0,
+          "colors": [
+            "red"
+          ]
+        },
+        {
+          "row": 1,
+          "column": 1,
+          "colors": [
+            "blue"
+          ]
+        },
+        {
+          "row": 2,
+          "column": 0,
+          "colors": [
+            "yellow"
+          ]
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "colors": [
+            "yellow"
+          ]
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "colors": [
+            "red"
+          ]
+        }
+      ],
+      "declarationEffect": "unlock",
+      "specialAction": "two-extra-major-actions",
+      "useCapacity": 2,
+      "effectText": "使用此行动的轮中，不能使用角色牌。支付6金券→本轮中，你可以额外执行2次主要行动。（2次主要行动之间可以使用快速行动）",
+      "forbidsRoleInTurn": true,
+      "sourceRef": "pattern-image-6",
+      "location": "bottom-right",
+      "flavor": {
+        "text": "在源石工业带来的强劲效率面前，代价显得如此微不足道。",
+        "sourceRef": "user-pattern-flavor-2026-10-24",
+        "submittedName": "源石工业中枢"
+      }
+    },
+    {
+      "id": "PAT-004",
+      "name": "复合动力系统",
+      "edition": "base",
+      "minimumGameplayVersion": "base",
+      "level": 1,
+      "printedScore": 3,
+      "cells": [
+        {
+          "row": 0,
+          "column": 0,
+          "colors": [
+            "yellow"
+          ]
+        },
+        {
+          "row": 1,
+          "column": 0,
+          "colors": [
+            "red"
+          ]
+        },
+        {
+          "row": 1,
+          "column": 1,
+          "colors": [
+            "yellow"
+          ]
+        }
+      ],
+      "declarationEffect": "unlock",
+      "specialAction": "paid-free-city-move-and-route-influence",
+      "useCapacity": 1,
+      "effectText": "支付1源石与合计3个源岩／异铁→免费移城，并在通过的航道上放置1影响力。",
+      "forbidsRoleInTurn": false,
+      "sourceRef": "pattern-image-6",
+      "location": "bottom-middle",
+      "flavor": {
+        "text": "“新的巡航周期已经开始！小心手里的热咖啡。”",
+        "sourceRef": "user-pattern-flavor-2026-10-24",
+        "submittedName": "符合动力系统"
+      }
+    },
+    {
+      "id": "PAT-005",
+      "name": "军工化区域",
+      "edition": "base",
+      "minimumGameplayVersion": "base",
+      "level": 1,
+      "printedScore": 2,
+      "cells": [
+        {
+          "row": 0,
+          "column": 0,
+          "colors": [
+            "blue",
+            "yellow"
+          ]
+        },
+        {
+          "row": 0,
+          "column": 1,
+          "colors": [
+            "red"
+          ]
+        }
+      ],
+      "declarationEffect": "unlock",
+      "specialAction": "place-by-pattern-marker-count",
+      "useCapacity": 1,
+      "effectText": "放置X个影响力（至多3个）。（X为此样式上你的玩家标记的数量）",
+      "forbidsRoleInTurn": false,
+      "sourceRef": "pattern-image-6",
+      "location": "top-left",
+      "flavor": {
+        "text": "拓荒者不是军人，但必要之时他们依旧会为了利益而拿起武器。",
+        "sourceRef": "user-pattern-flavor-2026-10-24",
+        "submittedName": "军工化区域"
+      }
+    },
+    {
+      "id": "PAT-006",
+      "name": "高效移动管理体系",
+      "edition": "base",
+      "minimumGameplayVersion": "base",
+      "level": 2,
+      "printedScore": 7,
+      "cells": [
+        {
+          "row": 0,
+          "column": 0,
+          "colors": [
+            "yellow"
+          ]
+        },
+        {
+          "row": 1,
+          "column": 0,
+          "colors": [
+            "red"
+          ]
+        },
+        {
+          "row": 1,
+          "column": 1,
+          "colors": [
+            "yellow"
+          ]
+        },
+        {
+          "row": 2,
+          "column": 0,
+          "colors": [
+            "blue"
+          ]
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "colors": [
+            "blue"
+          ]
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "colors": [
+            "red"
+          ]
+        }
+      ],
+      "declarationEffect": "unlock",
+      "specialAction": "two-free-city-moves",
+      "useCapacity": 2,
+      "effectText": "使用此行动的轮中，不能使用角色牌。支付3源石→连续执行2次免费移城。",
+      "forbidsRoleInTurn": true,
+      "sourceRef": "pattern-image-6",
+      "location": "bottom-left",
+      "flavor": {
+        "text": "通过迁徙来躲避天灾的生活方式被烙印在泰拉人的血脉之中，至今犹存。",
+        "sourceRef": "user-pattern-flavor-2026-10-24",
+        "submittedName": "高效移动管理体系"
+      }
+    },
+    {
+      "id": "PAT-007",
+      "name": "大型企业园",
+      "edition": "enterprise",
+      "minimumGameplayVersion": "enterprise",
+      "level": 1,
+      "printedScore": 3,
+      "cells": [
+        {
+          "row": 0,
+          "column": 0,
+          "colors": [
+            "blue"
+          ]
+        },
+        {
+          "row": 1,
+          "column": 0,
+          "colors": [
+            "red"
+          ]
+        },
+        {
+          "row": 1,
+          "column": 1,
+          "colors": [
+            "blue"
+          ]
+        }
+      ],
+      "declarationEffect": "unlock",
+      "specialAction": "enterprise-two-levels",
+      "useCapacity": 1,
+      "effectText": "选择1家企业，提升企业合作等级2次。",
+      "forbidsRoleInTurn": false,
+      "sourceRef": "pattern-image-7",
+      "location": "top-right",
+      "flavor": {
+        "text": "不需过问赞助者在你的城邦上干了什么，只管接受恩惠就好。",
+        "sourceRef": "user-pattern-flavor-2026-10-24",
+        "submittedName": "大型企业园"
+      }
+    },
+    {
+      "id": "PAT-008",
+      "name": "核心商业区",
+      "edition": "enterprise",
+      "minimumGameplayVersion": "base",
+      "level": 1,
+      "printedScore": 3,
+      "cells": [
+        {
+          "row": 0,
+          "column": 0,
+          "colors": [
+            "blue"
+          ]
+        },
+        {
+          "row": 0,
+          "column": 1,
+          "colors": [
+            "blue"
+          ]
+        },
+        {
+          "row": 0,
+          "column": 2,
+          "colors": [
+            "red"
+          ]
+        }
+      ],
+      "declarationEffect": "unlock",
+      "specialAction": "gain-and-extra-major-action",
+      "useCapacity": 1,
+      "effectText": "从以下选项中选择一项获得：4金券、1源岩、1源石、1异铁。执行1次特殊行动以外的主要行动。",
+      "forbidsRoleInTurn": false,
+      "sourceRef": "pattern-image-7",
+      "location": "bottom-right",
+      "flavor": {
+        "text": "“老板，这是我们卖力工作才为您赚到的物资，欢迎下次再来。”",
+        "sourceRef": "user-pattern-flavor-2026-10-24",
+        "submittedName": "核心商业区"
+      }
+    },
+    {
+      "id": "PAT-009",
+      "name": "警备队辖区",
+      "edition": "enterprise",
+      "minimumGameplayVersion": "base",
+      "level": 2,
+      "printedScore": 6,
+      "cells": [
+        {
+          "row": 0,
+          "column": 0,
+          "colors": [
+            "blue"
+          ]
+        },
+        {
+          "row": 1,
+          "column": 0,
+          "colors": [
+            "red"
+          ]
+        },
+        {
+          "row": 1,
+          "column": 1,
+          "colors": [
+            "blue"
+          ]
+        },
+        {
+          "row": 2,
+          "column": 0,
+          "colors": [
+            "yellow"
+          ]
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "colors": [
+            "yellow"
+          ]
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "colors": [
+            "red"
+          ]
+        }
+      ],
+      "declarationEffect": "unlock",
+      "specialAction": "choose-two-tactical-options",
+      "useCapacity": 2,
+      "effectText": "使用此行动的轮中，不能使用角色牌。从右侧选项中选择2次并依次执行：支付2源岩1异铁→替换1个影响力；放置1个影响力，获得1源石；移除1个影响力，获得2异铁。",
+      "forbidsRoleInTurn": true,
+      "sourceRef": "pattern-image-7",
+      "location": "top-middle",
+      "flavor": {
+        "text": "“秩序的代理人？城市的守卫者？我看他们只代表了指挥塔上的意志。”",
+        "sourceRef": "user-pattern-flavor-2026-10-24",
+        "submittedName": "警备队辖区"
+      }
+    },
+    {
+      "id": "PAT-010",
+      "name": "拓荒指挥中枢",
+      "edition": "enterprise",
+      "minimumGameplayVersion": "base",
+      "level": 2,
+      "printedScore": 7,
+      "cells": [
+        {
+          "row": 0,
+          "column": 0,
+          "colors": [
+            "yellow"
+          ]
+        },
+        {
+          "row": 1,
+          "column": 0,
+          "colors": [
+            "red"
+          ]
+        },
+        {
+          "row": 1,
+          "column": 1,
+          "colors": [
+            "yellow"
+          ]
+        },
+        {
+          "row": 2,
+          "column": 0,
+          "colors": [
+            "blue"
+          ]
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "colors": [
+            "blue"
+          ]
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "colors": [
+            "red"
+          ]
+        }
+      ],
+      "declarationEffect": "unlock",
+      "specialAction": "extra-major-and-both-role-modes",
+      "useCapacity": 2,
+      "effectText": "本轮中，你可以额外执行1次特殊行动以外的主要行动；且使用角色牌时，可使用其策略和计谋。",
+      "forbidsRoleInTurn": false,
+      "sourceRef": "pattern-image-7",
+      "location": "bottom-left",
+      "flavor": {
+        "text": "在此坐镇的皆是野心和梦想的实践者。",
+        "sourceRef": "user-pattern-flavor-2026-10-24",
+        "submittedName": "拓荒指挥中枢"
+      }
+    },
+    {
+      "id": "PAT-011",
+      "name": "拓荒者据点",
+      "edition": "enterprise",
+      "minimumGameplayVersion": "base",
+      "level": 1,
+      "printedScore": 2,
+      "cells": [
+        {
+          "row": 0,
+          "column": 1,
+          "colors": [
+            "yellow"
+          ]
+        },
+        {
+          "row": 1,
+          "column": 0,
+          "colors": [
+            "blue"
+          ]
+        }
+      ],
+      "declarationEffect": "unlock",
+      "specialAction": "place-two-at-city-then-move-x",
+      "useCapacity": 1,
+      "effectText": "在你移动城市所在资源点放置2个影响力，移动X个影响力。（X为此样式上你的玩家标记的数量）",
+      "forbidsRoleInTurn": false,
+      "sourceRef": "pattern-image-7",
+      "location": "bottom-middle",
+      "flavor": {
+        "text": "拓荒者聚集于此，以钢铁与理想来构筑自己的家园。",
+        "sourceRef": "user-pattern-flavor-2026-10-24",
+        "submittedName": "拓荒者据点"
+      }
+    },
+    {
+      "id": "PAT-012",
+      "name": "城建开拓区",
+      "edition": "enterprise",
+      "minimumGameplayVersion": "base",
+      "level": 1,
+      "printedScore": 5,
+      "cells": [
+        {
+          "row": 0,
+          "column": 1,
+          "colors": [
+            "yellow"
+          ]
+        },
+        {
+          "row": 1,
+          "column": 0,
+          "colors": [
+            "blue"
+          ]
+        },
+        {
+          "row": 1,
+          "column": 1,
+          "colors": [
+            "blue"
+          ]
+        },
+        {
+          "row": 1,
+          "column": 2,
+          "colors": [
+            "red"
+          ]
+        }
+      ],
+      "declarationEffect": "unlock",
+      "specialAction": "paid-draw-pile-construction-and-shuffle",
+      "useCapacity": 1,
+      "effectText": "失去1分，从设施牌堆选择1张设施，建设该设施。然后你必须洗混设施牌堆。",
+      "forbidsRoleInTurn": false,
+      "sourceRef": "pattern-image-7",
+      "location": "top-left",
+      "flavor": {
+        "text": "管理条例第3章第9条附注2：工作人员有义务参与行政长官发起的工程活动。",
+        "sourceRef": "user-pattern-flavor-2026-10-24",
+        "submittedName": "城建开拓区"
+      }
+    },
+    {
+      "id": "PAT-013",
+      "name": "新兴建筑群",
+      "edition": "infected",
+      "minimumGameplayVersion": "base",
+      "level": 1,
+      "printedScore": 4,
+      "cells": [
+        {
+          "row": 0,
+          "column": 1,
+          "colors": [
+            "red",
+            "blue"
+          ]
+        },
+        {
+          "row": 1,
+          "column": 0,
+          "colors": [
+            "yellow"
+          ]
+        },
+        {
+          "row": 1,
+          "column": 1,
+          "colors": [
+            "yellow"
+          ]
+        },
+        {
+          "row": 1,
+          "column": 2,
+          "colors": [
+            "red"
+          ]
+        }
+      ],
+      "declarationEffect": "construction",
+      "specialAction": "none",
+      "useCapacity": 0,
+      "effectText": "立即建设，此次建设只能选择非彩色设施，且建设在空位上。",
+      "forbidsRoleInTurn": false,
+      "sourceRef": "pattern-image-8",
+      "location": "left",
+      "flavor": {
+        "text": "对新家园的渴望驱使着新建筑设施如苔藓般覆盖整座平台。",
+        "sourceRef": "user-pattern-flavor-2026-10-24",
+        "submittedName": "新兴建筑群"
+      }
+    },
+    {
+      "id": "PAT-014",
+      "name": "城区管理中心",
+      "edition": "infected",
+      "minimumGameplayVersion": "base",
+      "level": 1,
+      "printedScore": 3,
+      "cells": [
+        {
+          "row": 0,
+          "column": 0,
+          "colors": [
+            "blue"
+          ]
+        },
+        {
+          "row": 1,
+          "column": 0,
+          "colors": [
+            "yellow"
+          ]
+        },
+        {
+          "row": 1,
+          "column": 1,
+          "colors": [
+            "red"
+          ]
+        }
+      ],
+      "declarationEffect": "exchange-pattern-marker",
+      "specialAction": "none",
+      "useCapacity": 0,
+      "effectText": "将1个Ⅰ级样式上你的玩家标记放回供应区→获得1至纯源石。",
+      "forbidsRoleInTurn": false,
+      "sourceRef": "pattern-image-8",
+      "location": "middle",
+      "flavor": {
+        "text": "发展黄金期结束后，对冗余岗位上的人员进行重组将有效提升拓荒效率。",
+        "sourceRef": "user-pattern-flavor-2026-10-24",
+        "submittedName": "城区管理中心"
+      }
+    },
+    {
+      "id": "PAT-015",
+      "name": "综合企业办公区",
+      "edition": "infected",
+      "minimumGameplayVersion": "enterprise",
+      "level": 2,
+      "printedScore": 6,
+      "cells": [
+        {
+          "row": 0,
+          "column": 0,
+          "colors": [
+            "yellow"
+          ]
+        },
+        {
+          "row": 1,
+          "column": 0,
+          "colors": [
+            "red"
+          ]
+        },
+        {
+          "row": 1,
+          "column": 1,
+          "colors": [
+            "yellow"
+          ]
+        },
+        {
+          "row": 2,
+          "column": 0,
+          "colors": [
+            "blue"
+          ]
+        },
+        {
+          "row": 2,
+          "column": 1,
+          "colors": [
+            "blue"
+          ]
+        },
+        {
+          "row": 2,
+          "column": 2,
+          "colors": [
+            "red"
+          ]
+        }
+      ],
+      "declarationEffect": "unlock",
+      "specialAction": "enterprise-two-levels-and-trigger",
+      "useCapacity": 2,
+      "effectText": "使用此行动的轮中，不能使用角色牌。选择1家企业：提升企业合作等级2次，触发企业特效1次。",
+      "forbidsRoleInTurn": true,
+      "sourceRef": "pattern-image-8",
+      "location": "right",
+      "flavor": {
+        "text": "“根据行政命令，本区住户必须立刻迁移，为大型企业的入驻腾出空间。”",
+        "sourceRef": "user-pattern-flavor-2026-10-24",
+        "submittedName": "综合企业办公区"
+      }
+    }
+  ],
+  "contentHash": "sha256:f18485ebafb5bb04792c2804428a095c81ee9a2052b34cfc54d7583053041e33"
+}
