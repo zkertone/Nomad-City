@@ -1,0 +1,4 @@
+{"players":2,"map":"founders-map-3","inventory":60,"supplyPerPlayer":29,"scoreMarkersPerPlayer":1}
+{"players":3,"map":"founders-map-3","inventory":90,"supplyPerPlayer":29,"scoreMarkersPerPlayer":1}
+{"players":4,"map":"founders-map-4","inventory":120,"supplyPerPlayer":29,"scoreMarkersPerPlayer":1}
+PASS: compiled /game and root exports, setup, balances and conserved marker ledger

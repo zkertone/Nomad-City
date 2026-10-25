@@ -1,0 +1,4 @@
+{"players":2,"phase":"harvest","format":"1.5.0","previewOnly":true,"p1RegionPoints":6,"p1TotalPoints":6,"actualScoreUnchanged":0,"leadingPlayerIds":["p2"]}
+{"players":3,"phase":"harvest","format":"1.5.0","previewOnly":true,"p1RegionPoints":6,"p1TotalPoints":6,"actualScoreUnchanged":0,"leadingPlayerIds":["p1"]}
+{"players":4,"phase":"harvest","format":"1.5.0","previewOnly":true,"p1RegionPoints":6,"p1TotalPoints":6,"actualScoreUnchanged":0,"leadingPlayerIds":["p1"]}
+PASS: compiled 2/3/4-player entry/actions/harvest -> read-only base scoring preview, root/subpath exports and JSON restore

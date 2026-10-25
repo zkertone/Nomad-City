@@ -10,6 +10,7 @@ import { getFoundersMapSide, parseGameState } from './state.js';
 import { getRoundTurn } from './round.js';
 import { getCityPatternActionSupport } from './city-pattern-rules.js';
 import { beginPatternCityMoves, beginPatternConstruction } from './city-pattern-continuations.js';
+import { patternSpecialAllowed, markPatternSpecialChild, beginPatternMajorActions } from './city-pattern-major-actions.js';
 import { availableInfluenceSlots, availableTargetInfluenceSlots, emptyInfluenceSlots, dispatchSourceSlots, replaceBoardInfluence, returnBoardInfluence } from './influence.js';
 import type { GameDefinition, GameState, DeepReadonly } from './types.js';
 
@@ -46,6 +47,9 @@ const effectSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('composite-move'), orirock: z.number().int().min(0).max(3), iron: z.number().int().min(0).max(3) }),
   z.strictObject({ kind: z.literal('double-move') }),
   z.strictObject({ kind: z.literal('deck-construction') }),
+  z.strictObject({ kind: z.literal('industry-actions') }),
+  z.strictObject({ kind: z.literal('commercial-action'), reward: z.enum(['columbia-voucher', 'orirock', 'originium', 'iron']) }),
+  z.strictObject({ kind: z.literal('command-action') }),
 ]);
 export const cityPatternPlayerCommandSchema = z.discriminatedUnion('type', [
   z.strictObject({ ...envelope, type: z.literal('declare-city-pattern'), patternId: cityPatternIdSchema,
@@ -55,7 +59,7 @@ export const cityPatternPlayerCommandSchema = z.discriminatedUnion('type', [
 export type CityPatternPlayerCommand = DeepReadonly<z.infer<typeof cityPatternPlayerCommandSchema>>;
 function scheduled(input: GameState, definition: GameDefinition, actorId: string) {
   const state = parseGameState(input, definition);
-  if (!['1.13.0', '1.14.0'].includes(state.schemaVersion)) return reject('PATTERN_FORMAT', 'Explicitly initialize city patterns');
+  if (!['1.13.0', '1.14.0', '1.15.0'].includes(state.schemaVersion)) return reject('PATTERN_FORMAT', 'Explicitly initialize city patterns');
   const turn = getRoundTurn(state, definition);
   if (turn.stage !== 'player-actions' || turn.actorId !== actorId) return reject('PATTERN_WINDOW', 'Only the scheduled player can act');
   return { state, turn };
@@ -76,7 +80,7 @@ export function getCityPatternDeclarationOptions(input: GameState, definition: G
 /** Advisory first-step choices only; sequential targets are revalidated after every private effect. */
 export function getCityPatternSpecialOptions(input: GameState, definition: GameDefinition, actorId: string) {
   const { state, turn } = scheduled(input, definition, actorId);
-  if (turn.majorActionStatus !== 'not-started') return deepFreeze([]);
+  if (turn.majorActionStatus !== 'not-started' || !patternSpecialAllowed(state)) return deepFreeze([]);
   const board = loadFoundersBoard(getFoundersMapSide(definition.players.length));
   return deepFreeze(state.cityPatterns!.publicPatternIds.filter(patternId => getCityPatternActionSupport(state.schemaVersion).specialActionPatternIds.includes(patternId)).flatMap(patternId => {
     const pattern = getCityPattern(patternId), markers = state.patternMarkers!.filter(row => row.ownerPlayerId === actorId && row.patternId === patternId);
@@ -127,6 +131,7 @@ export function applyCityPatternCommand(input: GameState, definition: GameDefini
     if (command.patternId === 'PAT-013') beginPatternConstruction(next, definition, 'declaration-build', actorId);
   } else {
     if (turn.majorActionStatus !== 'not-started' || state.phase !== 'round-control') return reject('MAJOR_ACTION_USED', 'A special replaces the one normal major action');
+    if (!patternSpecialAllowed(state)) return reject('PATTERN_SPECIAL_FORBIDDEN', 'This granted action excludes special actions');
     if (!getCityPatternActionSupport(state.schemaVersion).specialActionPatternIds.includes(command.patternId)) return reject('PATTERN_SPECIAL_UNSUPPORTED', 'This special needs its full nested action implementation');
     const marker = next.patternMarkers!.find(row => row.markerId === command.markerId && row.ownerPlayerId === actorId && row.patternId === command.patternId);
     const track = next.cityPatterns!.useTracks.find(row => row.playerId === actorId && row.patternId === command.patternId);
@@ -134,7 +139,7 @@ export function applyCityPatternCommand(input: GameState, definition: GameDefini
     if (next.cityPatterns!.usedSpecialActions.some(row => row.patternId === command.patternId && row.playerId === actorId)) return reject('PATTERN_ALREADY_USED', 'This player already used this pattern this round');
     const role = state.roundFlow!.rolesByPlayer.find(row => row.playerId === actorId)!;
     if (pattern.forbidsRoleInTurn && role.used?.turnIndex === state.roundFlow!.turnIndex) return reject('ROLE_CONFLICT', 'A role was already used in this action turn');
-    const expected = ({ 'PAT-001': 'replace', 'PAT-005': 'military', 'PAT-009': 'security', 'PAT-011': 'outpost', 'PAT-004': 'composite-move', 'PAT-006': 'double-move', 'PAT-012': 'deck-construction' } as Record<string, string>)[command.patternId];
+    const expected = ({ 'PAT-001': 'replace', 'PAT-005': 'military', 'PAT-009': 'security', 'PAT-011': 'outpost', 'PAT-004': 'composite-move', 'PAT-006': 'double-move', 'PAT-012': 'deck-construction', 'PAT-003': 'industry-actions', 'PAT-008': 'commercial-action', 'PAT-010': 'command-action' } as Record<string, string>)[command.patternId];
     if (command.effect.kind !== expected) return reject('PATTERN_CHOICE', 'Effect choice must belong to the selected pattern');
     const board = loadFoundersBoard(getFoundersMapSide(definition.players.length));
     const place = (slotId: string | undefined, nodeId?: string) => {
@@ -179,6 +184,7 @@ export function applyCityPatternCommand(input: GameState, definition: GameDefini
         next.board.influenceBySlot[move.sourceSlotId] = null; next.board.influenceBySlot[move.targetSlotId] = influence;
       }
     }
+    markPatternSpecialChild(next, command.patternId);
     track.remainingUses--;
     next.cityPatterns!.usedSpecialActions.push({ playerId: actorId, patternId: command.patternId, turnIndex: next.roundFlow!.turnIndex });
     next.roundFlow!.majorActionOpened = true; next.roundFlow!.completedMajorAction = 'special';
@@ -193,6 +199,13 @@ export function applyCityPatternCommand(input: GameState, definition: GameDefini
     } else if (effect.kind === 'deck-construction') {
       if (!Number.isSafeInteger(actor.score - 1)) return reject('SCORE_OVERFLOW', 'Cannot lose one point safely');
       actor.score--; beginPatternConstruction(next, definition, 'deck-build', actorId);
+    } else if (effect.kind === 'industry-actions') {
+      if (actor.balances['columbia-voucher'] < 6) return reject('CANNOT_PAY', 'Pay six vouchers before granting either extra action');
+      actor.balances['columbia-voucher'] -= 6; beginPatternMajorActions(next, 'PAT-003');
+    } else if (effect.kind === 'commercial-action') {
+      gain(effect.reward, effect.reward === 'columbia-voucher' ? 4 : 1); beginPatternMajorActions(next, 'PAT-008');
+    } else if (effect.kind === 'command-action') {
+      beginPatternMajorActions(next, 'PAT-010');
     }
   }
   next.stateVersion++;

@@ -6,13 +6,14 @@
 
 设施批次见 [剩余基础设施](docs/Remaining-Facilities-2026-10-23.md)：物流/延伸、免费完整移城及航道标记、复制入场、额外付费建设、理事处本回合最后生效与保存恢复。显式升级GameState1.12.0后使用；已有旧格式路径继续兼容。
 
-城市样式保留15张完整卡面与风味、三档玩法×人数目录筛选和图案匹配。最新GameState1.14.0在基础版2/3/4人支持全部13种宣告、7种完整特殊行动：新增新兴建筑群正常建设、城建开拓区从牌堆建设并洗混、复合动力系统完整移城后航道放置、高效移动管理体系连续两次免费移城。费用、主要行动额度、事件/设施子入场和中途存档统一校验。[资料与匹配](docs/City-Patterns-2026-10-24.md) · [首批行动](docs/City-Pattern-Actions-2026-10-24.md) · [四张样式批量接入与边界](docs/City-Pattern-Continuations-2026-10-24.md)。
+城市样式保留15张完整卡面与风味、三档玩法×人数目录筛选和图案匹配。最新GameState1.15.0在基础版2/3/4人支持全部13种宣告、10种完整特殊行动：新增源石工业中枢的两次额外主要行动、核心商业区的先奖励后非特殊行动、拓荒指挥中枢的非特殊行动及本行动轮角色双模式例外。嵌套行动、事件/设施入场、中途存档与原主要行动额度统一校验；两张企业样式及完整三档执行仍待完成。[资料与匹配](docs/City-Patterns-2026-10-24.md) · [首批行动](docs/City-Pattern-Actions-2026-10-24.md) · [建设与移城续接](docs/City-Pattern-Continuations-2026-10-24.md) · [额外行动与角色例外](docs/City-Pattern-Major-Actions-2026-10-24.md)。
 
 ```bash
 npm run verify
 npm run check:remaining-facilities
 npm run check:pattern-actions
 npm run check:pattern-continuations
+npm run check:pattern-major-actions
 ```
 
 ## 安装与复现

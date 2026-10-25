@@ -139,3 +139,10 @@ state = applyRoundCommand(state, definition, { authenticatedPlayerId }, {
 [1.14.0批次](City-Pattern-Continuations-2026-10-24.md)新增复合动力/高效移动/城建开拓区特殊行动与新兴建筑群宣告。getRoundTurn在任一续接存在时都返回pending，不能因子移城complete或宣告前majorActionOpened=false而提前结束/取消。高效移动按同一个turnIndex检查角色禁令，连续两次移城只支付一次启动成本并只消耗一次特殊行动。
 
 宣告后建设可以发生在普通主要行动之前或之后，原majorActionOpened/completedMajorAction不重置；宣告/建设/入场结束后恢复原额度。特殊行动的建设/移城/事件全部完成才设置special完成事实，不能把子行动当成额外授权。所有收尾仍走原采集、雷蛇义务、Ⅰ级恢复/Ⅱ级不补次数和起始玩家传递。
+
+
+## 2026-10-24 城市样式额外主要行动
+
+GameState1.15.0的源石工业中枢、核心商业区、拓荒指挥中枢复用普通行动窗口，外层仍消耗一次正常主要行动。getRoundTurn在额外行动待选时显示not-started，实际开启后显示pending/complete。每个子行动完整结束后必须finish-pattern-action，最后一层完成才登记外层special完成；有未消费序列时finish-player-turn拒绝。
+
+取消只允许无实际步骤的普通子行动准备，不撤销外层使用、费用或奖励。快速角色与宣告可在子行动之间使用，不能打断任何子入场或事件。工业可嵌套商业/指挥，但后两者的子行动不能为特殊行动；工业同轮角色禁令优先于指挥双模式许可。指挥许可限当前玩家的实际行动轮，下一次行动轮不继承。详见[额外行动与角色例外](City-Pattern-Major-Actions-2026-10-24.md)。

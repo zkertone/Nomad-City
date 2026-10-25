@@ -1,0 +1,13 @@
+{"players":2,"scenario":"mobilization","realBuilds":2,"nextRound":6,"vouchers":28,"noInjectedState":true}
+{"players":2,"scenario":"military","realBuilds":1,"nextRound":5,"vouchers":38,"noInjectedState":true}
+{"players":2,"scenario":"security","realBuilds":5,"nextRound":7,"vouchers":4,"noInjectedState":true}
+{"players":2,"scenario":"outpost","realBuilds":1,"nextRound":5,"vouchers":43,"noInjectedState":true}
+{"players":3,"scenario":"mobilization","realBuilds":2,"nextRound":6,"vouchers":28,"noInjectedState":true}
+{"players":3,"scenario":"military","realBuilds":1,"nextRound":5,"vouchers":38,"noInjectedState":true}
+{"players":3,"scenario":"security","realBuilds":5,"nextRound":7,"vouchers":4,"noInjectedState":true}
+{"players":3,"scenario":"outpost","realBuilds":1,"nextRound":5,"vouchers":43,"noInjectedState":true}
+{"players":4,"scenario":"mobilization","realBuilds":2,"nextRound":6,"vouchers":28,"noInjectedState":true}
+{"players":4,"scenario":"military","realBuilds":1,"nextRound":5,"vouchers":38,"noInjectedState":true}
+{"players":4,"scenario":"security","realBuilds":5,"nextRound":7,"vouchers":4,"noInjectedState":true}
+{"players":4,"scenario":"outpost","realBuilds":1,"nextRound":5,"vouchers":43,"noInjectedState":true}
+PASS: 12 compiled real 2/3/4-player pattern declaration/special/cleanup/save workflows; charges, major quota, ownership and physical conservation

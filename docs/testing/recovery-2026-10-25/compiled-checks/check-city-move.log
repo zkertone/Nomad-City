@@ -1,0 +1,4 @@
+{"players":2,"status":"complete","version":17,"city":"D-02","originium":5,"vouchers":8,"supply":26}
+{"players":3,"status":"complete","version":18,"city":"D-02","originium":5,"vouchers":8,"supply":26}
+{"players":4,"status":"complete","version":20,"city":"D-02","originium":5,"vouchers":8,"supply":26}
+PASS: compiled entry -> city move -> exploration -> explored-target move, restore, stale retries and conserved inventory

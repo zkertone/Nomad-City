@@ -1,0 +1,19 @@
+{
+  "mapSide": "three-player",
+  "definitionId": "founders-map-3",
+  "version": "1.0.0",
+  "hash": "sha256:dbe7945c709d50f435c320ad2d09ca98660400762aaedc93a65f73260b1aab92",
+  "nodes": 18,
+  "routes": 20,
+  "slots": 66
+}
+{
+  "mapSide": "four-player",
+  "definitionId": "founders-map-4",
+  "version": "1.0.0",
+  "hash": "sha256:f6e4455cf20f20efbd2bf56768051ac9d86ee459e3325687fb69598b057a41bc",
+  "nodes": 22,
+  "routes": 22,
+  "slots": 77
+}
+PASS: compiled package import, both maps, fork incidence, two-player empty snapshot

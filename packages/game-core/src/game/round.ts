@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { resetCityPatternsForCleanup } from './city-pattern-rules.js';
+import { patternMajorActionReady, finishPatternMajorAction } from './city-pattern-major-actions.js';
 import { deepFreeze } from '../board/hash.js';
 import { gameEntityIdSchema, gameStateSchema } from './schema.js';
 import { parseGameState } from './state.js';
@@ -31,6 +32,7 @@ export const roundPlayerCommandSchema = z.discriminatedUnion('type', [
   z.strictObject({ ...envelope, type: z.literal('choose-major-action'), action: z.enum(['deploy', 'dispatch', 'explore', 'city-move', 'construct']) }),
   z.strictObject({ ...envelope, type: z.literal('cancel-major-preparation') }),
   z.strictObject({ ...envelope, type: z.literal('finish-player-turn') }),
+  z.strictObject({ ...envelope, type: z.literal('finish-pattern-action') }),
 ]);
 export type RoundPlayerCommand = DeepReadonly<z.infer<typeof roundPlayerCommandSchema>>;
 
@@ -85,7 +87,8 @@ export function getRoundTurn(input: GameState, definition: GameDefinition) {
   const state = checkedRound(input, definition), flow = state.roundFlow!;
   return deepFreeze({ roundNumber: flow.roundNumber, stage: flow.stage, actorId: currentActor(state, definition.players.length),
     cycle: flow.stage === 'player-actions' ? Math.floor(flow.turnIndex / definition.players.length) + 1 : null,
-    majorActionStatus: flow.stage !== 'player-actions' ? null : state.cityPatternContinuation ? 'pending' : !flow.majorActionOpened ? 'not-started' : actionComplete(state) ? 'complete' : 'pending',
+    majorActionStatus: flow.stage !== 'player-actions' ? null : state.cityPatternContinuation ? 'pending' : patternMajorActionReady(state) || !flow.majorActionOpened ? 'not-started' : actionComplete(state) ? 'complete' : 'pending',
+    ...(state.cityPatternMajorActions !== undefined ? { patternActions: state.cityPatternMajorActions } : {}),
   });
 }
 
@@ -100,7 +103,7 @@ export function applyRoundCommand(input: GameState, definition: GameDefinition, 
   if (actorId === null || context.authenticatedPlayerId !== actorId) return reject('WRONG_ACTOR', 'Only the scheduled player may act');
   if (state.stateVersion === Number.MAX_SAFE_INTEGER) return reject('VERSION_OVERFLOW', 'State version exhausted');
   if (command.type === 'choose-major-action') {
-    if (flow.stage !== 'player-actions' || state.phase !== 'round-control' || flow.majorActionOpened) return reject('MAJOR_ACTION_USED', 'One major action per turn, after every role is placed');
+    if (flow.stage !== 'player-actions' || state.phase !== 'round-control' || (flow.majorActionOpened && !patternMajorActionReady(state))) return reject('MAJOR_ACTION_USED', 'Use only the scheduled ordinary or pattern-granted major action');
     const options = { actorId, roundNumber: flow.roundNumber, expectedVersion: state.stateVersion };
     switch (command.action) {
       case 'deploy': return openDeploymentWindow(state, definition, options);
@@ -111,6 +114,10 @@ export function applyRoundCommand(input: GameState, definition: GameDefinition, 
     }
   }
   const next = gameStateSchema.parse(state), progress = next.roundFlow!;
+  if (command.type === 'finish-pattern-action') {
+    if (!state.cityPatternMajorActions?.length || patternMajorActionReady(state) || !actionComplete(state)) return reject('PATTERN_ACTION_PENDING', 'Complete the whole active pattern-granted action first');
+    finishPatternMajorAction(next); next.stateVersion++; return parseGameState(next, definition);
+  }
   if (command.type === 'remove-round-supply-card') {
     if (flow.stage !== 'role-removal' || state.phase !== 'round-control') return reject('ROUND_STAGE', 'Only two-player pre-placement removal accepts this command');
     const supply = next.facilities!.supply, index = supply.supply.indexOf(command.cardId);
@@ -137,11 +144,14 @@ export function applyRoundCommand(input: GameState, definition: GameDefinition, 
     if (command.type === 'cancel-major-preparation') {
       if (flow.stage !== 'player-actions' || !flow.majorActionOpened || !actionUnstarted(state)) return reject('ACTION_STARTED', 'Only preparation with zero performed operations can be canceled');
     } else {
+      if (state.cityPatternMajorActions?.length) return reject('PATTERN_ACTION_PENDING', 'Finish all granted pattern actions before ending this turn');
       if (flow.stage !== 'player-actions' || !flow.majorActionOpened || !actionComplete(state)) return reject('ACTION_PENDING', 'Finish exactly one major action before ending this turn');
       progress.turnIndex++;
       if (progress.turnIndex === definition.players.length * 2) progress.stage = 'harvest';
     }
-    progress.majorActionOpened = false;
+    if (state.cityPatternMajorActions?.length) {
+      const frame = next.cityPatternMajorActions!.at(-1)!; frame.activeAction = null; frame.activePatternId = null;
+    } else progress.majorActionOpened = false;
     if (progress.completedMajorAction !== undefined) progress.completedMajorAction = null;
     delete next.exploration; delete next.cityMove; delete next.influenceAction; delete next.construction;
     next.phase = 'round-control';

@@ -4,6 +4,8 @@ import { gameEntityIdSchema } from './schema.js';
 import { getGamePosition, parseGameState } from './state.js';
 import { eligibleBaseEventIds } from './exploration-rules.js';
 import type { DeepReadonly, GameDefinition, GameState } from './types.js';
+import { patternMajorActionReady } from './city-pattern-major-actions.js';
+import type { OrdinaryMajorAction } from './city-pattern-major-actions.js';
 
 // Shared action preparation and managed scheduling gate; not a player endpoint.
 const phaseOptionsSchema = z.strictObject({
@@ -24,7 +26,7 @@ function shuffle(ids: string[]): string[] {
 }
 const sameIds = (a: readonly string[], b: readonly string[]) => JSON.stringify([...a].sort()) === JSON.stringify([...b].sort());
 
-export function preparePhaseWindow(input: GameState, definition: GameDefinition, rawOptions: OpenPhaseWindowOptions, reject: Reject, actorId?: string) {
+export function preparePhaseWindow(input: GameState, definition: GameDefinition, rawOptions: OpenPhaseWindowOptions, reject: Reject, actorId?: string, actionKind?: OrdinaryMajorAction) {
   const state = parseGameState(input, definition);
   const parsed = phaseOptionsSchema.safeParse(rawOptions);
   if (!parsed.success) return reject('WINDOW_SCHEMA', parsed.error.message);
@@ -34,13 +36,15 @@ export function preparePhaseWindow(input: GameState, definition: GameDefinition,
   if (flow) {
     if (options.deckOrder !== undefined || options.roundNumber !== flow.roundNumber) return reject('ROUND_WINDOW', 'Managed round cannot reset decks or choose a different round');
     if (state.phase !== 'round-control') return reject('ROUND_WINDOW', 'Finish the active action and explicitly end its turn first');
-    if (actorId === undefined ? flow.stage !== 'harvest' : flow.stage !== 'player-actions' || flow.majorActionOpened || state.playerOrder![flow.turnIndex % definition.players.length] !== actorId) {
+    const extraReady = patternMajorActionReady(state);
+    if (actorId === undefined ? flow.stage !== 'harvest' : flow.stage !== 'player-actions' || (flow.majorActionOpened && !extraReady) || state.playerOrder![flow.turnIndex % definition.players.length] !== actorId || (extraReady && !actionKind)) {
       return reject('ROUND_WINDOW', 'Only the scheduled actor/action or scheduled harvest can open');
     }
     if (state.stateVersion === Number.MAX_SAFE_INTEGER) return reject('VERSION_OVERFLOW', 'State version exhausted');
     return { position: getGamePosition(state, definition), eventDecks: state.eventDecks!, playerOrder: state.playerOrder!,
       stateVersion: state.stateVersion + 1, options, previousFormat: state.schemaVersion,
       facilityFields: { facilities: state.facilities! }, roundFields: { ...(state.cityPatterns ? { cityPatterns: state.cityPatterns } : {}),
+        ...(state.cityPatternMajorActions !== undefined ? { cityPatternMajorActions: state.cityPatternMajorActions.map((frame, index) => actorId && extraReady && index === state.cityPatternMajorActions!.length - 1 ? { ...frame, activeAction: actionKind!, activePatternId: null } : frame) } : {}),
         ...(state.cityPatternContinuation !== undefined ? { cityPatternContinuation: state.cityPatternContinuation } : {}), roundFlow: { ...flow, majorActionOpened: actorId !== undefined } } };
   }
   const initializing = state.phase === 'entry';
@@ -66,10 +70,10 @@ export function preparePhaseWindow(input: GameState, definition: GameDefinition,
     facilityFields: state.facilities ? { facilities: state.facilities } : {}, roundFields: {} };
 }
 
-export function prepareActionWindow(input: GameState, definition: GameDefinition, rawOptions: OpenActionWindowOptions, reject: Reject) {
+export function prepareActionWindow(input: GameState, definition: GameDefinition, rawOptions: OpenActionWindowOptions, reject: Reject, actionKind?: OrdinaryMajorAction) {
   const parsed = actionWindowOptionsSchema.safeParse(rawOptions);
   if (!parsed.success) return reject('WINDOW_SCHEMA', parsed.error.message);
   const { actorId, ...phaseOptions } = parsed.data;
   if (!definition.players.some(player => player.id === actorId)) return reject('ACTOR_REFERENCE', 'Unknown granted actor');
-  return { ...preparePhaseWindow(input, definition, phaseOptions, reject, actorId), options: parsed.data };
+  return { ...preparePhaseWindow(input, definition, phaseOptions, reject, actorId, actionKind), options: parsed.data };
 }

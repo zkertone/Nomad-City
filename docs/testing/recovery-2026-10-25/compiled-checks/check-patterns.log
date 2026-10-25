@@ -1,0 +1,10 @@
+{"playerCount":2,"gameplayVersion":"base","eligiblePatterns":13,"selectedPatterns":6,"scope":"catalog-filter-only"}
+{"playerCount":2,"gameplayVersion":"enterprise","eligiblePatterns":15,"selectedPatterns":6,"scope":"catalog-filter-only"}
+{"playerCount":2,"gameplayVersion":"entrepreneur","eligiblePatterns":15,"selectedPatterns":6,"scope":"catalog-filter-only"}
+{"playerCount":3,"gameplayVersion":"base","eligiblePatterns":13,"selectedPatterns":6,"scope":"catalog-filter-only"}
+{"playerCount":3,"gameplayVersion":"enterprise","eligiblePatterns":15,"selectedPatterns":6,"scope":"catalog-filter-only"}
+{"playerCount":3,"gameplayVersion":"entrepreneur","eligiblePatterns":15,"selectedPatterns":6,"scope":"catalog-filter-only"}
+{"playerCount":4,"gameplayVersion":"base","eligiblePatterns":13,"selectedPatterns":6,"scope":"catalog-filter-only"}
+{"playerCount":4,"gameplayVersion":"enterprise","eligiblePatterns":15,"selectedPatterns":6,"scope":"catalog-filter-only"}
+{"playerCount":4,"gameplayVersion":"entrepreneur","eligiblePatterns":15,"selectedPatterns":6,"scope":"catalog-filter-only"}
+PASS: compiled pattern exports, 15 source transcriptions/flavors, nine catalog-filter combinations, 4+2 setup, distinct rainbow match, exhaustion and no action grant

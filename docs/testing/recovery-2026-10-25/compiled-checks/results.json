@@ -1,0 +1,117 @@
+[
+  {
+    "check": "check:maps",
+    "exit_code": 0,
+    "seconds": 0.15
+  },
+  {
+    "check": "check:events",
+    "exit_code": 0,
+    "seconds": 0.21
+  },
+  {
+    "check": "check:game",
+    "exit_code": 0,
+    "seconds": 0.27
+  },
+  {
+    "check": "check:entry",
+    "exit_code": 0,
+    "seconds": 0.54
+  },
+  {
+    "check": "check:settlement",
+    "exit_code": 0,
+    "seconds": 1.14
+  },
+  {
+    "check": "check:exploration",
+    "exit_code": 0,
+    "seconds": 0.69
+  },
+  {
+    "check": "check:city-move",
+    "exit_code": 0,
+    "seconds": 0.76
+  },
+  {
+    "check": "check:influence",
+    "exit_code": 0,
+    "seconds": 0.82
+  },
+  {
+    "check": "check:harvest",
+    "exit_code": 0,
+    "seconds": 1.02
+  },
+  {
+    "check": "check:scoring",
+    "exit_code": 0,
+    "seconds": 0.97
+  },
+  {
+    "check": "check:schemes",
+    "exit_code": 0,
+    "seconds": 4.77
+  },
+  {
+    "check": "check:liskarm",
+    "exit_code": 0,
+    "seconds": 2.19
+  },
+  {
+    "check": "check:roles",
+    "exit_code": 0,
+    "seconds": 4.21
+  },
+  {
+    "check": "check:rounds",
+    "exit_code": 0,
+    "seconds": 12.36
+  },
+  {
+    "check": "check:construction",
+    "exit_code": 0,
+    "seconds": 0.74
+  },
+  {
+    "check": "check:warehouse",
+    "exit_code": 0,
+    "seconds": 3.84
+  },
+  {
+    "check": "check:remaining-facilities",
+    "exit_code": 0,
+    "seconds": 49.42
+  },
+  {
+    "check": "check:facility-entries",
+    "exit_code": 0,
+    "seconds": 7.94
+  },
+  {
+    "check": "check:pattern-major-actions",
+    "exit_code": 0,
+    "seconds": 31.24
+  },
+  {
+    "check": "check:pattern-continuations",
+    "exit_code": 0,
+    "seconds": 35.14
+  },
+  {
+    "check": "check:pattern-actions",
+    "exit_code": 0,
+    "seconds": 25.0
+  },
+  {
+    "check": "check:patterns",
+    "exit_code": 0,
+    "seconds": 0.22
+  },
+  {
+    "check": "check:facilities",
+    "exit_code": 0,
+    "seconds": 0.26
+  }
+]

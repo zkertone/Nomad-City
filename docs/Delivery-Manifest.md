@@ -548,3 +548,54 @@
 - `scripts/check-pattern-continuations.mjs`（新增）
 
 恢复后最终核验：2087/2087、strict/build通过；全部22项编译检查再次22/22退出0（670.49秒），包括新增12段四张样式真实流程。无删除、无未完成的本批验证。
+
+
+## 2026-10-24 · 三张样式额外行动与角色例外
+
+基准main提交c790987551f34b5b317aa32e05928ff2b721b576。源石工业中枢、核心商业区、拓荒指挥中枢统一接入，基础版2/3/4人支持全部13种宣告、10种特殊行动。显式GameState1.15.0保留旧数据，新增额外行动调度与同一行动轮双角色模式例外。
+
+实际2145/2145（28文件）、strict/build通过，新增58项、旧2087项保留；新编译脚本9段正式流程全部通过。规则/API见[本批说明](City-Pattern-Major-Actions-2026-10-24.md)，实际命令、早期夹具失败修正与最终编译检查见[验证记录](testing/city-pattern-major-actions-validation-2026-10-24.md)。原始资料、静态摘要、风味、依赖锁和Accepted ADR不变，无卡面/PDF上传、UI、联机或部署。
+
+共36份变更，新增5份，无删除；路径相对于仓库根目录。
+
+- `README.md`（更新）
+- `docs/Base-Role-Effects-2026-10-23.md`（更新）
+- `docs/City-Pattern-Actions-2026-10-24.md`（更新）
+- `docs/City-Pattern-Continuations-2026-10-24.md`（更新）
+- `docs/City-Pattern-Major-Actions-2026-10-24.md`（新增）
+- `docs/City-Patterns-2026-10-24.md`（更新）
+- `docs/Delivery-Manifest.md`（更新）
+- `docs/DevLog.md`（更新）
+- `docs/Game-State-Foundation-2026-10-17.md`（更新）
+- `docs/Round-Flow-2026-10-23.md`（更新）
+- `docs/testing/city-pattern-major-actions-validation-2026-10-24.md`（新增）
+- `package.json`（更新）
+- `packages/game-core/src/game/action-window.ts`（更新）
+- `packages/game-core/src/game/city-move.ts`（更新）
+- `packages/game-core/src/game/city-pattern-actions.ts`（更新）
+- `packages/game-core/src/game/city-pattern-major-actions.test.ts`（新增）
+- `packages/game-core/src/game/city-pattern-major-actions.ts`（新增）
+- `packages/game-core/src/game/city-pattern-rules.ts`（更新）
+- `packages/game-core/src/game/city-pattern-schema.ts`（更新）
+- `packages/game-core/src/game/construction-invariants.ts`（更新）
+- `packages/game-core/src/game/construction.ts`（更新）
+- `packages/game-core/src/game/exploration.ts`（更新）
+- `packages/game-core/src/game/facility-entries.ts`（更新）
+- `packages/game-core/src/game/facility-entry-invariants.ts`（更新）
+- `packages/game-core/src/game/harvest.ts`（更新）
+- `packages/game-core/src/game/index.ts`（更新）
+- `packages/game-core/src/game/influence-actions.ts`（更新）
+- `packages/game-core/src/game/liskarm.ts`（更新）
+- `packages/game-core/src/game/role-effects.ts`（更新）
+- `packages/game-core/src/game/role-rules.ts`（更新）
+- `packages/game-core/src/game/round-invariants.ts`（更新）
+- `packages/game-core/src/game/round.ts`（更新）
+- `packages/game-core/src/game/schema.ts`（更新）
+- `packages/game-core/src/game/state.ts`（更新）
+- `packages/game-core/src/game/warehouse.ts`（更新）
+- `scripts/check-pattern-major-actions.mjs`（新增）
+
+
+## 2026-10-25 · 恢复审计增量
+
+恢复37份既有开发变更，无新增玩法逻辑。本轮更新DevLog、本清单和三张样式验证记录；新增testing/recovery-validation-2026-10-25.md及testing/recovery-2026-10-25/中的两份全量验证日志、23份编译检查日志与results.json。远端main仍c790987；恢复提交仅在本地分支，待具体发布授权。

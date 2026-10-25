@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { getCityPattern } from '../patterns/catalog.js';
+import { bothRoleModesAllowed } from './city-pattern-major-actions.js';
 import { loadFoundersBoard } from '../board/index.js';
 import { slotIdSchema } from '../board/schema.js';
 import { gameEntityIdSchema, gameStateSchema } from './schema.js';
@@ -90,7 +91,7 @@ export function applyBaseRoleCommand(input: GameState, definition: GameDefinitio
   const actorId = turn.actorId!, roles = flow.rolesByPlayer.find(role => role.playerId === actorId)!;
   if (roles.used || roles.placed === null) return reject('ROLE_ALREADY_USED', 'This round role has already been used');
   if (roles.placed !== command.roleId) return reject('PLACED_ROLE', 'Only the placed role can be used');
-  if (command.mode === 'both' && state.playerOrder![0] !== actorId) return reject('STARTING_PLAYER_ONLY', 'Only the round starting player may use both modes');
+  if (command.mode === 'both' && !bothRoleModesAllowed(state, actorId, flow.turnIndex)) return reject('STARTING_PLAYER_ONLY', 'Both modes require the starting player or this turn command-pattern authority');
   const usesStrategy = command.mode !== 'scheme', usesScheme = command.mode !== 'strategy';
   if (usesStrategy !== (command.strategyChoice !== undefined) || usesScheme !== (command.schemeChoice !== undefined)) return reject('ROLE_CHOICES', 'Provide exactly the choices for the requested modes');
   const expectedChoice = command.roleId === 'ROLE-01' ? ['liskarm-place'] : command.roleId === 'ROLE-02' ? ['minimum-resource'] : command.roleId === 'ROLE-03' ? ['cycle-facility']
@@ -100,7 +101,7 @@ export function applyBaseRoleCommand(input: GameState, definition: GameDefinitio
   if (usesScheme && command.schemeChoice!.kind !== expectedScheme[command.roleId]) return reject('ROLE_CHOICES', 'Choice does not belong to this role scheme');
   if (state.stateVersion === Number.MAX_SAFE_INTEGER) return reject('VERSION_OVERFLOW', 'State version exhausted');
   const next = gameStateSchema.parse(state), actor = next.players[actorId]!, nextRoles = next.roundFlow!.rolesByPlayer.find(role => role.playerId === actorId)!;
-  if (['1.10.0', '1.11.0', '1.12.0', '1.13.0', '1.14.0'].includes(state.schemaVersion) && turn.majorActionStatus === 'complete' && state.phase !== 'round-control') {
+  if (['1.10.0', '1.11.0', '1.12.0', '1.13.0', '1.14.0', '1.15.0'].includes(state.schemaVersion) && turn.majorActionStatus === 'complete' && state.phase !== 'round-control') {
     next.roundFlow!.completedMajorAction = state.phase === 'exploration' ? 'explore' : state.phase === 'city-move' ? 'city-move'
       : state.phase === 'construction' ? 'construct' : state.influenceAction!.kind;
     delete next.exploration; delete next.cityMove; delete next.influenceAction; delete next.construction;

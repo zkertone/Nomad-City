@@ -65,7 +65,7 @@ for (const count of [2, 3, 4]) {
   state = use(f, state, 'both', { kind: 'elysium-city-move', costDecision: 'pay', nodeId: 'B-01', routeId: 'R-route-02', finalSlotId: slots[1] }, { kind: 'minimum-resource', asset: 'iron' });
   assert.equal(state.players.p1.balances.iron, 1); assert.equal(state.players.p1.balances.originium, fuel); assert.equal(state.board.cityNodeByPlayer.p1, 'B-01'); assert.deepEqual(state.eventDecks, decks);
   assert.equal(state.exploration, undefined); assert.equal(state.roundFlow.completedMajorAction, 'explore');
-  assert.throws(() => send(state, f.definition, { type: 'choose-major-action', action: 'dispatch' }), /One major action/);
+  assert.throws(() => send(state, f.definition, { type: 'choose-major-action', action: 'dispatch' }), { name: 'RoundFlowError', code: 'MAJOR_ACTION_USED' });
   finish(f, state);
 
   const t = setup(count, 'ROLE-03'), routeSlots = Object.values(t.board.routes).flatMap(route => route.influenceSlotIds); let texas = send(t.state, t.definition, { type: 'choose-major-action', action: 'deploy' });

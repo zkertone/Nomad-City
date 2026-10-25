@@ -21,8 +21,8 @@ export function getBaseRoleEffectSupport() {
 
 /** Capabilities and saved-use records are version gated; an older snapshot never acquires new history. */
 export function isBaseRoleModeAvailableInFormat(roleId: string, mode: BaseRoleMode, format: string): boolean {
-  if (!isBaseRoleModeSupported(roleId, mode) || !['1.8.0', '1.9.0', '1.10.0', '1.11.0', '1.12.0', '1.13.0', '1.14.0'].includes(format)) return false;
+  if (!isBaseRoleModeSupported(roleId, mode) || !['1.8.0', '1.9.0', '1.10.0', '1.11.0', '1.12.0', '1.13.0', '1.14.0', '1.15.0'].includes(format)) return false;
   if (roleId === 'ROLE-01' && format === '1.8.0') return false;
-  if (['ROLE-02', 'ROLE-03', 'ROLE-04'].includes(roleId) && mode !== 'strategy' && !['1.10.0', '1.11.0', '1.12.0', '1.13.0', '1.14.0'].includes(format)) return false;
+  if (['ROLE-02', 'ROLE-03', 'ROLE-04'].includes(roleId) && mode !== 'strategy' && !['1.10.0', '1.11.0', '1.12.0', '1.13.0', '1.14.0', '1.15.0'].includes(format)) return false;
   return true;
 }
