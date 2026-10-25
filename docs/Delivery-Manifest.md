@@ -604,3 +604,8 @@
 ## 2026-10-25 · 临时聚居点批次
 
 基准main f0a976c；新增facilities/temporary-settlement.ts、game/temporary-settlements.ts与38项测试、scripts/check-temporary-settlements.mjs、规则/API和验证文档，保留最终verify及24项编译脚本日志。更新库存引用校验、执行查询、宣告/新兴建筑群证据、1.16.0继承和README/玩法规范/DevLog；原JSON、旧固定摘要、ADR与依赖锁不变。2183/2183、strict/build、24/24脚本及12段真实流程通过。按本轮授权提交main；不含原图/PDF、node_modules、dist或部署。
+
+
+## 2026-10-25 · 正式终局计分
+
+基准main434bbc9；新增game/final-scoring.ts、44项final-scoring.test.ts、scripts/check-final-scoring.mjs，以及终局规则/API、验证记录和完整执行日志。更新终局1.17.0严格Schema/交叉验证、既有能力继承、终局公开结果及README/DevLog等说明；原静态JSON、摘要、ADR与依赖锁不变。全量2227/2227、strict/build通过；测试夹具优化后44项及strict再次通过，25/25编译检查与12段真实八回合全部通过。源码和文档提交既有main，不含原PDF/检查图、node_modules、dist或部署。

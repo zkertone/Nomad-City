@@ -1,0 +1,4 @@
+{"players":2,"format":"1.7.0","completedRounds":8,"majorActions":32,"status":"finished","removedCards":16,"allUnusedRolesReturned":true}
+{"players":3,"format":"1.7.0","completedRounds":8,"majorActions":48,"status":"finished","removedCards":0,"allUnusedRolesReturned":true}
+{"players":4,"format":"1.7.0","completedRounds":8,"majorActions":64,"status":"finished","removedCards":0,"allUnusedRolesReturned":true}
+PASS: compiled 2/3/4-player managed eight rounds, role privacy, two cycles, immediate two-player removal/refill, harvest, cleanup, rotation, conservation and stale-command rejection

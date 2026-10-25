@@ -1,3 +1,4 @@
+import { getFinalScoringResult } from './final-scoring.js';
 import { z } from 'zod';
 import { resetCityPatternsForCleanup } from './city-pattern-rules.js';
 import { patternMajorActionReady, finishPatternMajorAction } from './city-pattern-major-actions.js';
@@ -202,5 +203,6 @@ export function getRoundPublicView(input: GameState, definition: GameDefinition,
       hasPlacedRole: role.placed !== null, ...(role.used !== undefined ? { usedRole: role.used } : {}),
       ...(role.playerId === viewerPlayerId ? { hand: role.hand, placedRoleId: role.placed } : {}) })),
     facilitySupply: getFacilitySupplyPublicView(state.facilities!.supply),
+    ...(state.finalScoring ? { finalResult: getFinalScoringResult(state, definition) } : {}),
   });
 }

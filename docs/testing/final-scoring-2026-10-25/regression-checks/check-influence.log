@@ -1,0 +1,4 @@
+{"players":2,"status":"complete","version":18,"format":"1.4.0","city":"D-01","originium":4,"vouchers":10,"supply":26,"reusedMarker":"marker:1:02"}
+{"players":3,"status":"complete","version":19,"format":"1.4.0","city":"D-01","originium":4,"vouchers":10,"supply":26,"reusedMarker":"marker:1:02"}
+{"players":4,"status":"complete","version":21,"format":"1.4.0","city":"D-01","originium":4,"vouchers":10,"supply":26,"reusedMarker":"marker:1:02"}
+PASS: compiled deploy -> two dispatch moves -> free exploration -> city move, same marker, JSON resume and stale retries

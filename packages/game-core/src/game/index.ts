@@ -25,3 +25,5 @@ export { PatternMajorActionError, enableCityPatternMajorActions } from './city-p
 export { CityPatternContinuationError, enableCityPatternContinuations, getCityPatternContinuationOptions, getPendingPatternCityMoveRequirements, applyCityPatternContinuationCommand } from './city-pattern-continuations.js';
 export { TemporarySettlementError, enableTemporarySettlements } from './temporary-settlements.js';
 export type { EnableTemporarySettlementsOptions } from './temporary-settlements.js';
+export { FinalScoringError, FINAL_SCORING_SOURCE, finalizeBaseGame, getFinalScoringResult } from './final-scoring.js';
+export type { FinalizeBaseGameOptions, FinalScoringResult } from './final-scoring.js';

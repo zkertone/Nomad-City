@@ -146,3 +146,8 @@ state = applyRoundCommand(state, definition, { authenticatedPlayerId }, {
 GameState1.15.0的源石工业中枢、核心商业区、拓荒指挥中枢复用普通行动窗口，外层仍消耗一次正常主要行动。getRoundTurn在额外行动待选时显示not-started，实际开启后显示pending/complete。每个子行动完整结束后必须finish-pattern-action，最后一层完成才登记外层special完成；有未消费序列时finish-player-turn拒绝。
 
 取消只允许无实际步骤的普通子行动准备，不撤销外层使用、费用或奖励。快速角色与宣告可在子行动之间使用，不能打断任何子入场或事件。工业可嵌套商业/指挥，但后两者的子行动不能为特殊行动；工业同轮角色禁令优先于指挥双模式许可。指挥许可限当前玩家的实际行动轮，下一次行动轮不继承。详见[额外行动与角色例外](City-Pattern-Major-Actions-2026-10-24.md)。
+
+
+### 2026-10-25 · 正式终局接入
+
+既有第8回合finished仍表示所有采集/收尾完成。项目基础1.16.0可随后由可信调用方执行finalizeBaseGame，一次性提交为终局专用1.17.0；getFinalScoringResult返回正式结果，getRoundPublicView附带同一finalResult。旧格式读取语义保留，不能向旧局补造新配置。见[正式终局规则与API](Final-Scoring-2026-10-25.md)。

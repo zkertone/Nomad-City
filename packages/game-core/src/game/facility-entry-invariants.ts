@@ -17,7 +17,7 @@ export function nestedFacilityEntryIssues(state: GameState, definition: GameDefi
       const card = getFacilityPhysicalCard(id);
       if (card.group === 'core-command-tower') continue;
       const kind = facilityEntrySpec(id).entry.kind;
-      if ((card.group === 'extension-hub' || ['logistics', 'free-city-move', 'copy-entry', 'starting-player', 'extra-construction'].includes(kind)) && !['1.12.0', '1.13.0', '1.14.0', '1.15.0', '1.16.0'].includes(state.schemaVersion)) report('Built nested facility requires format 1.12.0');
+      if ((card.group === 'extension-hub' || ['logistics', 'free-city-move', 'copy-entry', 'starting-player', 'extra-construction'].includes(kind)) && !['1.12.0', '1.13.0', '1.14.0', '1.15.0', '1.16.0', '1.17.0'].includes(state.schemaVersion)) report('Built nested facility requires format 1.12.0');
     } catch { /* Existing physical/pictured validators report unsupported references. */ }
   }
   const override = state.roundFlow?.startingPlayerOverride;
@@ -29,7 +29,7 @@ export function nestedFacilityEntryIssues(state: GameState, definition: GameDefi
   const action = state.construction, stack = action?.entryStack;
   if (!action || stack === undefined) return issues;
   if (action.warehouseEntry !== undefined) report('Only one continuation representation may own the construction');
-  if (!['1.12.0', '1.13.0', '1.14.0', '1.15.0', '1.16.0'].includes(state.schemaVersion) || (action.status === 'entry-pending') !== (stack.length > 0)) report('Stack and parent completion must agree in format 1.12.0');
+  if (!['1.12.0', '1.13.0', '1.14.0', '1.15.0', '1.16.0', '1.17.0'].includes(state.schemaVersion) || (action.status === 'entry-pending') !== (stack.length > 0)) report('Stack and parent completion must agree in format 1.12.0');
   if (!stack.length) return issues;
   if (stack[0]!.kind !== 'entry' || stack[0]!.sourceCardId !== action.builtCardId) report('Root entry must belong to the facility constructed by this action');
   const panel = state.facilities?.panels.find(row => row.playerId === action.actorId);

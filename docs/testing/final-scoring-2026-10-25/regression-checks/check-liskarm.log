@@ -1,0 +1,4 @@
+{"players":2,"format":"1.9.0","strategyPlacements":2,"paidReplacement":3,"cleanupRemoved":1,"nextRound":2,"p1OriginalMarkerSupplyRestored":true}
+{"players":3,"format":"1.9.0","strategyPlacements":2,"paidReplacement":3,"cleanupRemoved":1,"nextRound":2,"p1OriginalMarkerSupplyRestored":true}
+{"players":4,"format":"1.9.0","strategyPlacements":2,"paidReplacement":3,"cleanupRemoved":1,"nextRound":2,"p1OriginalMarkerSupplyRestored":true}
+PASS: compiled Liskarm 2/3/4-player real strategy -> opponent replacement -> two cycles -> harvest -> guarded player cleanup -> next round, save/replay and marker conservation

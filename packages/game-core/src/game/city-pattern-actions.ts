@@ -60,7 +60,7 @@ export const cityPatternPlayerCommandSchema = z.discriminatedUnion('type', [
 export type CityPatternPlayerCommand = DeepReadonly<z.infer<typeof cityPatternPlayerCommandSchema>>;
 function scheduled(input: GameState, definition: GameDefinition, actorId: string) {
   const state = parseGameState(input, definition);
-  if (!['1.13.0', '1.14.0', '1.15.0', '1.16.0'].includes(state.schemaVersion)) return reject('PATTERN_FORMAT', 'Explicitly initialize city patterns');
+  if (!['1.13.0', '1.14.0', '1.15.0', '1.16.0', '1.17.0'].includes(state.schemaVersion)) return reject('PATTERN_FORMAT', 'Explicitly initialize city patterns');
   const turn = getRoundTurn(state, definition);
   if (turn.stage !== 'player-actions' || turn.actorId !== actorId) return reject('PATTERN_WINDOW', 'Only the scheduled player can act');
   return { state, turn };

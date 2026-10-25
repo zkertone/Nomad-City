@@ -19,7 +19,7 @@ export function constructionIssues(state: GameState, definition: GameDefinition)
     if (!checked.success) { for (const message of checked.issues) report('facilities', message); return issues; }
   }
   for (const holding of state.facilities?.supply.playerHoldings ?? []) for (const id of holding.cardIds) {
-    try { if (getFacilityConstructionSpec(id).entry.kind === 'warehouse' && !['1.11.0', '1.12.0', '1.13.0', '1.14.0', '1.15.0', '1.16.0'].includes(state.schemaVersion)) report('facilities', 'Built warehouse requires format 1.11.0'); } catch { /* Other invalid/unsupported cards are checked by their existing validators. */ }
+    try { if (getFacilityConstructionSpec(id).entry.kind === 'warehouse' && !['1.11.0', '1.12.0', '1.13.0', '1.14.0', '1.15.0', '1.16.0', '1.17.0'].includes(state.schemaVersion)) report('facilities', 'Built warehouse requires format 1.11.0'); } catch { /* Other invalid/unsupported cards are checked by their existing validators. */ }
   }
   issues.push(...nestedFacilityEntryIssues(state, definition));
   const action = state.construction;

@@ -56,7 +56,7 @@ export function returnTemporarySettlements(next: Mutable, actorId: string, usedI
 }
 
 export function temporarySettlementIssues(state: GameState, definition: GameDefinition): ValidationIssue[] {
-  if (state.schemaVersion !== '1.16.0') return [];
+  if (!['1.16.0', '1.17.0'].includes(state.schemaVersion)) return [];
   const issues: ValidationIssue[] = [], records = state.temporarySettlementReturns!;
   const report = (message: string) => issues.push({ code: 'TEMPORARY_SETTLEMENT_STATE', path: 'temporarySettlementReturns', message });
   if (new Set(records.map(r => r.cardId)).size !== records.length) report('Each physical temporary facility can be returned only once');

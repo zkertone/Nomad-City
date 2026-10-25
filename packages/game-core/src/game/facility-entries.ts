@@ -92,7 +92,7 @@ export function beginNestedFacilityEntry(next: MutableState, definition: GameDef
 }
 function pending(input: GameState, definition: GameDefinition, actorId: string) {
   const state = parseGameState(input, definition), action = state.construction;
-  if (!['1.12.0', '1.13.0', '1.14.0', '1.15.0', '1.16.0'].includes(state.schemaVersion) || state.phase !== 'construction' || action?.status !== 'entry-pending' || !action.entryStack?.length) return reject('ENTRY_STAGE', 'No pending nested facility entry');
+  if (!['1.12.0', '1.13.0', '1.14.0', '1.15.0', '1.16.0', '1.17.0'].includes(state.schemaVersion) || state.phase !== 'construction' || action?.status !== 'entry-pending' || !action.entryStack?.length) return reject('ENTRY_STAGE', 'No pending nested facility entry');
   if (action.actorId !== actorId) return reject('WRONG_ACTOR', 'Only the construction owner resolves these effects');
   return { state, action, frame: action.entryStack.at(-1)! };
 }

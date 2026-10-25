@@ -1,3 +1,4 @@
+import { finalScoringIssues } from './final-scoring.js';
 import { deepFreeze } from '../board/hash.js';
 import { loadFoundersBoard, createEmptyBoardState, validateBoardState, validateDefinitionRef } from '../board/index.js';
 import type { MapSide, ValidationIssue, ValidationResult } from '../board/types.js';
@@ -159,7 +160,7 @@ export function validateGameState(input: unknown, definition: GameDefinition): V
   const issues = [...actionPositionIssues(parsed.data, definition), ...entryProgressIssues(parsed.data, definition, board), ...explorationProgressIssues(parsed.data, definition, board), ...cityMoveProgressIssues(parsed.data, definition, board), ...influenceActionIssues(parsed.data, definition, board), ...harvestIssues(parsed.data, definition, board), ...constructionIssues(parsed.data, definition)];
   issues.push(...roundFlowIssues(parsed.data, definition));
   issues.push(...cityPatternIssues(parsed.data, definition));
-  issues.push(...patternMajorActionIssues(parsed.data, definition), ...temporarySettlementIssues(parsed.data, definition));
+  issues.push(...patternMajorActionIssues(parsed.data, definition), ...temporarySettlementIssues(parsed.data, definition), ...finalScoringIssues(parsed.data, definition));
   return issues.length ? { success: false, issues } : { success: true, data: deepFreeze(parsed.data) };
 }
 

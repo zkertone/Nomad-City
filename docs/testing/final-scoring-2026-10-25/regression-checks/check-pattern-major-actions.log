@@ -1,0 +1,10 @@
+{"players":2,"scenario":"industry","actor":"p1","realBuilds":5,"nextRound":7,"noInjectedState":true}
+{"players":2,"scenario":"commercial","actor":"p1","realBuilds":2,"nextRound":6,"noInjectedState":true}
+{"players":2,"scenario":"command","actor":"p2","realBuilds":5,"nextRound":8,"noInjectedState":true}
+{"players":3,"scenario":"industry","actor":"p1","realBuilds":5,"nextRound":7,"noInjectedState":true}
+{"players":3,"scenario":"commercial","actor":"p1","realBuilds":2,"nextRound":6,"noInjectedState":true}
+{"players":3,"scenario":"command","actor":"p2","realBuilds":5,"nextRound":7,"noInjectedState":true}
+{"players":4,"scenario":"industry","actor":"p1","realBuilds":5,"nextRound":7,"noInjectedState":true}
+{"players":4,"scenario":"commercial","actor":"p1","realBuilds":2,"nextRound":6,"noInjectedState":true}
+{"players":4,"scenario":"command","actor":"p2","realBuilds":5,"nextRound":8,"noInjectedState":true}
+PASS: 9 compiled real 2/3/4-player industrial/commercial/command workflows, full child actions, non-starting both-role modes, quotas, cleanup and persistence

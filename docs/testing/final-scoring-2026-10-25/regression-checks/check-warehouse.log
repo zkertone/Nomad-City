@@ -1,0 +1,7 @@
+{"players":2,"branch":"influence","format":"1.11.0","finalVouchers":13,"nextRound":2,"noExtraMajorAction":true}
+{"players":2,"branch":"explore","format":"1.11.0","finalVouchers":11,"nextRound":2,"noExtraMajorAction":true}
+{"players":3,"branch":"influence","format":"1.11.0","finalVouchers":13,"nextRound":2,"noExtraMajorAction":true}
+{"players":3,"branch":"explore","format":"1.11.0","finalVouchers":11,"nextRound":2,"noExtraMajorAction":true}
+{"players":4,"branch":"influence","format":"1.11.0","finalVouchers":13,"nextRound":2,"noExtraMajorAction":true}
+{"players":4,"branch":"explore","format":"1.11.0","finalVouchers":11,"nextRound":2,"noExtraMajorAction":true}
+PASS: compiled real 2/3/4-player both warehouse branches, paid nested exploration, event/final save-resume, replay and stage guards, no extra major action, harvest/next round and conservation

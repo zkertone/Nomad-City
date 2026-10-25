@@ -1,0 +1,13 @@
+{"players":2,"scenario":0,"realBuilds":2,"returned":0,"vouchers":15,"nextRound":4,"format":"1.16.0","noInjectedState":true}
+{"players":2,"scenario":1,"realBuilds":2,"returned":1,"vouchers":27,"nextRound":4,"format":"1.16.0","noInjectedState":true}
+{"players":2,"scenario":"new-build","realBuilds":4,"returned":1,"vouchers":20,"nextRound":5,"format":"1.16.0","noInjectedState":true}
+{"players":2,"scenario":"new-build-keep","realBuilds":4,"returned":0,"vouchers":8,"nextRound":5,"format":"1.16.0","noInjectedState":true}
+{"players":3,"scenario":0,"realBuilds":2,"returned":0,"vouchers":15,"nextRound":4,"format":"1.16.0","noInjectedState":true}
+{"players":3,"scenario":1,"realBuilds":2,"returned":1,"vouchers":27,"nextRound":4,"format":"1.16.0","noInjectedState":true}
+{"players":3,"scenario":"new-build","realBuilds":4,"returned":1,"vouchers":20,"nextRound":5,"format":"1.16.0","noInjectedState":true}
+{"players":3,"scenario":"new-build-keep","realBuilds":4,"returned":0,"vouchers":8,"nextRound":5,"format":"1.16.0","noInjectedState":true}
+{"players":4,"scenario":0,"realBuilds":2,"returned":0,"vouchers":15,"nextRound":4,"format":"1.16.0","noInjectedState":true}
+{"players":4,"scenario":1,"realBuilds":2,"returned":1,"vouchers":27,"nextRound":4,"format":"1.16.0","noInjectedState":true}
+{"players":4,"scenario":"new-build","realBuilds":4,"returned":1,"vouchers":20,"nextRound":5,"format":"1.16.0","noInjectedState":true}
+{"players":4,"scenario":"new-build-keep","realBuilds":4,"returned":0,"vouchers":8,"nextRound":5,"format":"1.16.0","noInjectedState":true}
+PASS: 12 real 2/3/4-player temporary-settlement workflows, printed construction costs, unique-card restriction, optional returns, occupied-cell release, new-build continuation, quotas, cleanup and save recovery
