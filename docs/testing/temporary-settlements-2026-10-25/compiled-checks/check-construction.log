@@ -1,0 +1,4 @@
+{"players":2,"format":"1.6.0","status":"complete","version":8,"facilitiesRetainedIn":"influence-action","physicalCards":48,"drawPile":34}
+{"players":3,"format":"1.6.0","status":"complete","version":9,"facilitiesRetainedIn":"influence-action","physicalCards":48,"drawPile":34}
+{"players":4,"format":"1.6.0","status":"complete","version":11,"facilitiesRetainedIn":"influence-action","physicalCards":48,"drawPile":34}
+PASS: compiled authoritative construction window, 2/3/4-player setup, actor/version guards, one grant, exact settlement, JSON resume and cross-action facility persistence

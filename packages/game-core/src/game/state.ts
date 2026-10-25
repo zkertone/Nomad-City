@@ -13,6 +13,7 @@ import { influenceActionIssues } from './influence-action-invariants.js';
 import { constructionIssues } from './construction-invariants.js';
 import { roundFlowIssues } from './round-invariants.js';
 import { cityPatternIssues } from './city-pattern-invariants.js';
+import { temporarySettlementIssues } from './temporary-settlements.js';
 import { patternMajorActionIssues } from './city-pattern-major-actions.js';
 
 /** Player-count setup rule; it is deliberately outside BoardDefinition. */
@@ -158,7 +159,7 @@ export function validateGameState(input: unknown, definition: GameDefinition): V
   const issues = [...actionPositionIssues(parsed.data, definition), ...entryProgressIssues(parsed.data, definition, board), ...explorationProgressIssues(parsed.data, definition, board), ...cityMoveProgressIssues(parsed.data, definition, board), ...influenceActionIssues(parsed.data, definition, board), ...harvestIssues(parsed.data, definition, board), ...constructionIssues(parsed.data, definition)];
   issues.push(...roundFlowIssues(parsed.data, definition));
   issues.push(...cityPatternIssues(parsed.data, definition));
-  issues.push(...patternMajorActionIssues(parsed.data, definition));
+  issues.push(...patternMajorActionIssues(parsed.data, definition), ...temporarySettlementIssues(parsed.data, definition));
   return issues.length ? { success: false, issues } : { success: true, data: deepFreeze(parsed.data) };
 }
 

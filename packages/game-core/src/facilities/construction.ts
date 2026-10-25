@@ -8,9 +8,9 @@ import type { DeepReadonly, GameDefinition, ResourceCost } from '../game/types.j
 import { facilitySupplyStateSchema, validateFacilitySupplyState, replenishFacilitySupply } from './supply.js';
 import { facilityPanelStateSchema, validateFacilityPanelSet, previewFacilityPanelPlacement, getOrthogonallyAdjacentPanelFacilities } from './panel-state.js';
 import { FOUNDERS_FACILITY_PANEL } from './panel-definition.js';
-import { getFoundersPhysicalFacilityCard } from './stock.js';
+import { getFacilityPhysicalCard } from './stock.js';
 import type { FacilityModuleValidation } from './stock.js';
-import { getFoundersFacilityFace } from './faces.js';
+import { getFacilityExecutionFace } from './faces.js';
 import { facilityEntryChoiceSchema, requiredFacilityEntryChoiceKind, settleFacilityBoardOrSaleEntry } from './entry-effects.js';
 import type { FacilityEntryInfluenceChange } from './entry-effects.js';
 import type { ResourceSaleLine } from '../game/resource-sales.js';
@@ -35,9 +35,9 @@ export function validateFacilityConstructionPosition(input: unknown, inputDefini
   if (state.supply.gameId !== state.position.gameId) issues.push('Facility/game position mismatch');
   if (JSON.stringify(state.supply.playerHoldings.map(row => row.playerId).sort()) !== JSON.stringify(definition.players.map(row => row.id).sort())) issues.push('Facility players must exactly match the game');
   if (supply.success) for (const holding of state.supply.playerHoldings) {
-    const definitions = holding.cardIds.map(getFoundersPhysicalFacilityCard);
+    const definitions = holding.cardIds.map(getFacilityPhysicalCard);
     for (const card of definitions) {
-      const face = getFoundersFacilityFace(card.facilityId);
+      const face = getFacilityExecutionFace(card.facilityId);
       if (face.effect.uniqueMarker && definitions.filter(other => other.facilityId === card.facilityId).length > 1) issues.push(`Duplicate unique facility: ${card.facilityId}`);
     }
   }
@@ -80,8 +80,8 @@ function prepare(input: unknown, definition: GameDefinition, rawContext: Facilit
   if (context.source !== 'draw-pile' && !state.supply.drawPile.length) return reject('REFILL_RULE_UNRESOLVED', 'Cannot resolve immediate refill with an exhausted draw pile');
   if (panel.revision === Number.MAX_SAFE_INTEGER || state.supply.revision === Number.MAX_SAFE_INTEGER) return reject('VERSION_OVERFLOW', 'Facility version exhausted');
   const spec = getFacilityConstructionSpec(command.cardId);
-  if (spec.face.effect.uniqueMarker && panel.placements.some(row => getFoundersPhysicalFacilityCard(row.cardId).facilityId === spec.card.facilityId)) return reject('UNIQUE_FACILITY', 'Player already owns this unique facility');
-  const colors = new Set(panel.placements.map(row => getFoundersPhysicalFacilityCard(row.cardId).color).filter(color => color !== 'rainbow'));
+  if (spec.face.effect.uniqueMarker && panel.placements.some(row => getFacilityPhysicalCard(row.cardId).facilityId === spec.card.facilityId)) return reject('UNIQUE_FACILITY', 'Player already owns this unique facility');
+  const colors = new Set(panel.placements.map(row => getFacilityPhysicalCard(row.cardId).color).filter(color => color !== 'rainbow'));
   // The industrial card discounts its own orirock component before it is placed, not all future construction or the voucher alternative.
   const orirockDiscount = spec.card.facilityId === 'FAC-009' && command.paymentMode === 'resources' ? colors.size : 0;
   const costs: ResourceCost[] = [];

@@ -31,13 +31,13 @@ function canonicalize(value: unknown): string {
   if (json === undefined) throw new TypeError('Stock hash requires JSON data');
   return json;
 }
-export function canonicalFacilityStockContent(input: FacilityStockDefinition | Omit<FacilityStockDefinition, 'contentHash'>): string {
-  const { contentHash: _ignored, ...definition } = input as FacilityStockDefinition;
+export function canonicalFacilityStockContent(input: Omit<FacilityStockDefinition, 'definitionId' | 'contentHash'> & { readonly definitionId: string; readonly contentHash?: string }): string {
+  const { contentHash: _ignored, ...definition } = input;
   return canonicalize({ hashProtocol: 'nco-facility-stock-c14n-v1', definition: { ...definition,
     cards: [...definition.cards].sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
   } });
 }
-export function computeFacilityStockHash(input: FacilityStockDefinition | Omit<FacilityStockDefinition, 'contentHash'>): string {
+export function computeFacilityStockHash(input: Omit<FacilityStockDefinition, 'definitionId' | 'contentHash'> & { readonly definitionId: string; readonly contentHash?: string }): string {
   return `sha256:${createHash('sha256').update(canonicalFacilityStockContent(input), 'utf8').digest('hex')}`;
 }
 function confirmedPhysicalCards(): FacilityPhysicalCard[] {
@@ -80,5 +80,29 @@ export const FOUNDERS_FACILITY_STOCK = parseFoundersFacilityStock({ ...unsigned,
 export function getFoundersPhysicalFacilityCard(id: string): FacilityPhysicalCard {
   const card = FOUNDERS_FACILITY_STOCK.cards.find(row => row.id === id);
   if (!card) throw new RangeError(`Unknown base physical facility card: ${id}`);
+  return card;
+}
+
+/** Additive project-base inventory; the historical 48-card catalog/hash remain unchanged. */
+const projectBaseStock = {
+  ...FOUNDERS_FACILITY_STOCK, definitionId: 'project-base-facility-stock' as const,
+  sourceRefs: [...FOUNDERS_FACILITY_STOCK.sourceRefs, 'user-2026-10-24-gameplay-versions', 'facility-image-1'],
+  cards: [...FOUNDERS_FACILITY_STOCK.cards, ...Array.from({ length: 3 }, (_, i) => ({
+    id: `FC:FAC-017:rainbow:0${i + 1}`, facilityId: 'FAC-017', color: 'rainbow' as const, group: 'ordinary' as const,
+  }))],
+};
+export const PROJECT_BASE_FACILITY_STOCK_HASH = 'sha256:5cafd7d5d504f5efc6662448cccf45ade8c0f9f73dabd3a96b6f2471aef4eedb';
+if (computeFacilityStockHash(projectBaseStock) !== PROJECT_BASE_FACILITY_STOCK_HASH) throw new Error('Project-base inventory differs from the reviewed 51-card baseline');
+export const PROJECT_BASE_FACILITY_STOCK = deepFreeze({ ...projectBaseStock, contentHash: PROJECT_BASE_FACILITY_STOCK_HASH });
+export function getFacilityStockForReference(ref: { readonly definitionId: string; readonly contentHash: string }) {
+  if (ref.definitionId === FOUNDERS_FACILITY_STOCK.definitionId && ref.contentHash === FOUNDERS_FACILITY_STOCK_HASH) return FOUNDERS_FACILITY_STOCK;
+  if (ref.definitionId === PROJECT_BASE_FACILITY_STOCK.definitionId && ref.contentHash === PROJECT_BASE_FACILITY_STOCK_HASH) return PROJECT_BASE_FACILITY_STOCK;
+  throw new Error('Unknown facility stock reference');
+}
+
+/** Lookup is not a setup grant: the active snapshot still validates its selected stock reference. */
+export function getFacilityPhysicalCard(id: string): FacilityPhysicalCard {
+  const card = PROJECT_BASE_FACILITY_STOCK.cards.find(row => row.id === id);
+  if (!card) throw new RangeError(`Unknown project-base physical facility card: ${id}`);
   return card;
 }

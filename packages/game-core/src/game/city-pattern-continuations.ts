@@ -1,7 +1,7 @@
 import { randomInt } from 'node:crypto';
 import { z } from 'zod';
 import { deepFreeze } from '../board/hash.js';
-import { getFoundersPhysicalFacilityCard } from '../facilities/stock.js';
+import { getFacilityPhysicalCard } from '../facilities/stock.js';
 import { getEmptyFacilityPanelCells } from '../facilities/panel-state.js';
 import { getFacilityConstructionQuote } from '../facilities/construction.js';
 import { gameStateSchema, cityMoveProgressSchema, gameEntityIdSchema } from './schema.js';
@@ -34,7 +34,7 @@ export function patternConstructionOptions(state: GameState, definition: GameDef
   if (!cells.length) return { choices, cellIds: [] as string[] };
   const ids = source === 'draw-pile' ? state.facilities!.supply.drawPile : state.facilities!.supply.supply;
   for (const cardId of ids) {
-    if (source === 'supply' && getFoundersPhysicalFacilityCard(cardId).color === 'rainbow') continue;
+    if (source === 'supply' && getFacilityPhysicalCard(cardId).color === 'rainbow') continue;
     for (const paymentMode of ['resources', 'vouchers'] as const) {
       try {
         const quote = getFacilityConstructionQuote({ position: { gameId: state.gameId, board: state.board, players: state.players, markerSupplyByPlayer: state.markerSupplyByPlayer, patternMarkers: state.patternMarkers! }, ...state.facilities! }, definition,

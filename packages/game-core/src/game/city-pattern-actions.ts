@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { returnTemporarySettlements } from './temporary-settlements.js';
 import { slotIdSchema } from '../board/schema.js';
 import { loadFoundersBoard } from '../board/index.js';
 import { deepFreeze } from '../board/hash.js';
@@ -53,13 +54,13 @@ const effectSchema = z.discriminatedUnion('kind', [
 ]);
 export const cityPatternPlayerCommandSchema = z.discriminatedUnion('type', [
   z.strictObject({ ...envelope, type: z.literal('declare-city-pattern'), patternId: cityPatternIdSchema,
-    facilityCardIds: z.array(z.string().min(1)).min(2).max(6), returnMarkerId: z.string().min(1).optional() }),
+    facilityCardIds: z.array(z.string().min(1)).min(2).max(6), returnTemporaryFacilityIds: z.array(z.string().min(1)).max(1).optional(), returnMarkerId: z.string().min(1).optional() }),
   z.strictObject({ ...envelope, type: z.literal('use-pattern-special'), patternId: cityPatternIdSchema, markerId: z.string().min(1), effect: effectSchema }),
 ]);
 export type CityPatternPlayerCommand = DeepReadonly<z.infer<typeof cityPatternPlayerCommandSchema>>;
 function scheduled(input: GameState, definition: GameDefinition, actorId: string) {
   const state = parseGameState(input, definition);
-  if (!['1.13.0', '1.14.0', '1.15.0'].includes(state.schemaVersion)) return reject('PATTERN_FORMAT', 'Explicitly initialize city patterns');
+  if (!['1.13.0', '1.14.0', '1.15.0', '1.16.0'].includes(state.schemaVersion)) return reject('PATTERN_FORMAT', 'Explicitly initialize city patterns');
   const turn = getRoundTurn(state, definition);
   if (turn.stage !== 'player-actions' || turn.actorId !== actorId) return reject('PATTERN_WINDOW', 'Only the scheduled player can act');
   return { state, turn };
@@ -108,6 +109,7 @@ export function applyCityPatternCommand(input: GameState, definition: GameDefini
     actor.balances[asset] += amount;
   };
   if (command.type === 'declare-city-pattern') {
+    if (command.returnTemporaryFacilityIds !== undefined && state.schemaVersion !== '1.16.0') return reject('TEMPORARY_FORMAT', 'Returning temporary facilities requires explicit snapshot 1.16.0');
     if (turn.majorActionStatus === 'pending') return reject('ACTION_PENDING', 'Quick declaration cannot interrupt a major action');
     if (!getCityPatternActionSupport(state.schemaVersion).declarationPatternIds.includes(command.patternId)) return reject('PATTERN_EFFECT_UNSUPPORTED', 'This declaration needs its complete construction continuation');
     if (!next.markerSupplyByPlayer[actorId]!.length) return reject('NO_AVAILABLE_MARKER', 'A declaration requires a supply marker before rewards');
@@ -128,7 +130,13 @@ export function applyCityPatternCommand(input: GameState, definition: GameDefini
       if (index < 0) return reject('PATTERN_MARKER_TARGET', 'Return one of your actual level-I pattern markers');
       next.markerSupplyByPlayer[actorId]!.push(next.patternMarkers!.splice(index, 1)[0]!.markerId); gain('pure-originium', 1);
     }
-    if (command.patternId === 'PAT-013') beginPatternConstruction(next, definition, 'declaration-build', actorId);
+    returnTemporarySettlements(next, actorId, command.facilityCardIds, command.returnTemporaryFacilityIds ?? [], reject);
+    if (command.patternId === 'PAT-013') {
+      beginPatternConstruction(next, definition, 'declaration-build', actorId);
+      if (next.schemaVersion === '1.16.0' && next.cityPatternContinuation?.kind === 'declaration-build') {
+        next.cityPatternContinuation.declarationFacilityPlacements = panel.placements.filter(p => command.facilityCardIds.includes(p.cardId)).map(p => ({ ...p }));
+      }
+    }
   } else {
     if (turn.majorActionStatus !== 'not-started' || state.phase !== 'round-control') return reject('MAJOR_ACTION_USED', 'A special replaces the one normal major action');
     if (!patternSpecialAllowed(state)) return reject('PATTERN_SPECIAL_FORBIDDEN', 'This granted action excludes special actions');

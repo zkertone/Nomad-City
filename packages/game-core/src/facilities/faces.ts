@@ -1,3 +1,4 @@
+import { TEMPORARY_SETTLEMENT_FACE } from './temporary-settlement.js';
 import data from './founders-faces.json' with { type: 'json' };
 import { deepFreeze } from '../board/hash.js';
 import { getFacilityCopyCountRecords } from './inventory.js';
@@ -37,6 +38,10 @@ export function getFoundersFacilityFace(id: string): FacilityFaceTranscription {
   if (!face) throw new RangeError(`Unknown base facility face: ${id}`);
   return face;
 }
+/** Executable project-base lookup; the historical photo catalog API retains its 18-face scope. */
+export function getFacilityExecutionFace(id: string): FacilityFaceTranscription | typeof TEMPORARY_SETTLEMENT_FACE {
+  return id === 'FAC-017' ? TEMPORARY_SETTLEMENT_FACE : getFoundersFacilityFace(id);
+}
 /** Meanings describe the symbol. They grant no action window, targets, payment exemption or state mutation. */
 export function getFacilityIconMeaning(icon: string): FacilityIconMeaning {
   const meaning = FOUNDERS_FACILITY_FACES.iconLegend.find(row => row.icon === icon);
@@ -45,7 +50,7 @@ export function getFacilityIconMeaning(icon: string): FacilityIconMeaning {
 }
 /** Human-readable rule terms, rather than color/shape labels. Single move symbols stay single moves. */
 export function getFacilityEffectText(id: string): string {
-  const effect = getFoundersFacilityFace(id).effect;
+  const effect = getFacilityExecutionFace(id).effect;
   const markers = [effect.entryMarker ? '入场' : '', effect.uniqueMarker ? '唯一' : ''].filter(Boolean);
   const value = effect.transcription;
   const body = value.status === 'transcribed'

@@ -23,3 +23,5 @@ export * from './city-pattern-actions.js';
 export { getCityPatternActionSupport } from './city-pattern-rules.js';
 export { PatternMajorActionError, enableCityPatternMajorActions } from './city-pattern-major-actions.js';
 export { CityPatternContinuationError, enableCityPatternContinuations, getCityPatternContinuationOptions, getPendingPatternCityMoveRequirements, applyCityPatternContinuationCommand } from './city-pattern-continuations.js';
+export { TemporarySettlementError, enableTemporarySettlements } from './temporary-settlements.js';
+export type { EnableTemporarySettlementsOptions } from './temporary-settlements.js';

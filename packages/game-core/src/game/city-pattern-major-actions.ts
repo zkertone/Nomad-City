@@ -26,7 +26,7 @@ export function patternSpecialAllowed(state: GameState): boolean {
   return !top || (top.patternId === 'PAT-003' && top.activeAction === null);
 }
 export function bothRoleModesAllowed(state: GameState, actorId: string, turnIndex: number): boolean {
-  return state.playerOrder?.[0] === actorId || (state.schemaVersion === '1.15.0' && !!state.cityPatterns?.usedSpecialActions.some(use => use.playerId === actorId && use.patternId === 'PAT-010' && use.turnIndex === turnIndex));
+  return state.playerOrder?.[0] === actorId || (['1.15.0', '1.16.0'].includes(state.schemaVersion) && !!state.cityPatterns?.usedSpecialActions.some(use => use.playerId === actorId && use.patternId === 'PAT-010' && use.turnIndex === turnIndex));
 }
 export function markPatternSpecialChild(next: Mutable, patternId: string): void {
   const top = next.cityPatternMajorActions?.at(-1);

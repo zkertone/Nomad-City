@@ -4,8 +4,8 @@ import { z } from 'zod';
 import { advanceCityPatternContinuation } from './city-pattern-continuations.js';
 import { deepFreeze } from '../board/hash.js';
 import { slotIdSchema } from '../board/schema.js';
-import { getFoundersPhysicalFacilityCard } from '../facilities/stock.js';
-import { getFoundersFacilityFace } from '../facilities/faces.js';
+import { getFacilityPhysicalCard } from '../facilities/stock.js';
+import { getFacilityExecutionFace } from '../facilities/faces.js';
 import { beginFacilityConstruction, facilityConstructionCommandSchema, facilityConstructionPositionSchema } from '../facilities/construction.js';
 import { facilityEntryChoiceSchema, settleFacilityBoardOrSaleEntry } from '../facilities/entry-effects.js';
 import { FOUNDERS_FACILITY_PANEL } from '../facilities/panel-definition.js';
@@ -92,7 +92,7 @@ export function beginNestedFacilityEntry(next: MutableState, definition: GameDef
 }
 function pending(input: GameState, definition: GameDefinition, actorId: string) {
   const state = parseGameState(input, definition), action = state.construction;
-  if (!['1.12.0', '1.13.0', '1.14.0', '1.15.0'].includes(state.schemaVersion) || state.phase !== 'construction' || action?.status !== 'entry-pending' || !action.entryStack?.length) return reject('ENTRY_STAGE', 'No pending nested facility entry');
+  if (!['1.12.0', '1.13.0', '1.14.0', '1.15.0', '1.16.0'].includes(state.schemaVersion) || state.phase !== 'construction' || action?.status !== 'entry-pending' || !action.entryStack?.length) return reject('ENTRY_STAGE', 'No pending nested facility entry');
   if (action.actorId !== actorId) return reject('WRONG_ACTOR', 'Only the construction owner resolves these effects');
   return { state, action, frame: action.entryStack.at(-1)! };
 }
@@ -190,7 +190,7 @@ export function applyNestedFacilityEntryCommand(input: GameState, definition: Ga
       if (command.placement !== null) {
         const { cardId, cellId } = command.placement, supply = next.facilities!.supply, panel = next.facilities!.panels.find(row => row.playerId === actor)!;
         if (!supply.extensionReserve.includes(cardId)) return reject('EXTENSION_SOURCE', 'Choose one remaining extension reserve card');
-        const card = getFoundersPhysicalFacilityCard(cardId), face = getFoundersFacilityFace(card.facilityId);
+        const card = getFacilityPhysicalCard(cardId), face = getFacilityExecutionFace(card.facilityId);
         if (card.group !== 'extension-hub') return reject('EXTENSION_SOURCE', 'Only extension cards belong to this effect');
         if (!getEmptyFacilityPanelCells(panel, supply).some(cell => cell.id === cellId)) return reject('EXTENSION_CELL', 'Choose an empty cell on your panel');
         if (supply.revision === Number.MAX_SAFE_INTEGER || panel.revision === Number.MAX_SAFE_INTEGER) return reject('VERSION_OVERFLOW', 'Facility version exhausted');

@@ -3,7 +3,9 @@ import { deepFreeze } from '../board/hash.js';
 import { getCityPattern } from './catalog.js';
 import { getFacilityPanelCellAt, getFacilityPanelCell } from '../facilities/panel-definition.js';
 import { parseFacilityPanelState } from '../facilities/panel-state.js';
-import { getFoundersPhysicalFacilityCard } from '../facilities/stock.js';
+import { isTemporarySettlementCard } from '../facilities/temporary-settlement.js';
+import { parseFacilitySupplyState } from '../facilities/supply.js';
+import { getFacilityPhysicalCard } from '../facilities/stock.js';
 import type { DeepReadonly } from '../game/types.js';
 import type { CityPatternCell } from './schema.js';
 
@@ -21,9 +23,11 @@ export type CityPatternBoard = DeepReadonly<z.infer<typeof cityPatternBoardSchem
 /** Supply and the sole authoritative panel establish ownership/colour. Exhaustion is a trusted read-model input. */
 export function getCityPatternBoard(panelInput: unknown, supplyInput: unknown, exhaustedCardIds: readonly string[] = []): CityPatternBoard {
   const panel = parseFacilityPanelState(panelInput, supplyInput), owned = new Set(panel.placements.map(row => row.cardId));
-  if (new Set(exhaustedCardIds).size !== exhaustedCardIds.length || exhaustedCardIds.some(id => !owned.has(id))) throw new Error('Exhausted facilities must be distinct owned and placed cards');
+  const supply = parseFacilitySupplyState(supplyInput);
+  const retired = (id: string) => supply.stockRef.definitionId === 'project-base-facility-stock' && isTemporarySettlementCard(id) && supply.returnedToBox.includes(id);
+  if (new Set(exhaustedCardIds).size !== exhaustedCardIds.length || exhaustedCardIds.some(id => !owned.has(id) && !retired(id))) throw new Error('Exhausted facilities must be distinct owned and placed cards');
   const exhausted = new Set(exhaustedCardIds);
-  return deepFreeze({ placements: panel.placements.map(row => ({ ...row, color: getFoundersPhysicalFacilityCard(row.cardId).color, exhausted: exhausted.has(row.cardId) })) });
+  return deepFreeze({ placements: panel.placements.map(row => ({ ...row, color: getFacilityPhysicalCard(row.cardId).color, exhausted: exhausted.has(row.cardId) })) });
 }
 export interface CityPatternMatch {
   readonly rotation: 0 | 90 | 180 | 270;

@@ -1,6 +1,6 @@
 import { loadFoundersBoard } from '../board/index.js';
 import type { ValidationIssue } from '../board/types.js';
-import { getFoundersPhysicalFacilityCard } from '../facilities/stock.js';
+import { getFacilityPhysicalCard } from '../facilities/stock.js';
 import { getFoundersMapSide } from './state.js';
 import { facilityEntrySpec, copyEntryTargets, extraConstructionOptions } from './facility-entry-rules.js';
 import { affordableWarehouseTargets } from './warehouse-rules.js';
@@ -14,22 +14,22 @@ export function nestedFacilityEntryIssues(state: GameState, definition: GameDefi
   const report = (message: string) => issues.push({ code: 'FACILITY_ENTRY', path: 'construction.entryStack', message });
   for (const holding of state.facilities?.supply.playerHoldings ?? []) for (const id of holding.cardIds) {
     try {
-      const card = getFoundersPhysicalFacilityCard(id);
+      const card = getFacilityPhysicalCard(id);
       if (card.group === 'core-command-tower') continue;
       const kind = facilityEntrySpec(id).entry.kind;
-      if ((card.group === 'extension-hub' || ['logistics', 'free-city-move', 'copy-entry', 'starting-player', 'extra-construction'].includes(kind)) && !['1.12.0', '1.13.0', '1.14.0', '1.15.0'].includes(state.schemaVersion)) report('Built nested facility requires format 1.12.0');
+      if ((card.group === 'extension-hub' || ['logistics', 'free-city-move', 'copy-entry', 'starting-player', 'extra-construction'].includes(kind)) && !['1.12.0', '1.13.0', '1.14.0', '1.15.0', '1.16.0'].includes(state.schemaVersion)) report('Built nested facility requires format 1.12.0');
     } catch { /* Existing physical/pictured validators report unsupported references. */ }
   }
   const override = state.roundFlow?.startingPlayerOverride;
   if (override) {
     const panel = state.facilities?.panels.find(row => row.playerId === override.playerId);
-    let council = false; try { council = getFoundersPhysicalFacilityCard(override.cardId).facilityId === 'FAC-015'; } catch { /* report below */ }
+    let council = false; try { council = getFacilityPhysicalCard(override.cardId).facilityId === 'FAC-015'; } catch { /* report below */ }
     if (!panel?.placements.some(row => row.cardId === override.cardId) || !council || !['player-actions', 'harvest', 'cleanup'].includes(state.roundFlow!.stage)) report('Starting-player override must name an owned council in the current active round');
   }
   const action = state.construction, stack = action?.entryStack;
   if (!action || stack === undefined) return issues;
   if (action.warehouseEntry !== undefined) report('Only one continuation representation may own the construction');
-  if (!['1.12.0', '1.13.0', '1.14.0', '1.15.0'].includes(state.schemaVersion) || (action.status === 'entry-pending') !== (stack.length > 0)) report('Stack and parent completion must agree in format 1.12.0');
+  if (!['1.12.0', '1.13.0', '1.14.0', '1.15.0', '1.16.0'].includes(state.schemaVersion) || (action.status === 'entry-pending') !== (stack.length > 0)) report('Stack and parent completion must agree in format 1.12.0');
   if (!stack.length) return issues;
   if (stack[0]!.kind !== 'entry' || stack[0]!.sourceCardId !== action.builtCardId) report('Root entry must belong to the facility constructed by this action');
   const panel = state.facilities?.panels.find(row => row.playerId === action.actorId);
@@ -70,7 +70,7 @@ export function nestedFacilityEntryIssues(state: GameState, definition: GameDefi
         try {
           const kind = facilityEntrySpec(parent.sourceCardId).entry.kind;
           if (kind === 'copy-entry') allowed = frame.kind === 'entry' && copyEntryTargets(state, action.actorId, parent.sourceCardId).includes(frame.sourceCardId);
-          else if (kind === 'extra-construction') allowed = frame.kind === 'entry' && frame.sourceCardId !== parent.sourceCardId && getFoundersPhysicalFacilityCard(frame.sourceCardId).group === 'ordinary';
+          else if (kind === 'extra-construction') allowed = frame.kind === 'entry' && frame.sourceCardId !== parent.sourceCardId && getFacilityPhysicalCard(frame.sourceCardId).group === 'ordinary';
           else if (kind === 'warehouse') allowed = frame.kind === 'exploration' && frame.sourceCardId === parent.sourceCardId;
           else if (kind === 'free-city-move') allowed = frame.kind === 'city-move' && frame.sourceCardId === parent.sourceCardId;
         } catch { /* Invalid parent already reported. */ }

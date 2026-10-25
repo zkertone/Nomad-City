@@ -1,0 +1,122 @@
+[
+  {
+    "check": "check:maps",
+    "exit_code": 0,
+    "seconds": 0.15
+  },
+  {
+    "check": "check:events",
+    "exit_code": 0,
+    "seconds": 0.22
+  },
+  {
+    "check": "check:game",
+    "exit_code": 0,
+    "seconds": 0.27
+  },
+  {
+    "check": "check:entry",
+    "exit_code": 0,
+    "seconds": 0.55
+  },
+  {
+    "check": "check:settlement",
+    "exit_code": 0,
+    "seconds": 1.17
+  },
+  {
+    "check": "check:exploration",
+    "exit_code": 0,
+    "seconds": 0.71
+  },
+  {
+    "check": "check:city-move",
+    "exit_code": 0,
+    "seconds": 0.82
+  },
+  {
+    "check": "check:influence",
+    "exit_code": 0,
+    "seconds": 0.86
+  },
+  {
+    "check": "check:harvest",
+    "exit_code": 0,
+    "seconds": 1.02
+  },
+  {
+    "check": "check:scoring",
+    "exit_code": 0,
+    "seconds": 0.99
+  },
+  {
+    "check": "check:schemes",
+    "exit_code": 0,
+    "seconds": 5.17
+  },
+  {
+    "check": "check:liskarm",
+    "exit_code": 0,
+    "seconds": 2.19
+  },
+  {
+    "check": "check:roles",
+    "exit_code": 0,
+    "seconds": 4.33
+  },
+  {
+    "check": "check:rounds",
+    "exit_code": 0,
+    "seconds": 12.19
+  },
+  {
+    "check": "check:construction",
+    "exit_code": 0,
+    "seconds": 0.8
+  },
+  {
+    "check": "check:warehouse",
+    "exit_code": 0,
+    "seconds": 4.12
+  },
+  {
+    "check": "check:remaining-facilities",
+    "exit_code": 0,
+    "seconds": 43.46
+  },
+  {
+    "check": "check:facility-entries",
+    "exit_code": 0,
+    "seconds": 5.96
+  },
+  {
+    "check": "check:temporary-settlements",
+    "exit_code": 0,
+    "seconds": 20.93
+  },
+  {
+    "check": "check:pattern-major-actions",
+    "exit_code": 0,
+    "seconds": 26.5
+  },
+  {
+    "check": "check:pattern-continuations",
+    "exit_code": 0,
+    "seconds": 33.63
+  },
+  {
+    "check": "check:pattern-actions",
+    "exit_code": 0,
+    "seconds": 26.5
+  },
+  {
+    "check": "check:patterns",
+    "exit_code": 0,
+    "seconds": 0.23
+  },
+  {
+    "check": "check:facilities",
+    "exit_code": 0,
+    "seconds": 0.29
+  }
+]

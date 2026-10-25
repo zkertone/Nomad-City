@@ -1,0 +1,4 @@
+{"players":2,"format":"1.10.0","realNewSchemes":3,"freeMoveAfterExploration":true,"texasSteps":3,"forcedSaleIncludesSelf":true,"scoreGain":1,"nextRound":2}
+{"players":3,"format":"1.10.0","realNewSchemes":3,"freeMoveAfterExploration":true,"texasSteps":3,"forcedSaleIncludesSelf":true,"scoreGain":1,"nextRound":2}
+{"players":4,"format":"1.10.0","realNewSchemes":3,"freeMoveAfterExploration":true,"texasSteps":3,"forcedSaleIncludesSelf":true,"scoreGain":1,"nextRound":2}
+PASS: compiled three remaining schemes in real 2/3/4-player games, real entry/exploration/deployment, strategy-first both, post-action retirement, forced sales, persistence/replay, next-round inventory and marker conservation

@@ -1,3 +1,5 @@
+import { isTemporarySettlementCard } from '../facilities/temporary-settlement.js';
+import { getFacilityPhysicalCard } from '../facilities/stock.js';
 import { CITY_PATTERNS_HASH, getCityPattern, getEligibleCityPatterns } from '../patterns/catalog.js';
 import { getCityPatternActionSupport } from './city-pattern-rules.js';
 import { cityMoveOptionsFor } from './city-move.js';
@@ -16,7 +18,7 @@ export function cityPatternIssues(state: GameState, definition: GameDefinition):
   if (JSON.stringify(Object.keys(facts.exhaustedFacilityIdsByPlayer).sort()) !== JSON.stringify(players)) report('Exhaustion must cover exactly the registered players');
   for (const [playerId, ids] of Object.entries(facts.exhaustedFacilityIdsByPlayer)) {
     const owned = state.facilities?.panels.find(panel => panel.playerId === playerId)?.placements.map(row => row.cardId) ?? [];
-    if (new Set(ids).size !== ids.length || ids.some(id => !owned.includes(id))) report('Exhausted facilities must be unique, owned and placed');
+    if (new Set(ids).size !== ids.length || ids.some(id => !owned.includes(id) && !state.temporarySettlementReturns?.some(r => r.cardId === id && r.playerId === playerId))) report('Exhausted facilities must be unique, owned and placed');
   }
   for (const marker of state.patternMarkers ?? []) {
     let pattern; try { pattern = getCityPattern(marker.patternId); } catch { report('Unknown pattern marker target'); continue; }
@@ -50,7 +52,15 @@ export function cityPatternIssues(state: GameState, definition: GameDefinition):
     if (pending.kind === 'declaration-build') {
       const exhausted = facts.exhaustedFacilityIdsByPlayer[actorId] ?? [], panel = state.facilities!.panels.find(p => p.playerId === actorId)!;
       let matches: ReturnType<typeof findCityPatternMatches> = [];
-      try { matches = findCityPatternMatches(getCityPatternBoard(panel, state.facilities!.supply), 'PAT-013'); } catch { report('Declaration needs a valid physical facility panel'); }
+      try {
+        if (state.schemaVersion === '1.16.0') {
+          const evidence = pending.declarationFacilityPlacements ?? [];
+          if (evidence.some(p => !exhausted.includes(p.cardId) || !(panel.placements.some(q => q.cardId === p.cardId && q.cellId === p.cellId)
+            || (isTemporarySettlementCard(p.cardId) && state.temporarySettlementReturns!.some(r => r.cardId === p.cardId && r.playerId === actorId))))) report('Declaration evidence must identify real exhausted or returned facilities');
+          matches = findCityPatternMatches({ placements: evidence.map(p => ({ ...p, color: getFacilityPhysicalCard(p.cardId).color, exhausted: false })) }, 'PAT-013');
+          if (!matches.some(m => m.facilityCardIds.length === evidence.length)) report('Declaration evidence must be exactly its original pattern');
+        } else matches = findCityPatternMatches(getCityPatternBoard(panel, state.facilities!.supply), 'PAT-013');
+      } catch { report('Declaration needs a valid physical facility panel'); }
       if (!state.patternMarkers?.some(m => m.ownerPlayerId === actorId && m.patternId === 'PAT-013') || !matches.some(m => m.facilityCardIds.every(id => exhausted.includes(id)))) report('Declaration construction needs a real announced pattern and exhausted facilities');
     } else if (!flow.majorActionOpened || flow.completedMajorAction !== null || !facts.usedSpecialActions.some(u => u.playerId === actorId && u.patternId === pending.patternId && u.turnIndex === flow.turnIndex) || !state.patternMarkers?.some(m => m.ownerPlayerId === actorId && m.patternId === pending.patternId)) report('Special continuation needs its actual current-turn activation and major quota');
     if (pending.kind === 'city-move') {

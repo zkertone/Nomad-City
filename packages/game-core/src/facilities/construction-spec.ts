@@ -1,6 +1,6 @@
 import { deepFreeze } from '../board/hash.js';
-import { FOUNDERS_FACILITY_FACES, getFoundersFacilityFace } from './faces.js';
-import { FOUNDERS_FACILITY_STOCK, getFoundersPhysicalFacilityCard } from './stock.js';
+import { FOUNDERS_FACILITY_FACES, getFacilityExecutionFace } from './faces.js';
+import { FOUNDERS_FACILITY_STOCK, PROJECT_BASE_FACILITY_STOCK, getFacilityPhysicalCard } from './stock.js';
 
 // Pin the executable interpretation independently: new card text must be reviewed before these handlers run against it.
 export const FACILITY_CONSTRUCTION_SOURCE_HASH = 'sha256:840edd051e9c8a97377a0419cf64d663b35d68a2fcd861b5f288560ac6ab614e';
@@ -19,6 +19,7 @@ export type SupportedFacilityEntry =
   | { readonly kind: 'choose-five-resources' }
   | { readonly kind: 'core-neighbor-vouchers' };
 const supported = deepFreeze([
+  { facilityId: 'FAC-017', entry: { kind: 'none' } },
   { facilityId: 'FAC-016', entry: { kind: 'extra-construction' } },
   { facilityId: 'FAC-015', entry: { kind: 'starting-player' } },
   { facilityId: 'FAC-014', entry: { kind: 'copy-entry' } },
@@ -47,19 +48,20 @@ export const FACILITY_COLOR_VARIANT_RULE = deepFreeze({
 export function getFacilityConstructionSpec(cardId: string) {
   if (FOUNDERS_FACILITY_FACES.contentHash !== FACILITY_CONSTRUCTION_SOURCE_HASH) return rejectFacilityConstruction('CARD_SOURCE_VERSION', 'Executable facility interpretation needs review for this text version');
   let card;
-  try { card = getFoundersPhysicalFacilityCard(cardId); }
+  try { card = getFacilityPhysicalCard(cardId); }
   catch { return rejectFacilityConstruction('CARD_REFERENCE', 'Unknown physical facility card'); }
   if (card.group !== 'ordinary') return rejectFacilityConstruction('CARD_SOURCE', 'Core/extension cards cannot use ordinary construction');
-  const face = getFoundersFacilityFace(card.facilityId);
+  const face = getFacilityExecutionFace(card.facilityId);
   const handler = supported.find(row => row.facilityId === card.facilityId);
   if (!handler) return rejectFacilityConstruction('UNSUPPORTED_ENTRY_EFFECT', 'This facility needs an entry handler before construction can run');
   if (face.constructionCost.kind !== 'printed-alternatives') return rejectFacilityConstruction('COST_NOT_CONFIRMED', 'No ordinary printed construction cost');
   return deepFreeze({ card, face, printedCost: face.constructionCost, entry: handler.entry as SupportedFacilityEntry });
 }
-export function getFacilityConstructionSupport() {
+export function getFacilityConstructionSupport(includeTemporarySettlements = false) {
+  const active = supported.filter(row => includeTemporarySettlements || row.facilityId !== 'FAC-017');
   return deepFreeze({
-    supportedFacilityIds: supported.map(row => row.facilityId).sort(),
-    supportedPhysicalCardIds: FOUNDERS_FACILITY_STOCK.cards.filter(card => card.group === 'ordinary'
+    supportedFacilityIds: active.map(row => row.facilityId).sort(),
+    supportedPhysicalCardIds: (includeTemporarySettlements ? PROJECT_BASE_FACILITY_STOCK : FOUNDERS_FACILITY_STOCK).cards.filter(card => card.group === 'ordinary'
       && supported.some(row => row.facilityId === card.facilityId)).map(card => card.id),
     supportedExtensionPhysicalCardIds: FOUNDERS_FACILITY_STOCK.cards.filter(card => card.group === 'extension-hub').map(card => card.id),
     unconfirmedPhysicalCardIds: [] as string[], colorVariantRule: FACILITY_COLOR_VARIANT_RULE,

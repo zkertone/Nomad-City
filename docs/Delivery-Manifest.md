@@ -599,3 +599,8 @@
 ## 2026-10-25 · 恢复审计增量
 
 恢复37份既有开发变更，无新增玩法逻辑。本轮更新DevLog、本清单和三张样式验证记录；新增testing/recovery-validation-2026-10-25.md及testing/recovery-2026-10-25/中的两份全量验证日志、23份编译检查日志与results.json。远端main仍c790987；恢复提交仅在本地分支，待具体发布授权。
+
+
+## 2026-10-25 · 临时聚居点批次
+
+基准main f0a976c；新增facilities/temporary-settlement.ts、game/temporary-settlements.ts与38项测试、scripts/check-temporary-settlements.mjs、规则/API和验证文档，保留最终verify及24项编译脚本日志。更新库存引用校验、执行查询、宣告/新兴建筑群证据、1.16.0继承和README/玩法规范/DevLog；原JSON、旧固定摘要、ADR与依赖锁不变。2183/2183、strict/build、24/24脚本及12段真实流程通过。按本轮授权提交main；不含原图/PDF、node_modules、dist或部署。

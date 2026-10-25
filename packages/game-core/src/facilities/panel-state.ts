@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { deepFreeze } from '../board/hash.js';
 import type { DeepReadonly } from '../game/types.js';
 import { FOUNDERS_FACILITY_PANEL, FOUNDERS_FACILITY_PANEL_HASH, getFacilityPanelOrthogonalNeighbors } from './panel-definition.js';
-import { FOUNDERS_FACILITY_STOCK, getFoundersPhysicalFacilityCard } from './stock.js';
+import { getFacilityStockForReference, getFacilityPhysicalCard } from './stock.js';
 import type { FacilityModuleValidation } from './stock.js';
 import { parseFacilitySupplyState, validateFacilitySupplyState } from './supply.js';
 
@@ -26,7 +26,7 @@ export function validateFacilityPanelState(input: unknown, supplyInput: unknown)
   const owner = supply.data.playerHoldings.find(row => row.playerId === state.playerId);
   if (!owner) issues.push('Unknown panel owner');
   const ownedIds = new Set(owner?.cardIds ?? []), cells = new Set(FOUNDERS_FACILITY_PANEL.cells.map(cell => cell.id));
-  const cardDefinitions = new Map(FOUNDERS_FACILITY_STOCK.cards.map(card => [card.id, card]));
+  const cardDefinitions = new Map(getFacilityStockForReference(supply.data.stockRef).cards.map(card => [card.id, card]));
   const usedCells = new Set<string>(), usedCards = new Set<string>();
   for (const placement of state.placements) {
     if (!cells.has(placement.cellId)) issues.push(`Unknown panel cell: ${placement.cellId}`);
@@ -67,7 +67,7 @@ export function validateFacilityPanelSet(input: unknown, supplyInput: unknown): 
 /** Setup only: cannot reset an existing constructed city by supplying non-initial holdings/zones. */
 export function createInitialFacilityPanels(supplyInput: unknown): readonly FacilityPanelState[] {
   const supply = parseFacilitySupplyState(supplyInput);
-  if (supply.revision !== 0 || supply.supply.length !== 6 || supply.drawPile.length !== 35 || supply.extensionReserve.length !== 3
+  if (supply.revision !== 0 || supply.supply.length !== 6 || supply.drawPile.length !== (supply.stockRef.definitionId === 'project-base-facility-stock' ? 38 : 35) || supply.extensionReserve.length !== 3
     || supply.returnedToBox.length || supply.playerHoldings.some(row => row.cardIds.length !== 1)) throw new Error('Expected initial facility supply');
   return deepFreeze(supply.playerHoldings.map(owner => parseFacilityPanelState({
     schemaVersion: '1.0.0', gameId: supply.gameId, playerId: owner.playerId, revision: 0,
@@ -83,7 +83,7 @@ export function getOrthogonallyAdjacentPanelFacilities(panelInput: unknown, supp
   const panel = parseFacilityPanelState(panelInput, supplyInput);
   const adjacent = new Set(getFacilityPanelOrthogonalNeighbors(cellId).map(cell => cell.id));
   return deepFreeze(panel.placements.filter(placement => adjacent.has(placement.cellId)).map(placement => {
-    const card = getFoundersPhysicalFacilityCard(placement.cardId);
+    const card = getFacilityPhysicalCard(placement.cardId);
     return { ...placement, facilityId: card.facilityId, color: card.color };
   }));
 }

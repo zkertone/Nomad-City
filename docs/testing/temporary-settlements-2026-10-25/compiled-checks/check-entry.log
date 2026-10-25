@@ -1,0 +1,4 @@
+{"players":2,"status":"complete","version":6,"moneyIncludingGreenRewards":[17,18]}
+{"players":3,"status":"complete","version":7,"moneyIncludingGreenRewards":[17,12,18]}
+{"players":4,"status":"complete","version":9,"moneyIncludingGreenRewards":[12,19,14,18]}
+PASS: compiled entry flow, pending-event reload, choices, funds and marker conservation

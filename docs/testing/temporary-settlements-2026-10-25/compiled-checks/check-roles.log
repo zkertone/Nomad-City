@@ -1,0 +1,4 @@
+{"players":2,"format":"1.8.0","actualRoundsWithRoleEffects":2,"completedModes":5,"recoveredPriorRole":true,"currentTinExcluded":true}
+{"players":3,"format":"1.8.0","actualRoundsWithRoleEffects":2,"completedModes":5,"recoveredPriorRole":true,"currentTinExcluded":true}
+{"players":4,"format":"1.8.0","actualRoundsWithRoleEffects":2,"completedModes":5,"recoveredPriorRole":true,"currentTinExcluded":true}
+PASS: compiled five role modes, explicit upgrade, 2/3/4-player real discard/recovery across rounds, starter both-mode order, market cycle, rates, JSON resume, privacy and no extra major action

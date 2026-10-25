@@ -1,0 +1,13 @@
+{"players":2,"scenario":"composite","realBuilds":2,"nextRound":6,"noInjectedState":true}
+{"players":2,"scenario":"efficient","realBuilds":5,"nextRound":7,"noInjectedState":true}
+{"players":2,"scenario":"new-building","realBuilds":3,"nextRound":6,"noInjectedState":true}
+{"players":2,"scenario":"development","realBuilds":3,"nextRound":6,"noInjectedState":true}
+{"players":3,"scenario":"composite","realBuilds":2,"nextRound":6,"noInjectedState":true}
+{"players":3,"scenario":"efficient","realBuilds":5,"nextRound":7,"noInjectedState":true}
+{"players":3,"scenario":"new-building","realBuilds":3,"nextRound":6,"noInjectedState":true}
+{"players":3,"scenario":"development","realBuilds":3,"nextRound":6,"noInjectedState":true}
+{"players":4,"scenario":"composite","realBuilds":2,"nextRound":6,"noInjectedState":true}
+{"players":4,"scenario":"efficient","realBuilds":5,"nextRound":7,"noInjectedState":true}
+{"players":4,"scenario":"new-building","realBuilds":3,"nextRound":6,"noInjectedState":true}
+{"players":4,"scenario":"development","realBuilds":3,"nextRound":6,"noInjectedState":true}
+PASS: 12 compiled real 2/3/4-player workflows for four nested city patterns; legal builds, one-time costs, quotas, persistence and cleanup

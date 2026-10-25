@@ -1,6 +1,6 @@
 import { loadFoundersBoard } from '../board/index.js';
-import { getFoundersPhysicalFacilityCard } from '../facilities/stock.js';
-import { getFoundersFacilityFace } from '../facilities/faces.js';
+import { getFacilityPhysicalCard } from '../facilities/stock.js';
+import { getFacilityExecutionFace } from '../facilities/faces.js';
 import { getFacilityConstructionSpec } from '../facilities/construction-spec.js';
 import { getFacilityConstructionQuote } from '../facilities/construction.js';
 import { getEmptyFacilityPanelCells, getOrthogonallyAdjacentPanelFacilities } from '../facilities/panel-state.js';
@@ -8,7 +8,7 @@ import { getFoundersMapSide } from './state.js';
 import type { GameDefinition, GameState } from './types.js';
 
 export function facilityEntrySpec(cardId: string) {
-  const card = getFoundersPhysicalFacilityCard(cardId), face = getFoundersFacilityFace(card.facilityId);
+  const card = getFacilityPhysicalCard(cardId), face = getFacilityExecutionFace(card.facilityId);
   if (card.group === 'extension-hub') return { card, face, entry: { kind: 'none' as const } };
   return getFacilityConstructionSpec(cardId);
 }

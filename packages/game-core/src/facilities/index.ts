@@ -14,3 +14,4 @@ export * from './construction-spec.js';
 export * from './construction.js';
 export { facilityEntryChoiceSchema } from './entry-effects.js';
 export type { FacilityEntryInfluenceChange } from './entry-effects.js';
+export * from './temporary-settlement.js';

@@ -1,0 +1,4 @@
+{"players":2,"status":"complete","version":14,"actorVouchers":11,"actorSupply":25,"yellow":"Y05","red":"R06"}
+{"players":3,"status":"complete","version":15,"actorVouchers":11,"actorSupply":25,"yellow":"Y05","red":"R06"}
+{"players":4,"status":"complete","version":17,"actorVouchers":6,"actorSupply":25,"yellow":"Y05","red":"R06"}
+PASS: compiled entry -> yellow/red exploration, separate placements, JSON restore, stale retries and inventory

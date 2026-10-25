@@ -1,0 +1,10 @@
+{"players":2,"facilityId":"FAC-002","finalVouchers":4,"printedPoints":0,"format":"1.10.0","nextRound":2}
+{"players":2,"facilityId":"FAC-003","finalVouchers":4,"printedPoints":1,"format":"1.10.0","nextRound":2}
+{"players":2,"facilityId":"FAC-006","finalVouchers":25,"printedPoints":0,"format":"1.10.0","nextRound":2}
+{"players":3,"facilityId":"FAC-002","finalVouchers":4,"printedPoints":0,"format":"1.10.0","nextRound":2}
+{"players":3,"facilityId":"FAC-003","finalVouchers":4,"printedPoints":1,"format":"1.10.0","nextRound":2}
+{"players":3,"facilityId":"FAC-006","finalVouchers":25,"printedPoints":0,"format":"1.10.0","nextRound":2}
+{"players":4,"facilityId":"FAC-002","finalVouchers":4,"printedPoints":0,"format":"1.10.0","nextRound":2}
+{"players":4,"facilityId":"FAC-003","finalVouchers":4,"printedPoints":1,"format":"1.10.0","nextRound":2}
+{"players":4,"facilityId":"FAC-006","finalVouchers":25,"printedPoints":0,"format":"1.10.0","nextRound":2}
+PASS: compiled 2/3/4-player three new facility entries, real entry/deployment/Liskarm/Texas income, construction/payment/refill/effect atomically, save/replay, both cycles, harvest/cleanup and next-round conservation

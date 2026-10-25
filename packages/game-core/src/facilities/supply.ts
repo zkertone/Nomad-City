@@ -1,16 +1,16 @@
 import { z } from 'zod';
 import { deepFreeze } from '../board/hash.js';
 import type { DeepReadonly } from '../game/types.js';
-import { FOUNDERS_FACILITY_STOCK, FOUNDERS_FACILITY_STOCK_HASH } from './stock.js';
+import { FOUNDERS_FACILITY_STOCK, FOUNDERS_FACILITY_STOCK_HASH, PROJECT_BASE_FACILITY_STOCK, PROJECT_BASE_FACILITY_STOCK_HASH, getFacilityStockForReference } from './stock.js';
 import type { FacilityModuleValidation, FacilityPhysicalCard } from './stock.js';
 
 const identifier = z.string().min(1).refine(value => value.trim().length > 0, 'Blank identifier');
-const cardIds = z.array(identifier).max(48);
+const cardIds = z.array(identifier).max(51);
 export const facilitySupplyStateSchema = z.strictObject({
   schemaVersion: z.literal('1.0.0'), gameId: identifier,
   revision: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
-  stockRef: z.strictObject({ definitionId: z.literal('founders-base-facility-stock'), definitionVersion: z.literal('1.0.0'), contentHash: z.string().regex(/^sha256:[a-f0-9]{64}$/) }),
-  drawPile: cardIds.max(41), supply: cardIds.max(6), extensionReserve: cardIds.max(3), unusedCoreTowers: cardIds.max(2), returnedToBox: cardIds.max(41),
+  stockRef: z.strictObject({ definitionId: z.enum(['founders-base-facility-stock', 'project-base-facility-stock']), definitionVersion: z.literal('1.0.0'), contentHash: z.string().regex(/^sha256:[a-f0-9]{64}$/) }),
+  drawPile: cardIds.max(44), supply: cardIds.max(6), extensionReserve: cardIds.max(3), unusedCoreTowers: cardIds.max(2), returnedToBox: cardIds.max(44),
   playerHoldings: z.array(z.strictObject({ playerId: identifier, cardIds })).min(2).max(4),
 });
 export type FacilitySupplyState = DeepReadonly<z.infer<typeof facilitySupplyStateSchema>>;
@@ -20,8 +20,9 @@ export function validateFacilitySupplyState(input: unknown): FacilityModuleValid
   const parsed = facilitySupplyStateSchema.safeParse(input);
   if (!parsed.success) return { success: false, issues: parsed.error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`) };
   const state = parsed.data, issues: string[] = [];
-  if (state.stockRef.contentHash !== FOUNDERS_FACILITY_STOCK_HASH) issues.push('Wrong facility stock reference');
-  const cards = new Map(FOUNDERS_FACILITY_STOCK.cards.map(card => [card.id, card]));
+  let stock;
+  try { stock = getFacilityStockForReference(state.stockRef); } catch { return { success: false, issues: ['Wrong facility stock reference'] }; }
+  const cards = new Map(stock.cards.map(card => [card.id, card]));
   const used = new Set<string>();
   const checkZone = (path: string, ids: readonly string[], allowed?: FacilityPhysicalCard['group']): void => {
     for (const id of ids) {
@@ -42,7 +43,7 @@ export function validateFacilitySupplyState(input: unknown): FacilityModuleValid
     checkZone(`playerHoldings:${holding.playerId}`, holding.cardIds);
     if (holding.cardIds.filter(id => cards.get(id)?.group === 'core-command-tower').length !== 1) issues.push(`Player needs exactly one core tower: ${holding.playerId}`);
   }
-  for (const card of FOUNDERS_FACILITY_STOCK.cards) if (!used.has(card.id)) issues.push(`Missing physical card: ${card.id}`);
+  for (const card of stock.cards) if (!used.has(card.id)) issues.push(`Missing physical card: ${card.id}`);
   return issues.length ? { success: false, issues } : { success: true, data: deepFreeze(state) };
 }
 export function parseFacilitySupplyState(input: unknown): FacilitySupplyState {
@@ -50,10 +51,10 @@ export function parseFacilitySupplyState(input: unknown): FacilitySupplyState {
   if (!result.success) throw new Error(`Invalid facility supply: ${result.issues.join('; ')}`);
   return result.data;
 }
-const supplySetupSchema = z.strictObject({ gameId: identifier, playerIds: z.array(identifier).min(2).max(4), deckOrder: z.array(identifier).length(41) });
+const supplySetupSchema = z.strictObject({ gameId: identifier, playerIds: z.array(identifier).min(2).max(4), deckOrder: z.array(identifier).min(41).max(44), includeTemporarySettlements: z.boolean().optional() });
 /** Server injects an unbiased random-below source (e.g. node:crypto.randomInt); deterministic sources are for replay/tests. */
-export function shuffleFoundersFacilityDeck(randomBelow: (upperExclusive: number) => number): readonly string[] {
-  const ids = FOUNDERS_FACILITY_STOCK.cards.filter(card => card.group === 'ordinary').map(card => card.id);
+export function shuffleFoundersFacilityDeck(randomBelow: (upperExclusive: number) => number, includeTemporarySettlements = false): readonly string[] {
+  const ids = (includeTemporarySettlements ? PROJECT_BASE_FACILITY_STOCK : FOUNDERS_FACILITY_STOCK).cards.filter(card => card.group === 'ordinary').map(card => card.id);
   for (let index = ids.length - 1; index > 0; index--) {
     const target = randomBelow(index + 1);
     if (!Number.isSafeInteger(target) || target < 0 || target > index) throw new RangeError('Invalid facility shuffle random index');
@@ -63,17 +64,19 @@ export function shuffleFoundersFacilityDeck(randomBelow: (upperExclusive: number
 }
 /** Trusted server setup: deckOrder is a complete server-shuffled permutation; never accept a player's chosen order. */
 export function createFoundersFacilitySupply(input: {
-  readonly gameId: string; readonly playerIds: readonly string[]; readonly deckOrder: readonly string[];
+  readonly gameId: string; readonly playerIds: readonly string[]; readonly deckOrder: readonly string[]; readonly includeTemporarySettlements?: boolean;
 }): FacilitySupplyState {
   const setup = supplySetupSchema.parse(input);
   if (new Set(setup.playerIds).size !== setup.playerIds.length) throw new Error('Duplicate setup player');
-  const ordinary = FOUNDERS_FACILITY_STOCK.cards.filter(card => card.group === 'ordinary');
+  const stock = setup.includeTemporarySettlements ? PROJECT_BASE_FACILITY_STOCK : FOUNDERS_FACILITY_STOCK;
+  const stockHash = setup.includeTemporarySettlements ? PROJECT_BASE_FACILITY_STOCK_HASH : FOUNDERS_FACILITY_STOCK_HASH;
+  const ordinary = stock.cards.filter(card => card.group === 'ordinary');
   const expected = new Set(ordinary.map(card => card.id));
-  if (new Set(setup.deckOrder).size !== 41 || setup.deckOrder.some(id => !expected.has(id))) throw new Error('Facility deckOrder must be a permutation of all 41 ordinary cards');
+  if (setup.deckOrder.length !== ordinary.length || new Set(setup.deckOrder).size !== ordinary.length || setup.deckOrder.some(id => !expected.has(id))) throw new Error('Facility deckOrder must be a permutation of the selected ordinary inventory');
   const cores = FOUNDERS_FACILITY_STOCK.cards.filter(card => card.group === 'core-command-tower');
   return parseFacilitySupplyState({
     schemaVersion: '1.0.0', gameId: setup.gameId, revision: 0,
-    stockRef: { definitionId: FOUNDERS_FACILITY_STOCK.definitionId, definitionVersion: FOUNDERS_FACILITY_STOCK.definitionVersion, contentHash: FOUNDERS_FACILITY_STOCK_HASH },
+    stockRef: { definitionId: stock.definitionId, definitionVersion: stock.definitionVersion, contentHash: stockHash },
     supply: setup.deckOrder.slice(0, 6), drawPile: setup.deckOrder.slice(6),
     extensionReserve: FOUNDERS_FACILITY_STOCK.cards.filter(card => card.group === 'extension-hub').map(card => card.id),
     unusedCoreTowers: cores.slice(setup.playerIds.length).map(card => card.id), returnedToBox: [],
