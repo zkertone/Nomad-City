@@ -1,0 +1,14 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> nomad-city-online@0.2.0 check:automatic-rooms
+> npm run build && node scripts/check-automatic-rooms.mjs
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> nomad-city-online@0.2.0 build
+> tsc -p tsconfig.build.json && tsc -p packages/server/tsconfig.build.json
+
+{"players":2,"rounds":8,"majorActions":32,"automaticTransitions":35,"delayedCleanupChosenByPlayer":true,"restoredWithoutRescoring":true,"noInjectedState":true}
+{"players":3,"rounds":8,"majorActions":48,"automaticTransitions":35,"delayedCleanupChosenByPlayer":true,"restoredWithoutRescoring":true,"noInjectedState":true}
+{"players":4,"rounds":8,"majorActions":64,"automaticTransitions":35,"delayedCleanupChosenByPlayer":true,"restoredWithoutRescoring":true,"noInjectedState":true}
+{"check":"PASS","games":3,"playerWrites":479,"automaticWrites":105,"cleanupChoices":3,"pushes":1532,"manualStageCalls":0,"realSocketIo":true,"persistedPlanAndSessionRecovery":true,"database":"PGlite test only","nativePostgresChecked":false}

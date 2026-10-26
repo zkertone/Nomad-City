@@ -84,3 +84,8 @@ check:sockets复用上一批三场真实八回合夹具，467次玩家请求全�
 本批全量2368/2368（原2325+新增43）、strict和双包构建通过。默认数据库仍为测试用PGlite；真实WebSocket网络已验证，但原生PostgreSQL网络／行锁联调和用户服务器部署仍未执行。详见[本批验证记录](testing/sockets-validation-2026-10-26.md)。
 
 技术依据：[Nest网关与ack](https://docs.nestjs.com/websockets/gateways)、[Socket.IO握手中间件](https://socket.io/docs/v4/middlewares/)、[Socket.IO服务端选项](https://socket.io/docs/v4/server-options/)。连接中间件只在握手时运行，本实现另在事件及推送前主动重新验证会话。
+
+
+## 后续增量：明确新基础局的自动阶段推进
+
+本文件正文保留网关批次边界。后续已接入可信新局工厂和自动调度；新自动房间外层消息可带automatic状态，玩家成功reply版本与随后视图版本可能不同。广播改为readCommittedView纯读取，授权订阅可恢复未完成自动边界并通知其他成员。历史手动房间保持原合同；详见[自动基础局说明](Automatic-Base-Lifecycle-2026-10-26.md)。

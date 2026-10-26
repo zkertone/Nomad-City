@@ -9,6 +9,7 @@ import type { RoomReadResult, RoomSubmitResult, TrustedRoomCommitResult } from '
 import type { RoomSnapshot } from './room-state.js';
 import { RoomQueue } from './room-queue.js';
 import { SessionService } from './sessions.js';
+import type { AutomaticProgress } from './automatic-lifecycle.js';
 import { ROOM_SOCKET_OPTIONS, SOCKET_PROTOCOL_VERSION, socketAuthSchema, socketCommandSchema, socketRoomSchema } from './socket-protocol.js';
 import type { RoomSocketOptions, SocketFailure } from './socket-protocol.js';
 
@@ -61,12 +62,12 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       return { authenticatedUserId: session.userId };
     } catch { return this.invalidate(socket, 'AUTH_UNAVAILABLE'); }
   }
-  private deliver(socket: Socket, roomId: string, view: GamePlayerView): void {
+  private deliver(socket: Socket, roomId: string, view: GamePlayerView, automatic?: AutomaticProgress): void {
     const record = this.connections.get(socket), version = record?.rooms.get(roomId);
     if (!record || !socket.connected || version === undefined || view.public.stateVersion <= version) return;
     if (record.expiresAt <= this.sessions.now()) { this.invalidate(socket, 'AUTH_REQUIRED'); return; }
     record.rooms.set(roomId, view.public.stateVersion);
-    socket.emit('room:state', { protocolVersion: SOCKET_PROTOCOL_VERSION, roomId, view });
+    socket.emit('room:state', { protocolVersion: SOCKET_PROTOCOL_VERSION, roomId, view, ...(automatic ? { automatic } : {}) });
   }
   /** Called under the gateway room queue, only after a committed write or an explicit authenticated read. */
   private async publish(roomId: string): Promise<void> {
@@ -74,10 +75,10 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     const results = await Promise.allSettled(targets.map(async socket => {
       const record = this.connections.get(socket); if (!record?.rooms.has(roomId)) return;
       const principal = await this.authenticate(socket); if ('status' in principal) return;
-      const result = await this.rooms.readView(roomId, principal);
+      const result = await this.rooms.readCommittedView(roomId, principal);
       if (result.status === 'ready') {
         const current = await this.authenticate(socket);
-        if (!('status' in current)) this.deliver(socket, roomId, result.view);
+        if (!('status' in current)) this.deliver(socket, roomId, result.view, result.automatic);
       }
       else { record.rooms.delete(roomId); socket.emit('room:unavailable', { roomId, error: result.error }); }
     }));
@@ -98,7 +99,11 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
         const current = await this.authenticate(socket); if ('status' in current) return current;
         if (result.status === 'ready' && this.connections.get(socket) === record) {
           if (!record.rooms.has(checked.data.roomId)) record.rooms.set(checked.data.roomId, -1);
-          this.deliver(socket, checked.data.roomId, result.view);
+          this.deliver(socket, checked.data.roomId, result.view, result.automatic);
+        }
+        if (result.automatic) {
+          await this.publish(checked.data.roomId);
+          const last = await this.authenticate(socket); if ('status' in last) return last;
         }
         return result;
       } catch { return failure('SERVER_UNAVAILABLE'); }
@@ -111,7 +116,7 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       try {
         const principal = await this.authenticate(socket); if ('status' in principal) return principal;
         const result = await this.rooms.submit(checked.data.roomId, principal, checked.data.request);
-        if (result.status === 'committed') await this.publish(checked.data.roomId);
+        if (result.status === 'committed' || result.automatic) await this.publish(checked.data.roomId);
         const current = await this.authenticate(socket); if ('status' in current) return current;
         return result;
       } catch { return failure('SERVER_UNAVAILABLE'); }

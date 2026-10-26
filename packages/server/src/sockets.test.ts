@@ -13,6 +13,8 @@ import { createRoomSocketApplication } from './socket-application.js';
 import { RoomGateway } from './room.gateway.js';
 import { ROOM_STORE } from './room.module.js';
 import { socketOptionsSchema } from './socket-protocol.js';
+import { createAutomaticBaseRoomSnapshot } from './base-room-factory.js';
+import { baseSetupIds } from './automatic-base-plan.js';
 
 const db = new PGlite(), sql: RoomSqlExecutor = { query: async (text, values) => {
   const r = await db.query<Record<string, unknown>>(text, values); return { rows: r.rows, rowCount: r.affectedRows ?? r.rows.length };
@@ -244,5 +246,41 @@ describe('real loopback Socket.IO session, membership and recovery boundary', ()
     const a = await asUser('bob'), disconnected = event(a.socket, 'disconnect');
     a.socket.emit('room:subscribe', { roomId: 'a'.repeat(80 * 1024) });
     await disconnected; await until(() => !a.socket.connected);
+  });
+  it('acknowledges a saved entry choice despite automatic failure, then resumes and notifies other members on subscribe', async () => {
+    const id = `auto-wire-${++sequence}`;
+    const initial = createAutomaticBaseRoomSnapshot({ roomId: id, gameId: `game-${id}`,
+      players: [{ id: 'p1', color: 'red' }, { id: 'p2', color: 'blue' }],
+      members: [{ userId: 'bob', playerId: 'p1' }, { userId: 'alice', playerId: 'p2' }], startingPlayerId: 'p1', clockwisePlayerIds: ['p1', 'p2'],
+      setupOrders: { ...baseSetupIds(2), greenDeckOrder: ['G03', 'G02', 'G04', 'G05', 'G06'] } });
+    let state = initial.state;
+    for (const [i, playerId] of ['p1', 'p2'].entries()) {
+      state = core.applyEntryCommand(state, initial.definition, { authenticatedPlayerId: playerId }, { gameId: state.gameId, expectedVersion: state.stateVersion, type: 'select-initial-node', nodeId: ['A-01', 'A-02'][i] });
+      state = core.applyEntryCommand(state, initial.definition, { authenticatedPlayerId: playerId }, { gameId: state.gameId, expectedVersion: state.stateVersion, type: 'choose-green-event', choiceId: `${state.entry!.pendingEvent!.cardId}:1` });
+    }
+    expect(state.entry!.status).toBe('bonus-influence'); await store.create({ ...initial, state });
+    const a = await asUser('bob'), b = await asUser('alice'), received: { view: { public: { stateVersion: number }; private: { playerId: string } } }[] = [];
+    b.socket.on('room:state', value => received.push(value));
+    await call(a.socket, 'room:subscribe', { roomId: id }); await call(b.socket, 'room:subscribe', { roomId: id });
+    const original = gatewayStore.compareAndSwap.bind(gatewayStore); let calls = 0, blocked = true;
+    vi.spyOn(gatewayStore, 'compareAndSwap').mockImplementation(async (...args) => {
+      if (++calls > 1 && blocked) throw Error('automatic write blocked');
+      return original(...args);
+    });
+    const body = { roomId: id, request: { apiVersion: '1.0.0', requestId: 'finish-entry', channel: 'entry', command: {
+      gameId: state.gameId, expectedVersion: state.stateVersion, type: 'choose-entry-influence', slotId: null } } };
+    const committed = await call(b.socket, 'room:command', body);
+    expect(committed).toMatchObject({ status: 'committed', reply: { ok: true, stateVersion: state.stateVersion + 1 }, automatic: { status: 'pending', issue: 'STORAGE_UNAVAILABLE' } });
+    expect(calls).toBe(2); expect(received).toHaveLength(2);
+    const afterPlayer = (await store.read(id))!; expect(afterPlayer.state.entry!.status).toBe('complete');
+    blocked = false;
+    const repaired = await call(a.socket, 'room:subscribe', { roomId: id });
+    expect(repaired).toMatchObject({ status: 'ready', automatic: { status: 'waiting-for-player' }, view: { public: { snapshotVersion: '1.16.0', stateVersion: afterPlayer.state.stateVersion + 10 } } });
+    await call(b.socket, 'room:subscribe', { roomId: id });
+    expect(received).toHaveLength(3); expect(received.at(-1)!.view.private.playerId).toBe('p2');
+    expect(received.at(-1)!.view.public.stateVersion).toBe(repaired.view.public.stateVersion);
+    expect((await store.read(id))!.state.players).toEqual(afterPlayer.state.players);
+    expect(JSON.stringify(repaired)).not.toContain('facilityDeckOrder');
+    expect(await call(b.socket, 'room:command', body)).toMatchObject({ status: 'rejected', reply: { error: { code: 'STALE_VERSION' } } });
   });
 });

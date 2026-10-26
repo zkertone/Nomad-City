@@ -624,3 +624,8 @@
 ## 2026-10-26 · 会话凭证与Socket.IO网络基础
 
 基准main d8d3871；新增sessions／socket-protocol／room.gateway／socket-application四份服务源码、43项sockets.test及002-sessions.sql，包入口导出新合同。原check-room-service.mjs新增--sockets复用真实流程，根新增check:sockets及显式原生PostgreSQL命令；根／server package、依赖锁及装饰器配置更新。新增Socket-Sessions文档、sockets验证记录与三份成功原始日志，更新README、服务端基础说明、DevLog和本清单。实际2368/2368、strict、双包构建及真实loopback上三场八回合／原会话重开恢复通过（467玩家提交、84可信提交、81成员核对、1556专属推送）。原生PostgreSQL模式未执行；不含凭证原文、用户数据库／服务器配置、node_modules、dist、临时数据库或部署。
+
+
+## 2026-10-26 · 自动基础局生命周期
+
+基准main fa74634；新增automatic-base-plan、base-room-factory、automatic-lifecycle、32项调度测试及003迁移，扩展RoomSnapshot/SQL适配／RoomService／网关和外层类型，原网络文件新增1项恢复测试。新增独立check-automatic-rooms.mjs及两条检查命令；不修改既有手动编译检查。新增自动生命周期说明、验证记录和四份成功日志，更新README、Socket说明、DevLog与本清单。最终2401/2401、strict、双包构建通过，真实网络3场八回合479玩家提交／105自动写入／1532推送，手动阶段调用0；原生PostgreSQL模式未执行。原依赖锁、规则核心／数据／摘要／ADR和存档版本不变，不含秘密凭证、node_modules、dist、临时数据库或部署。
