@@ -151,3 +151,8 @@ GameState1.15.0的源石工业中枢、核心商业区、拓荒指挥中枢复�
 ### 2026-10-25 · 正式终局接入
 
 既有第8回合finished仍表示所有采集/收尾完成。项目基础1.16.0可随后由可信调用方执行finalizeBaseGame，一次性提交为终局专用1.17.0；getFinalScoringResult返回正式结果，getRoundPublicView附带同一finalResult。旧格式读取语义保留，不能向旧局补造新配置。见[正式终局规则与API](Final-Scoring-2026-10-25.md)。
+
+
+## 2026-10-26 · 整局视图与统一玩家入口
+
+新增getGamePublicView与认证上下文的getGamePlayerView。前者完全不含玩家手牌／盖放身份，后者将本人数据明确放入private；原getRoundPublicView的局部且含本人角色合同保持兼容。executeGamePlayerRequest复用本文件全部round命令，其他动作按明确通道委派原函数；阶段开启／收尾／最终计分继续仅为可信转换。见[可见性及提交约定](Player-Views-and-API-2026-10-26.md)。

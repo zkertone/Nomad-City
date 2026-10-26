@@ -1,0 +1,24 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> nomad-city-online@0.2.0 check:player-api
+> npm run build && node scripts/check-final-scoring.mjs --player-api
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> nomad-city-online@0.2.0 build
+> tsc -p tsconfig.build.json
+
+{"players":2,"scenario":0,"completedRounds":8,"majorActions":32,"realBuilds":2,"returned":0,"scores":{"p1":7,"p2":3},"winners":["p1"],"resolvedBy":"score","finalFormat":"1.17.0","sourceFormat":"1.16.0","delayedCleanupChangesRegionScore":true,"noInjectedState":true}
+{"players":2,"scenario":1,"completedRounds":8,"majorActions":32,"realBuilds":2,"returned":1,"scores":{"p1":7,"p2":3},"winners":["p1"],"resolvedBy":"score","finalFormat":"1.17.0","sourceFormat":"1.16.0","delayedCleanupChangesRegionScore":true,"noInjectedState":true}
+{"players":2,"scenario":"new-build","completedRounds":8,"majorActions":32,"realBuilds":4,"returned":1,"scores":{"p1":7,"p2":3},"winners":["p1"],"resolvedBy":"score","finalFormat":"1.17.0","sourceFormat":"1.16.0","delayedCleanupChangesRegionScore":true,"noInjectedState":true}
+{"players":2,"scenario":"new-build-keep","completedRounds":8,"majorActions":32,"realBuilds":4,"returned":0,"scores":{"p1":7,"p2":3},"winners":["p1"],"resolvedBy":"score","finalFormat":"1.17.0","sourceFormat":"1.16.0","delayedCleanupChangesRegionScore":true,"noInjectedState":true}
+{"players":3,"scenario":0,"completedRounds":8,"majorActions":48,"realBuilds":2,"returned":0,"scores":{"p1":4,"p2":0,"p3":3},"winners":["p1"],"resolvedBy":"score","finalFormat":"1.17.0","sourceFormat":"1.16.0","delayedCleanupChangesRegionScore":true,"noInjectedState":true}
+{"players":3,"scenario":1,"completedRounds":8,"majorActions":48,"realBuilds":2,"returned":1,"scores":{"p1":4,"p2":0,"p3":3},"winners":["p1"],"resolvedBy":"score","finalFormat":"1.17.0","sourceFormat":"1.16.0","delayedCleanupChangesRegionScore":true,"noInjectedState":true}
+{"players":3,"scenario":"new-build","completedRounds":8,"majorActions":48,"realBuilds":4,"returned":1,"scores":{"p1":4,"p2":0,"p3":3},"winners":["p1"],"resolvedBy":"score","finalFormat":"1.17.0","sourceFormat":"1.16.0","delayedCleanupChangesRegionScore":true,"noInjectedState":true}
+{"players":3,"scenario":"new-build-keep","completedRounds":8,"majorActions":48,"realBuilds":4,"returned":0,"scores":{"p1":4,"p2":0,"p3":3},"winners":["p1"],"resolvedBy":"score","finalFormat":"1.17.0","sourceFormat":"1.16.0","delayedCleanupChangesRegionScore":true,"noInjectedState":true}
+{"players":4,"scenario":0,"completedRounds":8,"majorActions":64,"realBuilds":2,"returned":0,"scores":{"p1":4,"p2":0,"p3":3,"p4":3},"winners":["p1"],"resolvedBy":"score","finalFormat":"1.17.0","sourceFormat":"1.16.0","delayedCleanupChangesRegionScore":true,"noInjectedState":true}
+{"players":4,"scenario":1,"completedRounds":8,"majorActions":64,"realBuilds":2,"returned":1,"scores":{"p1":4,"p2":0,"p3":3,"p4":3},"winners":["p1"],"resolvedBy":"score","finalFormat":"1.17.0","sourceFormat":"1.16.0","delayedCleanupChangesRegionScore":true,"noInjectedState":true}
+{"players":4,"scenario":"new-build","completedRounds":8,"majorActions":64,"realBuilds":4,"returned":1,"scores":{"p1":4,"p2":0,"p3":3,"p4":3},"winners":["p1"],"resolvedBy":"score","finalFormat":"1.17.0","sourceFormat":"1.16.0","delayedCleanupChangesRegionScore":true,"noInjectedState":true}
+{"players":4,"scenario":"new-build-keep","completedRounds":8,"majorActions":64,"realBuilds":4,"returned":0,"scores":{"p1":4,"p2":0,"p3":3,"p4":3},"winners":["p1"],"resolvedBy":"score","finalFormat":"1.17.0","sourceFormat":"1.16.0","delayedCleanupChangesRegionScore":true,"noInjectedState":true}
+PASS: 12 complete 2/3/4-player eight-round games, earned income, unique construction, declarations/optional returns, nested construction, real harvest, delayed cleanup, one-time final scores, ranking, persistence, privacy and action locking
+{"playerApi":"PASS","acceptedRequests":2000,"rejectedRequests":42,"routedChannels":["city-pattern","construction","entry","harvest","influence","role","role-cleanup","round"],"viewCheckpoints":36}

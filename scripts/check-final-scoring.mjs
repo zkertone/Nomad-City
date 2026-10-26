@@ -1,6 +1,44 @@
 import assert from 'node:assert/strict';
 import * as core from '@nomad-city-online/game-core';
-import * as game from '@nomad-city-online/game-core/game';
+import * as directGame from '@nomad-city-online/game-core/game';
+const apiMode = process.argv.includes('--player-api');
+let acceptedRequests = 0, rejectedRequests = 0;
+const routedChannels = new Set();
+const channels = { applyEntryCommand: 'entry', applyRoundCommand: 'round', applyExplorationCommand: 'exploration',
+  applyCityMoveCommand: 'city-move', applyInfluenceCommand: 'influence', applyHarvestCommand: 'harvest',
+  applyConstructionCommand: 'construction', applyBaseRoleCommand: 'role', applyRoleCleanupCommand: 'role-cleanup',
+  applyWarehouseEntryCommand: 'warehouse-entry', applyNestedFacilityEntryCommand: 'facility-entry',
+  applyCityPatternCommand: 'city-pattern', applyCityPatternContinuationCommand: 'pattern-continuation' };
+const game = apiMode ? { ...directGame, ...Object.fromEntries(Object.entries(channels).map(([name, channel]) => [name,
+  (state, definition, context, command) => {
+    const before = JSON.stringify(state), requestId = `compiled-${acceptedRequests + rejectedRequests}`;
+    const result = core.executeGamePlayerRequest(state, definition, context, { apiVersion: '1.0.0', requestId, channel, command });
+    assert.equal(JSON.stringify(state), before);
+    if (result.status === 'rejected') {
+      rejectedRequests++; assert.equal(Object.hasOwn(result, 'state'), false);
+      throw new Error(JSON.stringify(result.reply));
+    }
+    acceptedRequests++; routedChannels.add(channel);
+    assert.deepEqual(result.reply, { apiVersion: '1.0.0', requestId, ok: true, gameId: state.gameId, stateVersion: state.stateVersion + 1 });
+    return result.state;
+  }])) } : directGame;
+function checkViews(state, definition) {
+  if (!apiMode) return;
+  const publicView = core.getGamePublicView(state, definition);
+  const restored = game.parseGameState(JSON.parse(JSON.stringify(state)), definition);
+  assert.deepEqual(core.getGamePublicView(restored, definition), publicView);
+  assert.equal(Object.hasOwn(publicView, 'eventDecks'), false);
+  assert.equal(Object.hasOwn(publicView.facilities.supply, 'drawPile'), false);
+  for (const player of definition.players) {
+    const view = core.getGamePlayerView(state, definition, { authenticatedPlayerId: player.id });
+    assert.deepEqual(view.public, publicView);
+    assert.equal(view.private.playerId, player.id);
+    assert.deepEqual(view.private.roleHand, [...state.roundFlow.rolesByPlayer.find(r => r.playerId === player.id).hand].sort());
+    assert.equal(Object.hasOwn(view.public.players.find(p => p.playerId !== player.id).roles, 'hand'), false);
+    assert.deepEqual(core.getGamePlayerView(restored, definition, { authenticatedPlayerId: player.id }), view);
+  }
+  if (state.finalScoring) assert.deepEqual(publicView.finalResult, core.getFinalScoringResult(state, definition));
+}
 assert.equal(core.enableTemporarySettlements, game.enableTemporarySettlements);
 assert.equal(core.finalizeBaseGame, game.finalizeBaseGame);
 assert.equal(core.getFinalScoringResult, game.getFinalScoringResult);
@@ -62,6 +100,7 @@ for (const count of [2, 3, 4]) for (const scenario of [0, 1, 'new-build', 'new-b
   s = game.enableCityPatternMajorActions(s, d, { expectedVersion: s.stateVersion });
   s = game.enableTemporarySettlements(s, d, { expectedVersion: s.stateVersion, deckOrder: [...protectedIds, ...[...temporary, ...ordinary].filter(id => !protectedIds.includes(id))] });
   s = prepare(s, d);
+  checkViews(s, d);
   const initial = s.players.p1.balances['columbia-voucher'];
   s = game.applyBaseRoleCommand(s, d, { authenticatedPlayerId: 'p1' }, { ...env(s), type: 'use-base-role', roleId: 'ROLE-03', mode: 'strategy', strategyChoice: { kind: 'cycle-facility', cardId: s.facilities.supply.supply.find(id => !protectedIds.includes(id)) } });
   s = nextP1(prepare(finish(s, d), d), d);
@@ -85,6 +124,7 @@ for (const count of [2, 3, 4]) for (const scenario of [0, 1, 'new-build', 'new-b
   const next = game.applyCityPatternCommand(resume(s, d), d, { authenticatedPlayerId: 'p1' }, command);
   assert.equal(JSON.stringify(s), before); assert.throws(() => game.applyCityPatternCommand(next, d, { authenticatedPlayerId: 'p1' }, command));
   s = resume(next, d);
+  checkViews(s, d);
   assert.equal(s.players.p1.balances['columbia-voucher'], cash - paid + 12 * returns.length);
   if (isNew) {
     assert.equal(s.cityPatternContinuation.kind, 'declaration-build');
@@ -140,6 +180,7 @@ for (const count of [2, 3, 4]) for (const scenario of [0, 1, 'new-build', 'new-b
   assert.throws(() => game.finalizeBaseGame(final, d, { expectedVersion: final.stateVersion }));
   assert.throws(() => round(final, d, { type: 'choose-major-action', action: 'dispatch' }));
   const result = game.getFinalScoringResult(resume(final, d), d);
+  checkViews(final, d);
   assert.deepEqual(result.players, preview.players); assert.deepEqual(result.winnerPlayerIds, preview.leadingPlayerIds);
   assert.deepEqual(result.rankingGroups[0], result.winnerPlayerIds);
   assert.deepEqual(game.getRoundPublicView(final, d, 'p1').finalResult, result);
@@ -149,3 +190,8 @@ for (const count of [2, 3, 4]) for (const scenario of [0, 1, 'new-build', 'new-b
     finalFormat: final.schemaVersion, sourceFormat: s.schemaVersion, delayedCleanupChangesRegionScore: true, noInjectedState: true }));
 }
 console.log('PASS: 12 complete 2/3/4-player eight-round games, earned income, unique construction, declarations/optional returns, nested construction, real harvest, delayed cleanup, one-time final scores, ranking, persistence, privacy and action locking');
+if (apiMode) {
+  assert.ok(acceptedRequests > 1000); assert.ok(rejectedRequests > 0);
+  for (const channel of ['entry', 'round', 'influence', 'role', 'construction', 'city-pattern', 'harvest', 'role-cleanup']) assert.ok(routedChannels.has(channel));
+  console.log(JSON.stringify({ playerApi: 'PASS', acceptedRequests, rejectedRequests, routedChannels: [...routedChannels].sort(), viewCheckpoints: 36 }));
+}

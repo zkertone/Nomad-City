@@ -27,3 +27,6 @@ export { TemporarySettlementError, enableTemporarySettlements } from './temporar
 export type { EnableTemporarySettlementsOptions } from './temporary-settlements.js';
 export { FinalScoringError, FINAL_SCORING_SOURCE, finalizeBaseGame, getFinalScoringResult } from './final-scoring.js';
 export type { FinalizeBaseGameOptions, FinalScoringResult } from './final-scoring.js';
+export * from './views.js';
+export * from './player-api.js';
+export { cityPatternContinuationCommandSchema } from './city-pattern-continuations.js';

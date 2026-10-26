@@ -609,3 +609,8 @@
 ## 2026-10-25 · 正式终局计分
 
 基准main434bbc9；新增game/final-scoring.ts、44项final-scoring.test.ts、scripts/check-final-scoring.mjs，以及终局规则/API、验证记录和完整执行日志。更新终局1.17.0严格Schema/交叉验证、既有能力继承、终局公开结果及README/DevLog等说明；原静态JSON、摘要、ADR与依赖锁不变。全量2227/2227、strict/build通过；测试夹具优化后44项及strict再次通过，25/25编译检查与12段真实八回合全部通过。源码和文档提交既有main，不含原PDF/检查图、node_modules、dist或部署。
+
+
+## 2026-10-26 · 整局视图与玩家接口
+
+基准main ec567b8；新增game/views.ts、game/player-api.ts、61项player-api.test.ts；原样式航道命令Schema仅改具名导出并复用，包入口新增视图／协议导出。check-final-scoring.mjs新增--player-api模式，package新增check:player-api；复用原真实整局夹具，未复制另一套规则。新增接口约定、验证说明与testing/player-api-2026-10-26/四份原始日志，更新README、回合／采集、DevLog与本清单。最终2288/2288、strict/build及12场真实整局通过，2000接受／42拒绝／36检查点；原25独立脚本未在本批逐一重跑。数据／摘要、ADR、依赖锁及存档格式不变，不含node_modules、dist、原图或部署。按既有授权提交main。

@@ -125,10 +125,10 @@ export function getPendingPatternCityMoveRequirements(input: GameState, definiti
   if (pending.kind !== 'city-move' || move?.status !== 'event-choice') return reject('PATTERN_CONTINUATION', 'No pending pattern movement event');
   return getEventChoiceRequirements(getGamePosition(state, definition), definition, { gameId: state.gameId, actorId, nodeId: move.targetNodeId!, cardId: move.cardId! }, choiceId);
 }
-const routeCommandSchema = z.strictObject({ gameId: gameEntityIdSchema, expectedVersion: z.number().int().nonnegative().safe(), type: z.literal('place-pattern-route-influence'), slotId: slotIdSchema });
+export const cityPatternContinuationCommandSchema = z.strictObject({ gameId: gameEntityIdSchema, expectedVersion: z.number().int().nonnegative().safe(), type: z.literal('place-pattern-route-influence'), slotId: slotIdSchema });
 /** Movement/event/final placement use the ordinary city-move endpoint; only this final route step is new. */
 export function applyCityPatternContinuationCommand(input: GameState, definition: GameDefinition, context: { readonly authenticatedPlayerId: string }, payload: unknown): GameState {
-  const { state, pending } = pendingFor(input, definition, context.authenticatedPlayerId), checked = routeCommandSchema.safeParse(payload);
+  const { state, pending } = pendingFor(input, definition, context.authenticatedPlayerId), checked = cityPatternContinuationCommandSchema.safeParse(payload);
   if (!checked.success) return reject('COMMAND_SCHEMA', checked.error.message);
   const command = checked.data;
   if (command.gameId !== state.gameId) return reject('GAME_REFERENCE', 'Wrong game');
