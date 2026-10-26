@@ -4,6 +4,8 @@
 
 玩法版本已由负责人确认为 **基础版 → 企业扩展版 → 企业家＋企业扩展版**，按玩法依赖逐级继承，并与2/3/4人配置独立组合；每个组合分别核对与验收，发行来源另行保留。临时聚居点归项目基础版；初始角色、干员和流形衍生牌分别管理。此为后续实现规范，现有运行代码已通过显式新局格式1.16.0接入临时聚居点，完整三档配置仍待完成，详见 [三种玩法版本与牌类边界](docs/Gameplay-Versions-2026-10-24.md)。
 
+2026-10-26服务端增量：新增独立NestJS房间服务与PostgreSQL存储适配器，完成固定成员／席位映射、按房间串行执行、版本条件提交及保存后响应。全量2325项测试、strict和双包构建通过；PGlite测试引擎上3场真实八回合落盘／重开恢复通过。原生PostgreSQL网络联调、登录和WebSocket尚未完成。[服务端范围与复现](docs/Server-Room-Persistence-2026-10-26.md)。
+
 2026-10-26新增：整局公开／认证玩家私有投影与13通道统一玩家请求入口已实现，沿用原规则与存档格式；接口版本1.0.0。覆盖角色暗牌、牌堆顺序及专属搜牌隔离，统一版本／成员检查和安全响应；本批全量2288项测试、strict/build及12场经统一入口的真实八回合通过（2000次接受、42次预期拒绝）；真实认证、网络与持久化CAS继续在后续阶段。[可见性及接口约定](docs/Player-Views-and-API-2026-10-26.md)。
 
 下文各批次的测试数字及“待完成”描述保留为历史记录；当前状态以顶部最新进展与DevLog末尾为准。
@@ -55,7 +57,7 @@ npm run check:scoring
 npm run check:facilities
 ```
 
-`npm run verify` 合并类型检查、Vitest 和构建。`npm run test:watch` 进入测试监视模式。核心不依赖 React、Three.js、NestJS 或数据库。依赖分别为 Zod 4.6.7、Vitest 5.0.4、TypeScript 5.9.3；`package-lock.json` 固定实际依赖树。
+`npm run verify` 合并类型检查、Vitest 和构建。`npm run test:watch` 进入测试监视模式。规则核心仍独立于 React、Three.js、NestJS 和数据库；新增服务端工作区独立使用 NestJS 与 pg。根开发测试使用 PGlite，生产规则包不依赖它。`package-lock.json` 固定实际依赖树，新增依赖详见服务端文档。
 
 本轮实际运行环境：Node 24.19.0 / npm 11.9.0。完整执行结果和首次失败修复记录见 `docs/testing/v0.2.0-validation.md`。npm 环境出现 `http-proxy` 配置弃用提醒，未影响本轮安装与验证；源码未写入代理设置。
 

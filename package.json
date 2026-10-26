@@ -3,11 +3,17 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22.12.0", "npm": ">=10" },
-  "workspaces": ["packages/game-core"],
+  "engines": {
+    "node": ">=22.12.0",
+    "npm": ">=10"
+  },
+  "workspaces": [
+    "packages/game-core",
+    "packages/server"
+  ],
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && tsc -p packages/server/tsconfig.build.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "verify": "npm run typecheck && npm test && npm run build",
@@ -37,10 +43,15 @@
     "check:pattern-actions": "npm run build && node scripts/check-pattern-actions.mjs",
     "check:patterns": "npm run build && node scripts/check-patterns.mjs",
     "check:facilities": "npm run build && node scripts/check-facilities.mjs",
-    "archive": "python3 scripts/archive.py"
+    "archive": "python3 scripts/archive.py",
+    "check:rooms": "npm run build && node scripts/check-room-service.mjs",
+    "check:rooms:postgres": "npm run build && node scripts/check-room-service.mjs --postgres"
   },
-  "dependencies": { "zod": "4.6.7" },
+  "dependencies": {
+    "zod": "4.6.7"
+  },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.12",
     "@types/node": "24.10.1",
     "typescript": "5.9.3",
     "vitest": "5.0.4"

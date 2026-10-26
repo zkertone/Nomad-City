@@ -614,3 +614,8 @@
 ## 2026-10-26 · 整局视图与玩家接口
 
 基准main ec567b8；新增game/views.ts、game/player-api.ts、61项player-api.test.ts；原样式航道命令Schema仅改具名导出并复用，包入口新增视图／协议导出。check-final-scoring.mjs新增--player-api模式，package新增check:player-api；复用原真实整局夹具，未复制另一套规则。新增接口约定、验证说明与testing/player-api-2026-10-26/四份原始日志，更新README、回合／采集、DevLog与本清单。最终2288/2288、strict/build及12场真实整局通过，2000接受／42拒绝／36检查点；原25独立脚本未在本批逐一重跑。数据／摘要、ADR、依赖锁及存档格式不变，不含node_modules、dist、原图或部署。按既有授权提交main。
+
+
+## 2026-10-26 · 服务端房间与持久化基础
+
+基准main9ab6f8f；新增packages/server完整工作区：package/构建配置、房间模型、队列、服务、SQL适配、Nest模块及index、rooms.test.ts37项、migrations/001-rooms.sql；新增scripts/check-room-service.mjs。根package/lock、类型／Vitest配置接入工作区，原game-core源码与依赖条目不变。新增Server-Room-Persistence说明、testing/rooms-validation及rooms-2026-10-26四份成功原始日志，更新README/DevLog/本清单。实际2325/2325、strict、双包构建和PGlite三场完整八回合／文件数据库重开通过；无dist复验37项通过。原生PostgreSQL专用验收命令已提供但本批未运行；不含用户数据库／服务器配置、node_modules、dist、临时数据目录或部署。

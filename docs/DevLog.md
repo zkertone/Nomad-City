@@ -1150,3 +1150,16 @@ getFinalScoringResult提供总分明细、区块控制、共同赢家及按分�
 最终npm run verify退出0：strict、2288/2288（31文件，100.85秒）及build通过；保留原2227项并新增61项。npm run check:player-api退出0：复用真实终局夹具经统一入口完成12场2/3/4人八回合，2000次接受／42次预期拒绝、36个所有成员视图和恢复检查点；实际成功八通道，不宣称穷举13通道所有策略。原25脚本本批未逐一重跑。最初搜牌公开顺序夹具及损坏存档请求夹具修正、首轮2287项通过后发现定义元数据引用并补61项回归、最终全量及编译重验均在testing/player-api-validation-2026-10-26.md如实记录。
 
 README、回合／采集说明、Delivery-Manifest及新接口／验证记录已同步。下一步建议落实服务端房间成员映射、按对局串行执行和数据库CAS提交，再接WebSocket广播／重连；继续沿用既定NestJS/PostgreSQL路线。普通设施牌堆耗尽和采集他人方案展示需核对依据，企业／企业家完整玩法与UI/3D后续推进。本批没有网络部署或架构／游戏规则变更。
+
+
+## 2026-10-26 · NestJS房间服务与PostgreSQL持久化基础
+
+按负责人“下一步”及既有main常规开发授权，以9ab6f8f继续。实际核对现有13通道／视图、Accepted ADR和已批准NestJS/PostgreSQL技术路线，新增独立@nomad-city-online/server工作区。可信创建固定2–4人成员userId到playerId的完整映射；同房间Promise队列、失败释放、异房间并行；原13通道执行后使用版本条件CAS保存，确认成功才返回安全reply及本人视图。读取／重连每次恢复存储状态并校验身份，不广播权威存档或用户映射。可信setup／阶段／收尾／计分使用同一队列和CAS；无客户端任意状态提交接口。
+
+新增nco_rooms SQL迁移和PostgresRoomStore，完整定义／成员／唯一GameState同一行保存，冗余game_id/state_version元数据由数据库约束匹配，参数化条件UPDATE决定提交胜负。成员及定义不通过CAS更改；重复roomId/gameId不覆盖。Nest RoomModule.register(sql)真实可注入／启动应用上下文，尚无HTTP/WebSocket监听。依赖固定NestJS common/core12.2.0、pg8.23.1、reflect-metadata0.2.2、rxjs7.8.2、@types/pg8.23.1；PGlite0.5.12仅根开发测试使用。旧lock非根条目逐项不变；game-core源码、游戏数据／摘要、存档格式、Accepted ADR及项目0.2.0不变。
+
+初次strict和37/37定向通过；最终npm run verify退出0：strict、2325/2325（32文件，97.84秒）及两个包构建全部通过。原2288项保留。npm run check:rooms退出0：在测试专用PGlite文件数据库上真实2/3/4人各八回合32/48/64次主要行动，467次玩家写入、84次可信写入、81次成员视图核对；关闭并重开数据库后3场终局版本／计分均一致。临时移开两个dist后strict及同37项再通过（4.39秒），finally已恢复构建目录，验证源码类型／Vitest别名不依赖旧构建。未重复计入用例，原26项独立编译脚本未在本批逐一重跑。
+
+宿主无原生PostgreSQL，系统包获取受环境setgroups/seteuid限制；没有通过提权绕过，也没有连接用户服务器。PGlite是测试用WASM PostgreSQL，不能作为原生服务器连接／行锁／跨进程验收。已提供check:rooms:postgres及专用NCO_TEST_DATABASE_URL入口，本批未执行。完整SQL及服务测试、真实Nest启动、失败／竞争和本地恢复证据见testing/rooms-validation-2026-10-26.md。
+
+负责人询问最终是否部署到本人服务器，已确认最终网页、NestJS、PostgreSQL经Nginx/HTTPS在其服务器运行；本批仅本地实现验证，未接触该服务器。下一步补原生PostgreSQL联调、会话认证和WebSocket，再完善可信阶段自动调度及房间大厅。Docker/Nginx部署、UI/3D、完整扩展及既有待确认规则继续后续。README、服务端文档、交付清单和验证日志已同步，按既有授权提交main。

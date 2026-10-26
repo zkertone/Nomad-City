@@ -13,7 +13,21 @@
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "paths": {
+      "@nomad-city-online/game-core": [
+        "./packages/game-core/src/index.ts"
+      ],
+      "@nomad-city-online/game-core/game": [
+        "./packages/game-core/src/game/index.ts"
+      ]
+    }
   },
-  "include": ["packages/game-core/src/**/*.ts", "vitest.config.ts"]
+  "include": [
+    "packages/game-core/src/**/*.ts",
+    "vitest.config.ts",
+    "packages/server/src/**/*.ts"
+  ]
 }
