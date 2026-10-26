@@ -3,3 +3,7 @@ export * from './room-queue.js';
 export * from './postgres-room-store.js';
 export * from './room-service.js';
 export * from './room.module.js';
+export * from './sessions.js';
+export * from './socket-protocol.js';
+export * from './room.gateway.js';
+export * from './socket-application.js';

@@ -87,3 +87,8 @@ NCO_TEST_DATABASE_URL='postgresql://USER:PASSWORD@HOST:5432/DEDICATED_TEST_DB' n
 下一批先完成原生PostgreSQL连接／并发验收，再接会话认证映射、WebSocket网关及可信阶段自动调度。房间大厅／邀请策略、前端2.5D、Docker/Nginx部署仍待完成；普通设施牌堆耗尽及采集他人方案显示仍按既有待确认规则处理。
 
 技术依据：[Nest动态模块](https://docs.nestjs.com/fundamentals/dynamic-modules)、[node-postgres参数化查询](https://node-postgres.com/features/queries)、[PostgreSQL并发与隔离](https://www.postgresql.org/docs/current/transaction-iso.html)。本批CAS只有一条写语句；未来多语句事务必须使用同一个数据库client，见[node-postgres事务说明](https://node-postgres.com/features/transactions)。
+
+
+## 后续增量：本地Socket.IO与会话验证已接入
+
+本文件正文保留房间基础批次的边界。后续同日已新增数据库会话摘要、真实网络握手／订阅／分别推送及重连；详见[Socket会话与网关](Socket-Sessions-2026-10-26.md)。账户登录和自动阶段调度仍未完成，原生PostgreSQL验收及部署仍未运行；PGlite与WebSocket网络验证分别表述。

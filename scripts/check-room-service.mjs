@@ -6,14 +6,39 @@ import { randomUUID } from 'node:crypto';
 import { NestFactory } from '@nestjs/core';
 import { PGlite } from '@electric-sql/pglite';
 import { Pool } from 'pg';
+import { io } from 'socket.io-client';
 import * as core from '@nomad-city-online/game-core';
-import { migrateRoomStore, PostgresRoomStore, RoomService, RoomModule, parseRoomSnapshot } from '@nomad-city-online/server';
+import { migrateRoomStore, PostgresRoomStore, RoomService, RoomModule, parseRoomSnapshot,
+  migrateSessionStore, SessionService, RoomGateway, createRoomSocketApplication } from '@nomad-city-online/server';
 
 const realPostgres = process.argv.includes('--postgres');
+const socketMode = process.argv.includes('--sockets');
+const socketOrigin = 'https://nomad-test.example', socketClients = new Set(), issuedTokens = [];
+let socketPushes = 0;
 if (realPostgres && !process.env.NCO_TEST_DATABASE_URL) throw new Error('--postgres requires NCO_TEST_DATABASE_URL for a dedicated integration database');
 const directory = realPostgres ? null : await mkdtemp(join(tmpdir(), 'nco-room-check-'));
 const createdRoomIds = [];
 let connection, app;
+async function application() {
+  if (!socketMode) return NestFactory.createApplicationContext(RoomModule.register(connection.sql), { logger: false });
+  const result = await createRoomSocketApplication({ sql: connection.sql, allowedOrigins: [socketOrigin] });
+  await result.listen(0, '127.0.0.1'); return result;
+}
+async function connectMember(token, roomId, playerId) {
+  const socket = io(`${await app.getUrl()}/game`, { autoConnect: false, forceNew: true, reconnection: false, timeout: 5000,
+    transports: ['websocket'], extraHeaders: { Origin: socketOrigin }, auth: { protocolVersion: '1.0.0', sessionToken: token } });
+  socketClients.add(socket);
+  let lastVersion = -1;
+  socket.on('room:state', event => {
+    assert.equal(event.protocolVersion, '1.0.0'); assert.equal(event.roomId, roomId);
+    assert.equal(event.view.private.playerId, playerId); assert.ok(event.view.public.stateVersion > lastVersion);
+    lastVersion = event.view.public.stateVersion; socketPushes++;
+    assert.equal(Object.hasOwn(event.view.public.facilities?.supply ?? {}, 'drawPile'), false);
+  });
+  await new Promise((resolve, reject) => { socket.once('connect', resolve); socket.once('connect_error', () => reject(Error('Socket authentication failed'))); socket.connect(); });
+  return socket;
+}
+const rpc = (socket, name, body) => socket.timeout(5000).emitWithAck(name, body);
 async function open() {
   if (realPostgres) {
     const pool = new Pool({ connectionString: process.env.NCO_TEST_DATABASE_URL, max: 4, connectionTimeoutMillis: 5000 });
@@ -27,8 +52,9 @@ let committedRequests = 0, trustedCommits = 0, viewChecks = 0;
 const summaries = [];
 try {
   connection = await open(); await migrateRoomStore(connection.sql);
+  if (socketMode) await migrateSessionStore(connection.sql);
   const sqlVersion = (await connection.sql.query('SELECT version() AS version')).rows[0].version;
-  app = await NestFactory.createApplicationContext(RoomModule.register(connection.sql), { logger: false });
+  app = await application();
   let store = new PostgresRoomStore(connection.sql);
   for (const count of [2, 3, 4]) {
     const roomId = `room-${count}-${randomUUID()}`, g = core.createPreEntryGame(`game-${randomUUID()}`, seats.slice(0, count));
@@ -36,10 +62,16 @@ try {
     assert.equal(await store.create(parseRoomSnapshot({ roomId, definition: g.definition, state: g.state, members })), true);
     createdRoomIds.push(roomId);
     let state = g.state, service = app.get(RoomService), majorActions = 0;
+    const memberSockets = new Map(), credentials = new Map();
+    if (socketMode) for (const member of members) {
+      const session = await app.get(SessionService).issue(member.userId); issuedTokens.push(session.token); credentials.set(member.playerId, session.token);
+      memberSockets.set(member.playerId, await connectMember(session.token, roomId, member.playerId));
+    }
     const principalFor = playerId => ({ authenticatedUserId: members.find(m => m.playerId === playerId).userId });
     async function send(channel, command, playerId = core.getRoundTurn(state, g.definition).actorId) {
       const payload = { apiVersion: '1.0.0', requestId: `request-${committedRequests}`, channel, command: { gameId: state.gameId, expectedVersion: state.stateVersion, ...command } };
-      const result = await service.submit(roomId, principalFor(playerId), payload);
+      const result = socketMode ? await rpc(memberSockets.get(playerId), 'room:command', { roomId, request: payload })
+        : await service.submit(roomId, principalFor(playerId), payload);
       assert.equal(result.status, 'committed', JSON.stringify(result));
       committedRequests++;
       const stored = await store.read(roomId); state = stored.state;
@@ -51,7 +83,8 @@ try {
     }
     async function trusted(transform) {
       const expected = state.stateVersion;
-      assert.deepEqual(await service.commitTrustedTransition(roomId, expected, row => transform(row.state)), { status: 'committed', stateVersion: expected + 1 });
+      const runner = socketMode ? app.get(RoomGateway) : service;
+      assert.deepEqual(await runner.commitTrustedTransition(roomId, expected, row => transform(row.state)), { status: 'committed', stateVersion: expected + 1 });
       trustedCommits++; state = (await store.read(roomId)).state;
     }
     async function views() {
@@ -60,6 +93,10 @@ try {
         assert.equal(result.status, 'ready');
         assert.deepEqual(result.view, core.getGamePlayerView(state, g.definition, { authenticatedPlayerId: member.playerId }));
         assert.equal(Object.hasOwn(result.view.public.facilities?.supply ?? {}, 'drawPile'), false);
+        if (socketMode) {
+          const wire = await rpc(memberSockets.get(member.playerId), 'room:subscribe', { roomId });
+          assert.equal(wire.status, 'ready'); assert.deepEqual(wire.view, result.view);
+        }
         viewChecks++;
       }
     }
@@ -96,22 +133,37 @@ try {
     assert.equal(majorActions, count * 16); assert.equal(state.schemaVersion, '1.17.0');
     assert.equal(Object.keys(core.getMarkerLedger(state, g.definition)).length, count * 30);
     const finalResult = core.getFinalScoringResult(state, g.definition);
-    assert.deepEqual(await service.submit(roomId, principalFor('p1'), { apiVersion: '1.0.0', requestId: 'after-game', channel: 'round', command: { gameId: state.gameId, expectedVersion: state.stateVersion, type: 'choose-major-action', action: 'dispatch' } }), { status: 'rejected', reply: { apiVersion: '1.0.0', requestId: 'after-game', ok: false, error: { code: 'GAME_FINISHED' } } });
-    summaries.push({ roomId, principal: principalFor('p1'), finalResult, version: state.stateVersion, players: count, majorActions });
+    const afterGame = { apiVersion: '1.0.0', requestId: 'after-game', channel: 'round', command: { gameId: state.gameId, expectedVersion: state.stateVersion, type: 'choose-major-action', action: 'dispatch' } };
+    const rejected = socketMode ? await rpc(memberSockets.get('p1'), 'room:command', { roomId, request: afterGame }) : await service.submit(roomId, principalFor('p1'), afterGame);
+    assert.deepEqual(rejected, { status: 'rejected', reply: { apiVersion: '1.0.0', requestId: 'after-game', ok: false, error: { code: 'GAME_FINISHED' } } });
+    summaries.push({ roomId, principal: principalFor('p1'), token: credentials.get('p1'), finalResult, version: state.stateVersion, players: count, majorActions });
   }
-  await app.close(); app = null; await connection.close(); connection = await open();
+  for (const socket of socketClients) socket.disconnect(); socketClients.clear();
+  await app.close(); app = null;
+  const previous = connection; connection = null; await previous.close(); connection = await open();
+  if (socketMode) app = await application();
   store = new PostgresRoomStore(connection.sql);
   for (const saved of summaries) {
     const result = await new RoomService(store).readView(saved.roomId, saved.principal);
     assert.equal(result.status, 'ready'); assert.equal(result.view.public.stateVersion, saved.version);
     assert.deepEqual(result.view.public.finalResult, saved.finalResult);
+    if (socketMode) {
+      const socket = await connectMember(saved.token, saved.roomId, 'p1');
+      const resumed = await rpc(socket, 'room:subscribe', { roomId: saved.roomId });
+      assert.equal(resumed.status, 'ready'); assert.deepEqual(resumed.view, result.view);
+    }
     console.log(JSON.stringify({ players: saved.players, completedRounds: 8, majorActions: saved.majorActions, finalFormat: '1.17.0', databaseReopened: true, noInjectedState: true }));
   }
-  console.log(JSON.stringify({ check: 'PASS', engine: realPostgres ? 'PostgreSQL server via pg.Pool' : 'PGlite WASM PostgreSQL (test only)', sqlVersion, committedRequests, trustedCommits, viewChecks, games: 3, reopenedDatabase: true, realPostgresNetworkChecked: realPostgres }));
+  console.log(JSON.stringify({ check: 'PASS', engine: realPostgres ? 'PostgreSQL server via pg.Pool' : 'PGlite WASM PostgreSQL (test only)', sqlVersion, committedRequests, trustedCommits, viewChecks, games: 3,
+    reopenedDatabase: true, realPostgresNetworkChecked: realPostgres, socketIoLoopbackChecked: socketMode, socketPushes, persistedSessionReconnectChecked: socketMode }));
 } finally {
+  for (const socket of socketClients) socket.disconnect(); socketClients.clear();
   if (app) await app.close();
   if (connection) {
-    if (realPostgres) for (const roomId of createdRoomIds) await connection.sql.query('DELETE FROM nco_rooms WHERE room_id = $1', [roomId]);
+    if (realPostgres) {
+      for (const roomId of createdRoomIds) await connection.sql.query('DELETE FROM nco_rooms WHERE room_id = $1', [roomId]);
+      for (const token of issuedTokens) await new SessionService(connection.sql).revoke(token);
+    }
     await connection.close();
   }
   if (directory) await rm(directory, { recursive: true, force: true });

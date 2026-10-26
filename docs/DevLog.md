@@ -1163,3 +1163,16 @@ README、回合／采集说明、Delivery-Manifest及新接口／验证记录已
 宿主无原生PostgreSQL，系统包获取受环境setgroups/seteuid限制；没有通过提权绕过，也没有连接用户服务器。PGlite是测试用WASM PostgreSQL，不能作为原生服务器连接／行锁／跨进程验收。已提供check:rooms:postgres及专用NCO_TEST_DATABASE_URL入口，本批未执行。完整SQL及服务测试、真实Nest启动、失败／竞争和本地恢复证据见testing/rooms-validation-2026-10-26.md。
 
 负责人询问最终是否部署到本人服务器，已确认最终网页、NestJS、PostgreSQL经Nginx/HTTPS在其服务器运行；本批仅本地实现验证，未接触该服务器。下一步补原生PostgreSQL联调、会话认证和WebSocket，再完善可信阶段自动调度及房间大厅。Docker/Nginx部署、UI/3D、完整扩展及既有待确认规则继续后续。README、服务端文档、交付清单和验证日志已同步，按既有授权提交main。
+
+
+## 2026-10-26 · 持久化会话验证与真实Socket.IO房间网关
+
+按负责人“那继续下一步”及既有main常规开发授权，以d8d3871继续。沿用NestJS/Socket.IO/PostgreSQL；新增002-sessions迁移，可信签发32字节随机凭证，数据库只存SHA-256摘要，默认8小时／最大7天、精确到期与撤销。用户身份由摘要记录恢复，再映射原房间席位；没有允许客户端指定userId获取凭证的登录接口，账户系统仍待接入。
+
+新增严格协议1.0.0、RoomGateway与createRoomSocketApplication：明确Origin允许列表、/game命名空间、websocket transport、64KiB包限制与每连接8房间订阅；握手／事件／推送前重新验证会话，空闲到期断开。订阅、13通道玩家提交、取消订阅和可信阶段包装按房间串行；仅SQL确认保存后，逐接收者读取本人视图并推送更高版本。连接断开不改变权威局面，重连重新握手／订阅已保存状态。没有广播整个GameState、用户成员表或凭证；本批仅单实例推送，跨实例总线／outbox未实现。
+
+新43项测试及原2325项实际全量通过：npm run verify退出0，2368/2368（33文件，101.85秒）、strict和双包构建通过；43项定向6.92秒。首次39项亦实际通过，后补查询中途过期／订阅名额释放／双标签页竞争／超大包四项后再跑最终全量。首次IoAdapter完整与Partial选项的类型不匹配已修正为按原HTTP server构造Socket.IO Server，未强制伪造类型。
+
+check:sockets退出0：原房间脚本新增--sockets模式复用真实2/3/4人八回合，467次实际WebSocket玩家写入、84次可信写入、81次成员核对、1556次成员专属递增版本推送；实际关闭网关／PGlite文件数据库后重启，原凭证重新认证及终局恢复均一致，无注入余额／历史。原独立编译脚本未逐一重跑。原生PostgreSQL模式已有显式专用数据库命令，但本批仍未运行，未接触或部署用户服务器。
+
+新增Nest websocket/platform-socket.io/platform-express12.2.0、socket.io4.8.4及开发客户端4.8.4并固定锁；旧包version/resolved/integrity逐项未变，仅@types/node和undici-types因新生产依赖链调整dev标记。game-core源码、规则／数据摘要、存档格式、Accepted ADR和项目版本不变。README、Socket-Sessions、上一批服务说明、Delivery-Manifest及testing/sockets-validation与原始日志同步，按既有授权提交main。下一步优先基础局启动及可信阶段自动推进、房间入口与账户认证接入；原生PostgreSQL联调、UI/3D和Docker/Nginx部署继续后续，重大规则／架构决策仍由负责人批准。

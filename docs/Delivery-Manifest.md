@@ -619,3 +619,8 @@
 ## 2026-10-26 · 服务端房间与持久化基础
 
 基准main9ab6f8f；新增packages/server完整工作区：package/构建配置、房间模型、队列、服务、SQL适配、Nest模块及index、rooms.test.ts37项、migrations/001-rooms.sql；新增scripts/check-room-service.mjs。根package/lock、类型／Vitest配置接入工作区，原game-core源码与依赖条目不变。新增Server-Room-Persistence说明、testing/rooms-validation及rooms-2026-10-26四份成功原始日志，更新README/DevLog/本清单。实际2325/2325、strict、双包构建和PGlite三场完整八回合／文件数据库重开通过；无dist复验37项通过。原生PostgreSQL专用验收命令已提供但本批未运行；不含用户数据库／服务器配置、node_modules、dist、临时数据目录或部署。
+
+
+## 2026-10-26 · 会话凭证与Socket.IO网络基础
+
+基准main d8d3871；新增sessions／socket-protocol／room.gateway／socket-application四份服务源码、43项sockets.test及002-sessions.sql，包入口导出新合同。原check-room-service.mjs新增--sockets复用真实流程，根新增check:sockets及显式原生PostgreSQL命令；根／server package、依赖锁及装饰器配置更新。新增Socket-Sessions文档、sockets验证记录与三份成功原始日志，更新README、服务端基础说明、DevLog和本清单。实际2368/2368、strict、双包构建及真实loopback上三场八回合／原会话重开恢复通过（467玩家提交、84可信提交、81成员核对、1556专属推送）。原生PostgreSQL模式未执行；不含凭证原文、用户数据库／服务器配置、node_modules、dist、临时数据库或部署。

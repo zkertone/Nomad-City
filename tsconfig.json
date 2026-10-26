@@ -23,7 +23,8 @@
       "@nomad-city-online/game-core/game": [
         "./packages/game-core/src/game/index.ts"
       ]
-    }
+    },
+    "experimentalDecorators": true
   },
   "include": [
     "packages/game-core/src/**/*.ts",
