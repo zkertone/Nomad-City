@@ -1,0 +1,44 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> nomad-city-online@0.2.0 verify
+> npm run typecheck && npm test && npm run build
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> nomad-city-online@0.2.0 typecheck
+> tsc --noEmit && tsc -p packages/web/tsconfig.json
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> nomad-city-online@0.2.0 test
+> vitest run
+
+
+ RUN  v5.0.4 /workspace/scratch/d9545625f110/Nomad-City-Restored
+
+
+ Test Files  37 passed (37)
+      Tests  2484 passed (2484)
+   Start at  16:09:24
+   Duration  88.65s (tests 97%, import 3%, transform 1%)
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> nomad-city-online@0.2.0 build
+> tsc -p tsconfig.build.json && tsc -p packages/server/tsconfig.build.json && npm run build --workspace @nomad-city-online/web
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> @nomad-city-online/web@0.2.0 build
+> vite build
+
+vite v8.3.5 building client environment for production...
+transforming...
+✓ 45 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.47 kB │ gzip:  0.32 kB
+dist/assets/index-C2FYgpFQ.css   12.14 kB │ gzip:  3.58 kB
+dist/assets/index-CuS33eoF.js   286.71 kB │ gzip: 89.38 kB
+
+✓ built in 350ms

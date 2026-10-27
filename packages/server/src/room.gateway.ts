@@ -14,6 +14,7 @@ import type { RoomListResult } from './room-directory.js';
 import { LobbyService } from './lobby-service.js';
 import { lobbyCommandSchema, lobbyCreateSchema, lobbyIdSchema, lobbyJoinSchema, lobbyListSchema } from './lobby-state.js';
 import type { LobbyListResult, LobbyResult, LobbyView } from './lobby-state.js';
+import type { EntryOptionsResult } from './entry-options.js';
 import type { AutomaticProgress } from './automatic-lifecycle.js';
 import { ROOM_SOCKET_OPTIONS, SOCKET_PROTOCOL_VERSION, socketAuthSchema, socketCommandSchema, socketRoomSchema, socketEmptySchema } from './socket-protocol.js';
 import type { RoomSocketOptions, SessionInfo, SessionLogoutResult, SocketFailure } from './socket-protocol.js';
@@ -223,6 +224,17 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
           const last = await this.authenticate(socket); if ('status' in last) return last;
         }
         return result;
+      } catch { return failure('SERVER_UNAVAILABLE'); }
+    });
+  }
+  @SubscribeMessage('room:entry-options')
+  async entryOptions(@ConnectedSocket() socket: Socket, @MessageBody() payload: unknown): Promise<EntryOptionsResult | SocketFailure> {
+    const checked = socketRoomSchema.safeParse(payload); if (!checked.success) return failure('INVALID_MESSAGE');
+    return this.queue.run(checked.data.roomId, async () => {
+      try {
+        const principal = await this.authenticate(socket); if ('status' in principal) return principal;
+        const result = await this.rooms.readEntryOptions(checked.data.roomId, principal);
+        const current = await this.authenticate(socket); return 'status' in current ? current : result;
       } catch { return failure('SERVER_UNAVAILABLE'); }
     });
   }

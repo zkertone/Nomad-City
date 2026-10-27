@@ -132,6 +132,27 @@ describe('durable opaque sessions', () => {
 });
 
 describe('real loopback Socket.IO session, membership and recovery boundary', () => {
+  it('offers current actor entry choices from core rules without advancing, and hides choices from other players', async () => {
+    const s = await fixture(), a = await asUser('bob'), b = await asUser('alice'), outsider = await asUser('options-outsider');
+    const options = await call(a.socket, 'room:entry-options', { roomId: s.roomId });
+    expect(options).toMatchObject({ status: 'ready', roomId: s.roomId, stateVersion: 1, options: { actorId: 'p1', status: 'selecting-node' } });
+    expect(options.options.nodeIds).toEqual(core.getLegalInitialNodeIds(s.state, s.definition, 'p1'));
+    expect(options.options.event).toBeNull(); expect((await call(b.socket, 'room:entry-options', { roomId: s.roomId })).options).toBeNull();
+    expect(await call(outsider.socket, 'room:entry-options', { roomId: s.roomId })).toEqual(await call(outsider.socket, 'room:entry-options', { roomId: 'not-existing' }));
+    expect(await call(a.socket, 'room:entry-options', { roomId: s.roomId, userId: 'alice' })).toMatchObject({ error: { code: 'INVALID_MESSAGE' } });
+    expect(await store.read(s.roomId)).toEqual(s);
+    await call(a.socket, 'room:command', request(s));
+    const revealed = await call(a.socket, 'room:entry-options', { roomId: s.roomId });
+    expect(revealed.options.nodeIds).toEqual([]); expect(revealed.options.event.title).toBe(core.getFoundersEventCard('G03').title);
+    expect(revealed.options.event.choices[0].effects).toEqual(core.getFoundersEventCard('G03').choices[0]!.effects);
+    expect(JSON.stringify(revealed)).not.toMatch(/remainingGreen|deckOrder|members|sessionToken/);
+  });
+  it('returns no entry actions for a managed game and safely normalizes entry option storage failures', async () => {
+    const s = await fixture(true), a = await asUser('bob');
+    expect((await call(a.socket, 'room:entry-options', { roomId: s.roomId })).options).toBeNull();
+    vi.spyOn(gatewayStore, 'read').mockRejectedValueOnce(Error('DO_NOT_LEAK'));
+    expect(await call(a.socket, 'room:entry-options', { roomId: s.roomId })).toEqual({ status: 'unavailable', error: { code: 'STORAGE_UNAVAILABLE' } });
+  });
   it('creates, invites, configures, readies and starts through real authenticated lobby messages', async () => {
     const host = await asUser(`lobby-host-${++sequence}`), guest = await asUser(`lobby-guest-${sequence}`);
     const created = await call(host.socket, 'lobby:create', { requestId: `wire-create-${sequence}`, playerCount: 2 });

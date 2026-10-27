@@ -639,3 +639,8 @@
 ## 2026-10-27 · 本地大厅与原子开局
 
 基准mainc3a78bc；新增lobby-state.ts、lobby-service.ts、31项lobbies.test.ts及005-lobbies.sql，原网络测试新增12项；网关／模块／索引／协议类型／迁移接入，原自动编译脚本新增--lobbies模式，根package新增check:lobbies及专用PostgreSQL命令。新增Local-Run、Lobby-Flow、lobbies-validation及本批原始日志，更新README／入口／网关历史提示／DevLog／本清单。最终2472/2472、strict、双包构建和本地真实网络三场大厅到八回合通过（24大厅写入／75推送／3次准备期重启，原479玩家写入／105自动写入／1532游戏推送）。首次测试夹具spy递归失败已修正并保留日志。game-core／数据／摘要／ADR／GameState格式／锁定依赖不变，不含明文邀请／会话、node_modules、dist或临时数据库；原生PostgreSQL和部署未执行。按既有授权保存main。
+
+
+## 2026-10-27 · 本地React大厅与入场界面
+
+基准main26f18ee；新增packages/web的package／HTML／浏览器tsconfig／React页面／样式／CityClient及11测试，server新增entry-options及2网络项，RoomService／网关／包导出接入，工厂增加可信HTTP初始化回调。新增local-app／dev-local／check-local-web三个开发脚本，根workspaces／scripts／lock及Vitest范围更新，忽略.local测试数据。新增Local-Web／local-web-validation及五份原始日志，更新Local-Run／README／DevLog／本清单。最终2485/2485、strict及三包构建、最终编译本地主机HTTP／身份守卫／3场入场到首回合及重启恢复通过；浏览器安全策略拒绝预览，点击／截图／视觉QA未完成。核心／数据／摘要／ADR／存档版本不变；包含明确前端及关联构建依赖更新，不含凭证／邀请、node_modules、dist、测试数据库、官方图像或部署。按既有授权保存main。

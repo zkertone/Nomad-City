@@ -9,11 +9,14 @@
   },
   "workspaces": [
     "packages/game-core",
-    "packages/server"
+    "packages/server",
+    "packages/web"
   ],
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "build": "tsc -p tsconfig.build.json && tsc -p packages/server/tsconfig.build.json",
+    "typecheck": "tsc --noEmit && tsc -p packages/web/tsconfig.json",
+    "build": "tsc -p tsconfig.build.json && tsc -p packages/server/tsconfig.build.json && npm run build --workspace @nomad-city-online/web",
+    "dev": "npm run build && node scripts/dev-local.mjs",
+    "dev:local": "npm run dev",
     "test": "vitest run",
     "test:watch": "vitest",
     "verify": "npm run typecheck && npm test && npm run build",
@@ -51,7 +54,8 @@
     "check:automatic-rooms": "npm run build && node scripts/check-automatic-rooms.mjs",
     "check:automatic-rooms:postgres": "npm run build && node scripts/check-automatic-rooms.mjs --postgres",
     "check:lobbies": "npm run build && node scripts/check-automatic-rooms.mjs --lobbies",
-    "check:lobbies:postgres": "npm run build && node scripts/check-automatic-rooms.mjs --lobbies --postgres"
+    "check:lobbies:postgres": "npm run build && node scripts/check-automatic-rooms.mjs --lobbies --postgres",
+    "check:local-web": "npm run build && node scripts/check-local-web.mjs"
   },
   "dependencies": {
     "zod": "4.6.7"

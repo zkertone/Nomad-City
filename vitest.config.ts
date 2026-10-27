@@ -9,6 +9,6 @@ export default defineConfig({
     maxWorkers: 4,
     // Existing integration fixtures can exceed 5 seconds on a busy shared runtime.
     testTimeout: 30_000,
-    include: ['packages/game-core/src/**/*.test.ts', 'packages/server/src/**/*.test.ts'],
+    include: ['packages/game-core/src/**/*.test.ts', 'packages/server/src/**/*.test.ts', 'packages/web/src/**/*.test.ts'],
   },
 });

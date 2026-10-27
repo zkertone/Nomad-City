@@ -17,6 +17,8 @@ import type { RoomSocketOptions } from './socket-protocol.js';
 export interface RoomSocketApplicationOptions extends RoomSocketOptions {
   readonly sql: RoomSqlExecutor;
   readonly sessionClock?: () => number;
+  /** Trusted host HTTP setup only; no additional routes are installed by default. */
+  readonly configureHttp?: (app: INestApplication) => void | Promise<void>;
 }
 class OriginIoAdapter extends IoAdapter {
   constructor(app: INestApplication, private readonly origins: readonly string[]) { super(app); }
@@ -46,6 +48,7 @@ export async function createRoomSocketApplication(options: RoomSocketApplication
   const checked = socketOptionsSchema.parse({ allowedOrigins: options.allowedOrigins });
   const app = await NestFactory.create(RoomSocketModule.register(options), { logger: false });
   app.useWebSocketAdapter(new OriginIoAdapter(app, checked.allowedOrigins));
+  if (options.configureHttp) await options.configureHttp(app);
   await app.init();
   return app;
 }
