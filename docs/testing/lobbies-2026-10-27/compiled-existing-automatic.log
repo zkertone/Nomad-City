@@ -1,0 +1,4 @@
+{"players":2,"rounds":8,"majorActions":32,"automaticTransitions":35,"delayedCleanupChosenByPlayer":true,"restoredWithoutRescoring":true,"noInjectedState":true}
+{"players":3,"rounds":8,"majorActions":48,"automaticTransitions":35,"delayedCleanupChosenByPlayer":true,"restoredWithoutRescoring":true,"noInjectedState":true}
+{"players":4,"rounds":8,"majorActions":64,"automaticTransitions":35,"delayedCleanupChosenByPlayer":true,"restoredWithoutRescoring":true,"noInjectedState":true}
+{"check":"PASS","games":3,"playerWrites":479,"automaticWrites":105,"cleanupChoices":3,"pushes":1532,"manualStageCalls":0,"realSocketIo":true,"persistedPlanAndSessionRecovery":true,"entryChecks":15,"logoutSurvivesRestart":true,"viaLobbies":false,"lobbyWrites":0,"lobbyPushes":0,"waitingRestarts":0,"database":"PGlite test only","nativePostgresChecked":false}

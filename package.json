@@ -49,7 +49,9 @@
     "check:sockets": "npm run build && node scripts/check-room-service.mjs --sockets",
     "check:sockets:postgres": "npm run build && node scripts/check-room-service.mjs --sockets --postgres",
     "check:automatic-rooms": "npm run build && node scripts/check-automatic-rooms.mjs",
-    "check:automatic-rooms:postgres": "npm run build && node scripts/check-automatic-rooms.mjs --postgres"
+    "check:automatic-rooms:postgres": "npm run build && node scripts/check-automatic-rooms.mjs --postgres",
+    "check:lobbies": "npm run build && node scripts/check-automatic-rooms.mjs --lobbies",
+    "check:lobbies:postgres": "npm run build && node scripts/check-automatic-rooms.mjs --lobbies --postgres"
   },
   "dependencies": {
     "zod": "4.6.7"

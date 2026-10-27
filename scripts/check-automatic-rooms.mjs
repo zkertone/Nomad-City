@@ -11,11 +11,13 @@ import { PostgresRoomStore, migrateRoomStore, migrateSessionStore, SessionServic
   createRoomSocketApplication, createAutomaticBaseRoomSnapshot } from '@nomad-city-online/server';
 
 const native = process.argv.includes('--postgres');
+const useLobbies = process.argv.includes('--lobbies');
 if (native && !process.env.NCO_TEST_DATABASE_URL) throw Error('--postgres requires a dedicated NCO_TEST_DATABASE_URL');
 const directory = native ? null : await mkdtemp(join(tmpdir(), 'nco-auto-check-'));
-const roomIds = [], tokens = [], sockets = new Set(), origin = 'https://automatic-test.example';
+const roomIds = [], lobbyIds = [], tokens = [], sockets = new Set(), expectedRooms = new Map(), origin = 'https://automatic-test.example';
 const seats = [{ id: 'p1', color: 'red' }, { id: 'p2', color: 'blue' }, { id: 'p3', color: 'green' }, { id: 'p4', color: 'yellow' }];
 let connection, app, playerWrites = 0, automaticWrites = 0, pushes = 0, cleanupChoices = 0, entryChecks = 0;
+let lobbyWrites = 0, lobbyPushes = 0, waitingRestarts = 0;
 const finals = [];
 async function open() {
   if (native) { const pool = new Pool({ connectionString: process.env.NCO_TEST_DATABASE_URL, max: 4, connectionTimeoutMillis: 5000 }); return { sql: pool, close: () => pool.end() }; }
@@ -26,13 +28,18 @@ async function listen() { app = await createRoomSocketApplication({ sql: connect
 async function client(token, roomId, playerId) {
   const socket = io(`${await app.getUrl()}/game`, { autoConnect: false, forceNew: true, reconnection: false, timeout: 5000,
     transports: ['websocket'], extraHeaders: { Origin: origin }, auth: { protocolVersion: '1.0.0', sessionToken: token } });
-  sockets.add(socket); let last = -1;
+  sockets.add(socket); expectedRooms.set(socket, roomId); let last = -1, lastLobby = -1;
   socket.on('room:state', event => {
-    assert.equal(event.roomId, roomId); assert.equal(event.view.private.playerId, playerId);
+    assert.equal(event.roomId, expectedRooms.get(socket)); assert.equal(event.view.private.playerId, playerId);
     assert.ok(event.view.public.stateVersion > last); last = event.view.public.stateVersion; pushes++;
     assert.equal(event.automatic.stateVersion, last);
     assert.equal(Object.hasOwn(event.view.public.facilities?.supply ?? {}, 'drawPile'), false);
     assert.equal(JSON.stringify(event).includes('facilityDeckOrder'), false);
+  });
+  socket.on('lobby:state', event => {
+    assert.equal(event.lobbyId, expectedRooms.get(socket)); assert.equal(event.view.selfPlayerId, playerId);
+    assert.ok(event.view.version > lastLobby); lastLobby = event.view.version; lobbyPushes++;
+    assert.equal(/userId|ownerId|inviteToken|invite_hash|DeckOrder/.test(JSON.stringify(event)), false);
   });
   await new Promise((resolve, reject) => { socket.once('connect', resolve); socket.once('connect_error', () => reject(Error('Connection refused'))); socket.connect(); });
   return socket;
@@ -42,25 +49,64 @@ try {
   connection = await open(); await migrateRoomStore(connection.sql); await migrateSessionStore(connection.sql); await listen();
   let store = new PostgresRoomStore(connection.sql);
   for (const count of [2, 3, 4]) {
-    const id = `automatic-${randomUUID()}`, players = seats.slice(0, count);
-    const members = players.map((p, index) => ({ playerId: p.id, userId: `auto-account-${count - index}` }));
+    let id = `automatic-${randomUUID()}`;
+    const players = seats.slice(0, count);
+    const members = players.map((p, index) => ({ playerId: p.id, userId: `${id}-account-${count - index}` }));
     const ids = color => core.FOUNDERS_EVENT_CATALOG.cards.filter(c => c.color === color && (count === 4 || !c.hasFourPlayerMark)).map(c => c.id);
-    const room = createAutomaticBaseRoomSnapshot({ roomId: id, gameId: `game-${randomUUID()}`, players, members,
+    let room;
+    const peers = new Map(), credentials = new Map();
+    for (const member of members) {
+      const issued = await app.get(SessionService).issue(member.userId); tokens.push(issued.token); credentials.set(member.playerId, issued.token);
+      peers.set(member.playerId, await client(issued.token, id, member.playerId));
+    }
+    if (useLobbies) {
+      let result = await rpc(peers.get('p1'), 'lobby:create', { requestId: `local-${randomUUID()}`, playerCount: count });
+      assert.equal(result.status, 'created'); id = result.view.lobbyId; lobbyIds.push(id); roomIds.push(id); lobbyWrites++;
+      const inviteToken = result.inviteToken;
+      for (const peer of peers.values()) expectedRooms.set(peer, id);
+      await rpc(peers.get('p1'), 'lobby:subscribe', { lobbyId: id });
+      for (const p of players.slice(1)) {
+        result = await rpc(peers.get(p.id), 'lobby:join', { lobbyId: id, inviteToken });
+        assert.equal(result.status, 'joined'); lobbyWrites++;
+        await rpc(peers.get(p.id), 'lobby:subscribe', { lobbyId: id });
+      }
+      result = await rpc(peers.get('p1'), 'lobby:command', { lobbyId: id, expectedVersion: result.view.version,
+        type: 'configure', startingPlayerId: 'p1', clockwisePlayerIds: players.map(p => p.id) });
+      assert.equal(result.status, 'updated'); lobbyWrites++;
+      for (const p of players) {
+        result = await rpc(peers.get(p.id), 'lobby:command', { lobbyId: id, expectedVersion: result.view.version, type: 'set-ready', ready: true });
+        assert.equal(result.status, 'updated'); lobbyWrites++;
+      }
+      const waitingVersion = result.view.version, waitingViews = new Map();
+      assert.equal(await store.read(id), null);
+      for (const p of players) waitingViews.set(p.id, (await rpc(peers.get(p.id), 'lobby:subscribe', { lobbyId: id })).view);
+      for (const s of sockets) s.disconnect(); sockets.clear(); expectedRooms.clear(); await app.close(); app = null;
+      const waitingConnection = connection; connection = null; await waitingConnection.close(); connection = await open(); await listen(); store = new PostgresRoomStore(connection.sql); waitingRestarts++;
+      for (const p of players) {
+        const peer = await client(credentials.get(p.id), id, p.id); peers.set(p.id, peer);
+        assert.deepEqual((await rpc(peer, 'lobby:subscribe', { lobbyId: id })).view, waitingViews.get(p.id));
+      }
+      result = await rpc(peers.get('p1'), 'lobby:command', { lobbyId: id, expectedVersion: waitingVersion, type: 'start' });
+      assert.equal(result.status, 'updated'); assert.equal(result.view.status, 'started'); lobbyWrites++;
+      const repeated = await rpc(peers.get('p1'), 'lobby:command', { lobbyId: id, expectedVersion: waitingVersion, type: 'start' });
+      assert.equal(repeated.error.code, 'STALE_VERSION'); room = await store.read(id);
+      assert.equal(room.state.stateVersion, 1);
+    } else {
+      room = createAutomaticBaseRoomSnapshot({ roomId: id, gameId: `game-${randomUUID()}`, players, members,
       startingPlayerId: 'p1', clockwisePlayerIds: players.map(p => p.id), setupOrders: {
         greenDeckOrder: ['G03', ...ids('green').filter(id => id !== 'G03')],
         yellowDeckOrder: ids('yellow'), redDeckOrder: ids('red'),
         facilityDeckOrder: core.PROJECT_BASE_FACILITY_STOCK.cards.filter(c => c.group === 'ordinary').map(c => c.id),
         patternOrder: core.getEligibleCityPatterns('base', count).map(p => p.id),
       } });
-    assert.equal(await store.create(room), true); roomIds.push(id);
+      assert.equal(await store.create(room), true); roomIds.push(id);
+    }
     let state = room.state, major = 0, gameAutomatic = 0;
-    const peers = new Map(), credentials = new Map();
     for (const member of members) {
-      const issued = await app.get(SessionService).issue(member.userId); tokens.push(issued.token); credentials.set(member.playerId, issued.token);
-      peers.set(member.playerId, await client(issued.token, id, member.playerId));
       const peer = peers.get(member.playerId);
       const current = await rpc(peer, 'session:current', {});
-      assert.deepEqual(current, { status: 'authenticated', protocolVersion: '1.0.0', userId: member.userId, expiresAt: issued.expiresAt });
+      assert.equal(current.status, 'authenticated'); assert.equal(current.userId, member.userId);
+      assert.equal(current.expiresAt, (await app.get(SessionService).resolve(credentials.get(member.playerId))).expiresAt);
       const listed = await rpc(peer, 'room:list', { limit: 50 });
       assert.equal(listed.status, 'listed');
       assert.deepEqual(listed.rooms.find(r => r.roomId === id), { roomId: id, gameId: room.state.gameId, playerId: member.playerId,
@@ -149,11 +195,16 @@ try {
   }
   console.log(JSON.stringify({ check: 'PASS', games: 3, playerWrites, automaticWrites, cleanupChoices, pushes,
     manualStageCalls: 0, realSocketIo: true, persistedPlanAndSessionRecovery: true, entryChecks, logoutSurvivesRestart: true,
+    viaLobbies: useLobbies, lobbyWrites, lobbyPushes, waitingRestarts,
     database: native ? 'PostgreSQL via pg.Pool' : 'PGlite test only', nativePostgresChecked: native }));
 } finally {
   for (const s of sockets) s.disconnect(); if (app) await app.close();
   if (connection) {
-    if (native) { for (const id of roomIds) await connection.sql.query('DELETE FROM nco_rooms WHERE room_id = $1', [id]); for (const token of tokens) await new SessionService(connection.sql).revoke(token); }
+    if (native) {
+      for (const id of roomIds) await connection.sql.query('DELETE FROM nco_rooms WHERE room_id = $1', [id]);
+      for (const id of lobbyIds) await connection.sql.query('DELETE FROM nco_lobbies WHERE lobby_id = $1', [id]);
+      for (const token of tokens) await new SessionService(connection.sql).revoke(token);
+    }
     await connection.close();
   }
   if (directory) await rm(directory, { recursive: true, force: true });

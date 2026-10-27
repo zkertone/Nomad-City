@@ -6,16 +6,19 @@ import { deepFreeze, gameEntityIdSchema } from '@nomad-city-online/game-core';
 import type { GamePlayerView, GameState } from '@nomad-city-online/game-core';
 import { RoomService } from './room-service.js';
 import type { RoomReadResult, RoomSubmitResult, TrustedRoomCommitResult } from './room-service.js';
-import type { RoomSnapshot } from './room-state.js';
+import type { RoomPrincipal, RoomSnapshot } from './room-state.js';
 import { RoomQueue } from './room-queue.js';
 import { SessionService } from './sessions.js';
 import { RoomDirectory, roomListRequestSchema } from './room-directory.js';
 import type { RoomListResult } from './room-directory.js';
+import { LobbyService } from './lobby-service.js';
+import { lobbyCommandSchema, lobbyCreateSchema, lobbyIdSchema, lobbyJoinSchema, lobbyListSchema } from './lobby-state.js';
+import type { LobbyListResult, LobbyResult, LobbyView } from './lobby-state.js';
 import type { AutomaticProgress } from './automatic-lifecycle.js';
 import { ROOM_SOCKET_OPTIONS, SOCKET_PROTOCOL_VERSION, socketAuthSchema, socketCommandSchema, socketRoomSchema, socketEmptySchema } from './socket-protocol.js';
 import type { RoomSocketOptions, SessionInfo, SessionLogoutResult, SocketFailure } from './socket-protocol.js';
 
-type Connection = { token: string; userId: string; expiresAt: number; rooms: Map<string, number>; timer?: ReturnType<typeof setTimeout> };
+type Connection = { token: string; userId: string; expiresAt: number; rooms: Map<string, number>; lobbies: Map<string, number>; timer?: ReturnType<typeof setTimeout> };
 const failure = (code: SocketFailure['error']['code']): SocketFailure => deepFreeze({ status: 'unavailable', error: { code } });
 @WebSocketGateway({ namespace: '/game' })
 export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
@@ -25,6 +28,7 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   constructor(@Inject(RoomService) private readonly rooms: RoomService,
     @Inject(SessionService) private readonly sessions: SessionService,
     @Inject(RoomDirectory) private readonly directory: RoomDirectory,
+    @Inject(LobbyService) private readonly lobbies: LobbyService,
     @Inject(ROOM_SOCKET_OPTIONS) private readonly options: RoomSocketOptions) {}
   get connectionCount(): number { return this.connections.size; }
   afterInit(server: Namespace): void {
@@ -35,7 +39,7 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       try {
         const session = await this.sessions.resolve(auth.data.sessionToken);
         if (!session) return next(new Error('AUTH_REQUIRED'));
-        this.pending.set(socket, { token: auth.data.sessionToken, userId: session.userId, expiresAt: session.expiresAt, rooms: new Map() });
+        this.pending.set(socket, { token: auth.data.sessionToken, userId: session.userId, expiresAt: session.expiresAt, rooms: new Map(), lobbies: new Map() });
         next();
       } catch { next(new Error('AUTH_UNAVAILABLE')); }
     });
@@ -103,6 +107,84 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     if (record.expiresAt <= this.sessions.now()) { this.invalidate(socket, 'AUTH_REQUIRED'); return; }
     record.rooms.set(roomId, view.public.stateVersion);
     socket.emit('room:state', { protocolVersion: SOCKET_PROTOCOL_VERSION, roomId, view, ...(automatic ? { automatic } : {}) });
+  }
+  private deliverLobby(socket: Socket, view: LobbyView): void {
+    const record = this.connections.get(socket), version = record?.lobbies.get(view.lobbyId);
+    if (!record || !socket.connected || version === undefined || view.version <= version) return;
+    if (record.expiresAt <= this.sessions.now()) { this.invalidate(socket, 'AUTH_REQUIRED'); return; }
+    record.lobbies.set(view.lobbyId, view.version);
+    socket.emit('lobby:state', { protocolVersion: SOCKET_PROTOCOL_VERSION, lobbyId: view.lobbyId, view });
+  }
+  private async publishLobby(lobbyId: string): Promise<void> {
+    await Promise.allSettled([...this.connections.keys()].map(async socket => {
+      const record = this.connections.get(socket); if (!record?.lobbies.has(lobbyId)) return;
+      const principal = await this.authenticate(socket); if ('status' in principal) return;
+      const result = await this.lobbies.read(lobbyId, principal);
+      const current = await this.authenticate(socket); if ('status' in current) return;
+      if ('view' in result) this.deliverLobby(socket, result.view);
+      else { record.lobbies.delete(lobbyId); socket.emit('lobby:unavailable', { lobbyId, error: result.status === 'unavailable' ? result.error : { code: 'LOBBY_UNAVAILABLE' } }); }
+    }));
+  }
+  private async lobbyOperation(socket: Socket, work: (principal: RoomPrincipal) => Promise<LobbyResult>): Promise<LobbyResult | SocketFailure> {
+    try {
+      const principal = await this.authenticate(socket); if ('status' in principal) return principal;
+      const result = await work(principal);
+      if (result.status === 'joined' || result.status === 'updated' || result.status === 'left') {
+        await this.publishLobby('view' in result ? result.view.lobbyId : result.lobbyId);
+      }
+      const current = await this.authenticate(socket); return 'status' in current ? current : result;
+    } catch { return failure('SERVER_UNAVAILABLE'); }
+  }
+  @SubscribeMessage('lobby:create')
+  async createLobby(@ConnectedSocket() socket: Socket, @MessageBody() payload: unknown): Promise<LobbyResult | SocketFailure> {
+    if (!lobbyCreateSchema.safeParse(payload).success) return failure('INVALID_MESSAGE');
+    return this.lobbyOperation(socket, principal => this.lobbies.create(principal, payload));
+  }
+  @SubscribeMessage('lobby:join')
+  async joinLobby(@ConnectedSocket() socket: Socket, @MessageBody() payload: unknown): Promise<LobbyResult | SocketFailure> {
+    const checked = lobbyJoinSchema.safeParse(payload); if (!checked.success) return failure('INVALID_MESSAGE');
+    return this.queue.run(checked.data.lobbyId, () => this.lobbyOperation(socket, principal => this.lobbies.join(principal, payload)));
+  }
+  @SubscribeMessage('lobby:command')
+  async lobbyCommand(@ConnectedSocket() socket: Socket, @MessageBody() payload: unknown): Promise<LobbyResult | SocketFailure> {
+    const checked = lobbyCommandSchema.safeParse(payload); if (!checked.success) return failure('INVALID_MESSAGE');
+    return this.queue.run(checked.data.lobbyId, () => this.lobbyOperation(socket, principal => this.lobbies.command(principal, payload)));
+  }
+  @SubscribeMessage('lobby:list')
+  async listLobbies(@ConnectedSocket() socket: Socket, @MessageBody() payload: unknown): Promise<LobbyListResult | SocketFailure> {
+    if (!lobbyListSchema.safeParse(payload).success) return failure('INVALID_MESSAGE');
+    try {
+      const principal = await this.authenticate(socket); if ('status' in principal) return principal;
+      const result = await this.lobbies.list(principal, payload), current = await this.authenticate(socket);
+      return 'status' in current ? current : result;
+    } catch { return failure('SERVER_UNAVAILABLE'); }
+  }
+  @SubscribeMessage('lobby:subscribe')
+  async subscribeLobby(@ConnectedSocket() socket: Socket, @MessageBody() payload: unknown): Promise<LobbyResult | SocketFailure> {
+    const checked = lobbyIdSchema.safeParse(payload); if (!checked.success) return failure('INVALID_MESSAGE');
+    return this.queue.run(checked.data.lobbyId, async () => {
+      try {
+        const principal = await this.authenticate(socket); if ('status' in principal) return principal;
+        const record = this.connections.get(socket)!;
+        if (!record.lobbies.has(checked.data.lobbyId) && record.lobbies.size >= 8) return failure('SUBSCRIPTION_LIMIT');
+        const result = await this.lobbies.read(checked.data.lobbyId, principal);
+        const current = await this.authenticate(socket); if ('status' in current) return current;
+        if ('view' in result) {
+          if (!record.lobbies.has(checked.data.lobbyId)) record.lobbies.set(checked.data.lobbyId, -1);
+          this.deliverLobby(socket, result.view);
+        }
+        return result;
+      } catch { return failure('SERVER_UNAVAILABLE'); }
+    });
+  }
+  @SubscribeMessage('lobby:unsubscribe')
+  async unsubscribeLobby(@ConnectedSocket() socket: Socket, @MessageBody() payload: unknown) {
+    const checked = lobbyIdSchema.safeParse(payload); if (!checked.success) return failure('INVALID_MESSAGE');
+    return this.queue.run(checked.data.lobbyId, async () => {
+      const principal = await this.authenticate(socket); if ('status' in principal) return principal;
+      this.connections.get(socket)?.lobbies.delete(checked.data.lobbyId);
+      return deepFreeze({ status: 'unsubscribed' as const, lobbyId: checked.data.lobbyId });
+    });
   }
   /** Called under the gateway room queue, only after a committed write or an explicit authenticated read. */
   private async publish(roomId: string): Promise<void> {

@@ -10,6 +10,7 @@ import { RoomModule } from './room.module.js';
 import { RoomGateway } from './room.gateway.js';
 import { SessionService } from './sessions.js';
 import { RoomDirectory } from './room-directory.js';
+import { LobbyService } from './lobby-service.js';
 import { ROOM_SOCKET_OPTIONS, socketOptionsSchema } from './socket-protocol.js';
 import type { RoomSocketOptions } from './socket-protocol.js';
 
@@ -34,8 +35,9 @@ export class RoomSocketModule {
       { provide: ROOM_SOCKET_OPTIONS, useValue: options },
       { provide: SessionService, useFactory: () => new SessionService(input.sql, input.sessionClock) },
       { provide: RoomDirectory, useFactory: () => new RoomDirectory(input.sql) },
+      { provide: LobbyService, useFactory: () => new LobbyService(input.sql) },
       RoomGateway,
-    ], exports: [SessionService, RoomDirectory, RoomGateway] };
+    ], exports: [SessionService, RoomDirectory, LobbyService, RoomGateway] };
   }
 }
 Module({})(RoomSocketModule);

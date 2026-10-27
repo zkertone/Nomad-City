@@ -16,6 +16,7 @@ import { socketOptionsSchema } from './socket-protocol.js';
 import { createAutomaticBaseRoomSnapshot } from './base-room-factory.js';
 import { baseSetupIds } from './automatic-base-plan.js';
 import { RoomDirectory } from './room-directory.js';
+import { LobbyService } from './lobby-service.js';
 
 const db = new PGlite(), sql: RoomSqlExecutor = { query: async (text, values) => {
   const r = await db.query<Record<string, unknown>>(text, values); return { rows: r.rows, rowCount: r.affectedRows ?? r.rows.length };
@@ -131,6 +132,83 @@ describe('durable opaque sessions', () => {
 });
 
 describe('real loopback Socket.IO session, membership and recovery boundary', () => {
+  it('creates, invites, configures, readies and starts through real authenticated lobby messages', async () => {
+    const host = await asUser(`lobby-host-${++sequence}`), guest = await asUser(`lobby-guest-${sequence}`);
+    const created = await call(host.socket, 'lobby:create', { requestId: `wire-create-${sequence}`, playerCount: 2 });
+    expect(created.status).toBe('created'); const lobbyId = created.view.lobbyId;
+    const pushes: { view: { version: number; selfPlayerId: string; status: string } }[] = [];
+    host.socket.on('lobby:state', value => pushes.push(value));
+    await call(host.socket, 'lobby:subscribe', { lobbyId });
+    let result = await call(guest.socket, 'lobby:join', { lobbyId, inviteToken: created.inviteToken });
+    expect(result.view.selfPlayerId).toBe('p2');
+    await call(guest.socket, 'lobby:subscribe', { lobbyId });
+    result = await call(host.socket, 'lobby:command', { lobbyId, expectedVersion: result.view.version, type: 'configure', startingPlayerId: 'p2', clockwisePlayerIds: ['p1', 'p2'] });
+    result = await call(host.socket, 'lobby:command', { lobbyId, expectedVersion: result.view.version, type: 'set-ready', ready: true });
+    result = await call(guest.socket, 'lobby:command', { lobbyId, expectedVersion: result.view.version, type: 'set-ready', ready: true });
+    const before = result.view.version;
+    result = await call(host.socket, 'lobby:command', { lobbyId, expectedVersion: before, type: 'start' });
+    expect(result).toMatchObject({ status: 'updated', view: { status: 'started', roomId: lobbyId } });
+    expect(pushes.map(p => p.view.version)).toEqual([0, 1, 2, 3, 4, 5]); expect(pushes.every(p => p.view.selfPlayerId === 'p1')).toBe(true);
+    expect(JSON.stringify(pushes)).not.toMatch(/lobby-host|lobby-guest|inviteToken|invite_hash|facilityDeckOrder/);
+    expect((await call(host.socket, 'room:list', {})).rooms).toHaveLength(1);
+    const game = await call(guest.socket, 'room:subscribe', { roomId: lobbyId });
+    expect(game).toMatchObject({ status: 'ready', view: { private: { playerId: 'p2' }, public: { stateVersion: 1 } } });
+    expect((await store.read(lobbyId))!.state.entry!.playerOrder).toEqual(['p2', 'p1']);
+    const command = { apiVersion: '1.0.0', requestId: 'from-lobby', channel: 'entry', command: { gameId: game.view.public.gameId, expectedVersion: 1, type: 'select-initial-node', nodeId: 'A-01' } };
+    expect((await call(guest.socket, 'room:command', { roomId: lobbyId, request: command })).status).toBe('committed');
+    const actual = await store.read(lobbyId);
+    expect(await call(host.socket, 'lobby:command', { lobbyId, expectedVersion: before, type: 'start' })).toMatchObject({ error: { code: 'STALE_VERSION' } }); expect(await store.read(lobbyId)).toEqual(actual);
+  });
+  it.each(['lobby:create', 'lobby:join', 'lobby:command', 'lobby:subscribe', 'lobby:unsubscribe', 'lobby:list'])('rejects identity injection in %s', async name => {
+    const a = await asUser('lobby-message-test');
+    expect(await call(a.socket, name, { userId: 'bob' })).toMatchObject({ error: { code: 'INVALID_MESSAGE' } });
+  });
+  it('hides unjoined lobbies, retains joined membership on reconnect, and rotates invitations without secret pushes', async () => {
+    const host = await asUser(`lobby-host-${++sequence}`), guest = await asUser(`lobby-guest-${sequence}`), outsider = await asUser(`lobby-outside-${sequence}`);
+    const created = await call(host.socket, 'lobby:create', { requestId: `wire-create-${sequence}`, playerCount: 2 }), lobbyId = created.view.lobbyId;
+    expect(await call(guest.socket, 'lobby:subscribe', { lobbyId })).toEqual(await call(guest.socket, 'lobby:subscribe', { lobbyId: 'missing-lobby' }));
+    expect(await call(outsider.socket, 'lobby:list', {})).toEqual({ status: 'listed', lobbies: [], nextAfterLobbyId: null });
+    const pushes: unknown[] = []; host.socket.on('lobby:state', value => pushes.push(value)); await call(host.socket, 'lobby:subscribe', { lobbyId });
+    const rotated = await call(host.socket, 'lobby:command', { lobbyId, expectedVersion: 0, type: 'rotate-invite' });
+    expect(JSON.stringify(pushes)).not.toContain(rotated.inviteToken);
+    expect(await call(guest.socket, 'lobby:join', { lobbyId, inviteToken: created.inviteToken })).toMatchObject({ error: { code: 'LOBBY_UNAVAILABLE' } });
+    const joined = await call(guest.socket, 'lobby:join', { lobbyId, inviteToken: rotated.inviteToken }); guest.socket.disconnect();
+    const restored = await connect({ protocolVersion: '1.0.0', sessionToken: guest.token });
+    expect((await call(restored, 'lobby:subscribe', { lobbyId })).view).toEqual(joined.view);
+  });
+  it('removes a departing member subscription and resets the owner view before a replacement joins', async () => {
+    const host = await asUser(`lobby-host-${++sequence}`), guest = await asUser(`lobby-guest-${sequence}`);
+    const created = await call(host.socket, 'lobby:create', { requestId: `wire-create-${sequence}`, playerCount: 2 }), lobbyId = created.view.lobbyId;
+    const joined = await call(guest.socket, 'lobby:join', { lobbyId, inviteToken: created.inviteToken });
+    await call(guest.socket, 'lobby:subscribe', { lobbyId });
+    const unavailable = event(guest.socket, 'lobby:unavailable');
+    expect((await call(guest.socket, 'lobby:command', { lobbyId, expectedVersion: joined.view.version, type: 'leave' })).status).toBe('left');
+    expect(await unavailable).toMatchObject({ lobbyId, error: { code: 'LOBBY_UNAVAILABLE' } });
+    expect((await call(guest.socket, 'lobby:list', {})).lobbies).toHaveLength(0);
+  });
+  it('does not push or acknowledge a failed lobby write as success', async () => {
+    const host = await asUser(`lobby-host-${++sequence}`), created = await call(host.socket, 'lobby:create', { requestId: `wire-create-${sequence}`, playerCount: 2 });
+    const lobbyId = created.view.lobbyId, pushes: unknown[] = []; host.socket.on('lobby:state', value => pushes.push(value)); await call(host.socket, 'lobby:subscribe', { lobbyId });
+    vi.spyOn(app.get(LobbyService), 'command').mockResolvedValueOnce({ status: 'unavailable', error: { code: 'STORAGE_UNAVAILABLE' } });
+    expect(await call(host.socket, 'lobby:command', { lobbyId, expectedVersion: 0, type: 'cancel' })).toMatchObject({ error: { code: 'STORAGE_UNAVAILABLE' } });
+    expect(pushes).toHaveLength(1); expect((await call(host.socket, 'lobby:subscribe', { lobbyId })).view.version).toBe(0);
+  });
+  it('suppresses a new invitation acknowledgement if the session is revoked while creation is pending', async () => {
+    const host = await asUser(`lobby-host-${++sequence}`), blocked = deferred(), release = deferred();
+    const target = app.get(LobbyService), original = target.create.bind(target);
+    vi.spyOn(target, 'create').mockImplementationOnce(async (...args) => { const r = await original(...args); blocked.resolve(); await release.promise; return r; });
+    let acknowledged = false; const invalidated = event(host.socket, 'session:invalidated');
+    host.socket.emit('lobby:create', { requestId: `wire-create-${sequence}`, playerCount: 2 }, () => { acknowledged = true; });
+    await blocked.promise; await sessions.revoke(host.token); release.resolve(); await invalidated;
+    expect(acknowledged).toBe(false);
+  });
+  it('limits lobby subscriptions independently and releases them on unsubscribe', async () => {
+    const host = await asUser(`lobby-host-${++sequence}`), ids: string[] = [];
+    for (let i = 0; i < 9; i++) ids.push((await call(host.socket, 'lobby:create', { requestId: `limit-${sequence}-${i}`, playerCount: 2 })).view.lobbyId);
+    for (const lobbyId of ids.slice(0, 8)) expect((await call(host.socket, 'lobby:subscribe', { lobbyId })).status).toBe('ready');
+    expect(await call(host.socket, 'lobby:subscribe', { lobbyId: ids[8] })).toMatchObject({ error: { code: 'SUBSCRIPTION_LIMIT' } });
+    await call(host.socket, 'lobby:unsubscribe', { lobbyId: ids[0] }); expect((await call(host.socket, 'lobby:subscribe', { lobbyId: ids[8] })).status).toBe('ready');
+  });
   it('returns only the current authenticated identity and original expiry', async () => {
     const a = await asUser('entry-user');
     expect(await call(a.socket, 'session:current', {})).toEqual({ status: 'authenticated', protocolVersion: '1.0.0', userId: 'entry-user', expiresAt: a.expiresAt });

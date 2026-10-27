@@ -634,3 +634,8 @@
 ## 2026-10-27 · 本人房间目录与退出会话
 
 基准main7c1eecd；新增room-directory.ts、17项目录测试及004成员索引迁移；原网络文件新增11项，网关增加session:current／room:list／session:logout，模块／导出／协议和迁移入口接入。原check-automatic-rooms.mjs保留全部整局断言并补15个入口／重启／撤销检查点。新增Room-Entry、entry-validation及entry-2026-10-27三份成功日志，更新README／Socket说明／DevLog及本清单。最终2429/2429、strict、双包构建、三场真实八回合网络复验退出0；退出凭证在再次重启后仍拒绝，对局未改变。原依赖锁、规则核心／数据／摘要／ADR及存档版本不变，不含明文凭证、node_modules、dist、临时数据库或部署；原生PostgreSQL未验收。按既有授权提交main。
+
+
+## 2026-10-27 · 本地大厅与原子开局
+
+基准mainc3a78bc；新增lobby-state.ts、lobby-service.ts、31项lobbies.test.ts及005-lobbies.sql，原网络测试新增12项；网关／模块／索引／协议类型／迁移接入，原自动编译脚本新增--lobbies模式，根package新增check:lobbies及专用PostgreSQL命令。新增Local-Run、Lobby-Flow、lobbies-validation及本批原始日志，更新README／入口／网关历史提示／DevLog／本清单。最终2472/2472、strict、双包构建和本地真实网络三场大厅到八回合通过（24大厅写入／75推送／3次准备期重启，原479玩家写入／105自动写入／1532游戏推送）。首次测试夹具spy递归失败已修正并保留日志。game-core／数据／摘要／ADR／GameState格式／锁定依赖不变，不含明文邀请／会话、node_modules、dist或临时数据库；原生PostgreSQL和部署未执行。按既有授权保存main。

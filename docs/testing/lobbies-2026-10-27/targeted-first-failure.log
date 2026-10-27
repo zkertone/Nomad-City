@@ -1,0 +1,43 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+ RUN  v5.0.4 /workspace/scratch/d9545625f110/Nomad-City-Restored
+
+Exception in PromiseRejectCallback:
+/workspace/scratch/d9545625f110/Nomad-City-Restored/packages/server/src/lobbies.test.ts:407
+			return original(text, values);
+
+RangeError: Maximum call stack size exceeded
+
+Exception in PromiseRejectCallback:
+file:///workspace/scratch/d9545625f110/Nomad-City-Restored/node_modules/vitest/dist/chunks/spy.DDMXghXv.js:374
+				if (returnValue instanceof Promise) returnValue.then((settledValue) => {
+				                                                ^
+
+RangeError: Maximum call stack size exceeded
+
+ ❯ packages/server/src/lobbies.test.ts (31 tests | 1 failed) 2556ms
+   ❯ persisted private lobby setup and atomic game start (31)
+     × never acknowledges a failed write or exposes raw SQL errors, and its queue permits retry 23ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/server/src/lobbies.test.ts > persisted private lobby setup and atomic game start > never acknowledges a failed write or exposes raw SQL errors, and its queue permits retry
+Error: {"status":"unavailable","error":{"code":"STORAGE_UNAVAILABLE"}}
+ ❯ view packages/server/src/lobbies.test.ts:16:80
+     14| let sequence = 0;
+     15| const principal = (userId: string) => ({ authenticatedUserId: userId }…
+     16| function view(result: LobbyResult): LobbyView { if (!('view' in result…
+       |                                                                                ^
+     17| async function fixture(count = 2) {
+     18|   const suffix = ++sequence, users = Array.from({ length: count + 1 },…
+ ❯ cmd packages/server/src/lobbies.test.ts:29:13
+ ❯ packages/server/src/lobbies.test.ts:187:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 30 passed (31)
+   Start at  14:35:54
+   Duration  3.22s (tests 84%, transform 8%, import 8%)
+

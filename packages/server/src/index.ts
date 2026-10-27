@@ -8,6 +8,8 @@ export * from './socket-protocol.js';
 export * from './room.gateway.js';
 export * from './socket-application.js';
 export * from './room-directory.js';
+export * from './lobby-state.js';
+export * from './lobby-service.js';
 export * from './base-room-factory.js';
 export type { AutomaticBasePlan } from './automatic-base-plan.js';
 export type { AutomaticProgress, AutomaticIssue } from './automatic-lifecycle.js';
