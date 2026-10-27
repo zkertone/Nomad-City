@@ -6,6 +6,8 @@ export function Board2D({
   view,
   targets,
   selectedNodeId,
+  selectedSlotId,
+  sourceSlotId,
   disabled,
   onIntent,
 }: BoardPresentationProps) {
@@ -56,6 +58,33 @@ export function Board2D({
                     );
                   })}
               </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {board && view.public.round && (
+        <div className="influence-overview" aria-label="影响力槽位概览">
+          <h3>影响力 · 资源点与航道</h3>
+          <p className="muted">航道下方列出其连接点；来源与目标以服务端候选为准。</p>
+          {Object.entries(board.regions).map(([regionId]) => (
+            <div className="region" key={regionId}>
+              <strong>区块 {regionId}</strong>
+              {[...Object.values(board.resourceNodes).filter(n => n.regionId === regionId).map(n => ({
+                id: n.id, label: `资源点 ${n.id}`, slots: n.influenceSlotIds,
+              })), ...Object.values(board.routes).filter(r => r.regionId === regionId).map(r => ({
+                id: r.id, label: `航道 ${r.id} · ${r.incidentNodeIds.join(' / ')}`, slots: r.influenceSlotIds,
+              }))].map(location => <div className="slot-location" key={location.id}>
+                <small>{location.label}</small>
+                <div className="slot-choices">{location.slots.map(id => {
+                  const owner = view.public.board.influenceBySlot[id]?.ownerPlayerId;
+                  return <button key={id} disabled={disabled || !targets.slotIds.includes(id)}
+                    className={selectedSlotId === id || sourceSlotId === id ? 'slot-choice selected' : 'slot-choice'}
+                    aria-pressed={selectedSlotId === id || sourceSlotId === id}
+                    onClick={() => onIntent({ type: 'select-slot', slotId: id })}>
+                    <span>{id}</span><small>{sourceSlotId === id ? '已选来源' : owner ? `${owner.toUpperCase()} 影响力` : '空槽'}</small>
+                  </button>;
+                })}</div>
+              </div>)}
             </div>
           ))}
         </div>

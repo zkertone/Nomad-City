@@ -649,3 +649,8 @@
 ## 2026-10-27 · 双显示架构与回合准备
 
 基准main3c21df5；新增Accepted ADR-0002、renderers/types／Board2D／BoardRenderer及RoundPreparation，提取原概览并新增移供应／盖放面板；server新增round-setup-options及11测试、3网络项，controller新增候选缓存／原round提交及4客户端项。RoomService／网关／索引接入，check-local-web扩展11次真实准备写入与持久化恢复。新增回合准备合同／验证说明及五份原始日志，README／Local-Run／首批页面历史提示／DevLog／本清单更新。2503/2503、strict及三包构建通过；全量后仅补展示阶段门控，最终前端严格检查／构建、3场本地首回合准备与重启再通过。无浏览器点击／视觉证明，2.5D模型及模式切换未实现。原核心／数据／摘要／存档／ADR-0001／依赖不变，不含凭证、node_modules、dist、测试数据库、官方图像或部署。按既有授权保存main。
+
+
+## 2026-10-27 · 部署与调度界面
+
+基准mainc5e21d4；新增server/action-options及11测试、共享MajorActionPanel，原网关／RoomService／包索引接入，网络新增3项，CityClient新增版本缓存与3项，Board2D／类型／页面／样式及编译脚本扩展。新增Influence-Action-UI、influence-ui-validation及六份原始日志（包括一次测试重连夹具失败）；README、Local-Run、上一批准备文档历史提示及DevLog同步。最终2520/2520、strict与三包构建通过；恢复既有行动阶段角色信息展示后web严格检查／构建再通过，最终三场本地编译恢复通过（19入场／30自动初始化／11准备／45主要行动写入、9部署／5调度）。实际在调度中途重开服务与PGlite文件库，不是本批八回合或人工点击整局。浏览器视觉验收仍受此前策略限制；原规则核心／数据／摘要／存档／ADR／依赖不变，不含凭证、node_modules、dist、临时数据库或部署。按既有授权保存main。

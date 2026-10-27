@@ -40,7 +40,7 @@ class FakeSocket {
         return { status: "listed", rooms: [], nextAfterRoomId: null };
       if (
         event === "room:entry-options" ||
-        event === "room:round-setup-options"
+        event === "room:round-setup-options" || event === "room:action-options"
       )
         return {
           status: "ready",
@@ -97,6 +97,76 @@ async function fixture() {
   return { client, socket, values };
 }
 describe("browser session and confirmed-view controller", () => {
+  it("queries actor action options and sends round/influence commands using only confirmed view versions", async () => {
+    const f = await fixture(), original = f.socket.request.getMockImplementation()!;
+    const actionGame = (v: number) => ({ ...game(v), public: { ...game(v).public, round: { stage: "player-actions" } } }) as GamePlayerView;
+    f.socket.request.mockImplementation(async (event, body) => {
+      if (event === "room:subscribe") return { status: "ready", view: actionGame(1) };
+      if (event === "room:action-options") return { status: "ready", roomId: "room-a", gameId: "game-a",
+        stateVersion: f.client.getSnapshot().game!.public.stateVersion, options: null };
+      if (event === "room:command") return { status: "committed", reply: { stateVersion: 2 },
+        view: actionGame(f.client.getSnapshot().game!.public.stateVersion + 2) };
+      return original(event, body);
+    });
+    await f.client.openRoom("room-a");
+    expect(f.client.getSnapshot().actionOptions?.stateVersion).toBe(1);
+    expect(f.client.getSnapshot().roundSetup).toBeNull();
+    await f.client.majorActionCommand({ type: "choose-major-action", action: "deploy" });
+    await f.client.influenceCommand({ type: "deploy-influence", slotId: "node:A-01:slot:1" });
+    await f.client.majorActionCommand({ type: "finish-player-turn" });
+    const writes = f.socket.request.mock.calls.filter(([e]) => e === "room:command");
+    expect(writes.map(([, b]) => (b as { request: { channel: string } }).request.channel)).toEqual(["round", "influence", "round"]);
+    expect(writes.map(([, b]) => (b as { request: { command: { expectedVersion: number } } }).request.command.expectedVersion)).toEqual([1, 3, 5]);
+    expect(writes[1]![1]).toMatchObject({ request: { command: { type: "deploy-influence", slotId: "node:A-01:slot:1" } } });
+    expect(f.client.getSnapshot().actionOptions?.stateVersion).toBe(7);
+    f.client.dispose();
+  });
+  it("discards delayed action options after a newer view and clears them on disconnect or room changes", async () => {
+    const f = await fixture(), original = f.socket.request.getMockImplementation()!, delayed = gate<unknown>();
+    const actionGame = (v: number) => ({ ...game(v), public: { ...game(v).public, round: { stage: "player-actions" } } }) as GamePlayerView;
+    let queries = 0;
+    f.socket.request.mockImplementation(async (event, body) => {
+      if (event === "room:subscribe") return { status: "ready", view: actionGame(queries > 0 ? 2 : 1) };
+      if (event === "room:action-options") return ++queries === 1 ? delayed.promise : { status: "ready", roomId: "room-a", gameId: "game-a", stateVersion: 2, options: null };
+      return original(event, body);
+    });
+    const opening = f.client.openRoom("room-a");
+    await vi.waitFor(() => expect(queries).toBe(1));
+    f.socket.emit("room:state", { roomId: "room-a", view: actionGame(2) });
+    await vi.waitFor(() => expect(f.client.getSnapshot().actionOptions?.stateVersion).toBe(2));
+    delayed.resolve({ status: "ready", roomId: "room-a", gameId: "game-a", stateVersion: 1, options: null });
+    await opening;
+    expect(f.client.getSnapshot().actionOptions?.stateVersion).toBe(2);
+    f.socket.disconnect(); expect(f.client.getSnapshot().actionOptions).toBeNull();
+    f.socket.connect();
+    await vi.waitFor(() => expect(f.client.getSnapshot().actionOptions).not.toBeNull());
+    await f.client.openRoom("room-b"); // old room query identity does not fit selected room
+    expect(f.client.getSnapshot().actionOptions).toBeNull();
+    f.client.dispose();
+  });
+  it("does not retry influence mutations or replace a confirmed view after rejection or timeout", async () => {
+    const f = await fixture(), original = f.socket.request.getMockImplementation()!;
+    const current = { ...game(1), public: { ...game(1).public, round: { stage: "player-actions" } } } as GamePlayerView;
+    f.socket.request.mockImplementation(async (event, body) => {
+      if (event === "room:subscribe") return { status: "ready", view: current };
+      if (event === "room:action-options") return { status: "ready", roomId: "room-a", gameId: "game-a", stateVersion: 1, options: null };
+      return original(event, body);
+    });
+    await f.client.openRoom("room-a");
+    const before = f.client.getSnapshot().actionOptions;
+    f.socket.request.mockResolvedValueOnce({ status: "rejected", reply: { error: { code: "STALE_VERSION" } }, view: game(99) });
+    await f.client.run(() => f.client.influenceCommand({ type: "dispatch-influence", sourceSlotId: "source", targetSlotId: "target" }));
+    expect(f.client.getSnapshot().actionOptions).toBe(before);
+    f.socket.request.mockRejectedValueOnce(Error("PRIVATE_SQL"));
+    await f.client.run(() => f.client.influenceCommand({ type: "finish-dispatch" }));
+    expect(f.client.getSnapshot().game?.public.stateVersion).toBe(1);
+    expect(f.client.getSnapshot().error).toBe(errorMessage("TIMEOUT"));
+    expect(f.socket.request.mock.calls.filter(([e]) => e === "room:command")).toHaveLength(2);
+    f.socket.emit("session:invalidated");
+    expect(f.client.getSnapshot().actionOptions).toBeNull();
+    f.client.dispose();
+  });
+
   it("uses the round channel and latest returned view version rather than the earlier player receipt", async () => {
     const f = await fixture(),
       original = f.socket.request.getMockImplementation()!;

@@ -17,7 +17,10 @@ let local,
   base,
   entryWrites = 0,
   autoWrites = 0,
-  roundSetupWrites = 0;
+  roundSetupWrites = 0,
+  majorActionWrites = 0,
+  deployments = 0,
+  dispatchMoves = 0;
 const saved = [];
 const headers = {
   Host: "nomad.local",
@@ -299,8 +302,67 @@ try {
         .options,
       null,
     );
+    const actionRead = async (socket) => {
+      const options = await rpc(socket, "room:action-options", { roomId: id });
+      assert.equal(options.status, "ready");
+      assert.equal(options.blockedReason, null);
+      assert.equal(options.stateVersion, view.public.stateVersion);
+      return options;
+    };
+    const actionSend = async (socket, channel, command) => {
+      const before = view.public.stateVersion;
+      const committed = await rpc(socket, "room:command", { roomId: id, request: {
+        apiVersion: "1.0.0", requestId: randomUUID(), channel,
+        command: { gameId: view.public.gameId, expectedVersion: before, ...command },
+      } });
+      assert.equal(committed.status, "committed");
+      assert.equal(committed.view.public.stateVersion, before + 1);
+      view = committed.view; majorActionWrites++;
+    };
+    for (const [i, socket] of sockets.entries()) {
+      const ownOptions = await actionRead(socket);
+      assert.equal(ownOptions.options.actorId, `p${i + 1}`);
+      for (const other of sockets.filter(s => s !== socket))
+        assert.equal((await actionRead(other)).options, null);
+      await actionSend(socket, "round", { type: "choose-major-action", action: "deploy" });
+      if (i === 0) {
+        assert.equal((await actionRead(socket)).options.cancelPreparation.legal, true);
+        await actionSend(socket, "round", { type: "cancel-major-preparation" });
+        await actionSend(socket, "round", { type: "choose-major-action", action: "deploy" });
+      }
+      const target = (await actionRead(socket)).options.influence.deploymentSlotIds[0];
+      assert.ok(target);
+      const before = await new PostgresRoomStore(local.sql).read(id),
+        playerId = `p${i + 1}`, marker = before.state.markerSupplyByPlayer[playerId][0];
+      await actionSend(socket, "influence", { type: "deploy-influence", slotId: target });
+      deployments++;
+      const after = await new PostgresRoomStore(local.sql).read(id);
+      assert.deepEqual(after.state.board.influenceBySlot[target], { ownerPlayerId: playerId, markerId: marker });
+      assert.equal(after.state.markerSupplyByPlayer[playerId].length, before.state.markerSupplyByPlayer[playerId].length - 1);
+      assert.equal((await actionRead(socket)).options.finishTurn.legal, true);
+      assert.equal(view.public.round.actorId, playerId);
+      await actionSend(socket, "round", { type: "finish-player-turn" });
+    }
+    assert.equal(view.public.round.cycle, 2);
+    await actionSend(sockets[0], "round", { type: "choose-major-action", action: "dispatch" });
+    const pair = (await actionRead(sockets[0])).options.influence.dispatches[0];
+    const beforeDispatch = await new PostgresRoomStore(local.sql).read(id),
+      marker = beforeDispatch.state.board.influenceBySlot[pair.sourceSlotId];
+    const destination = pair.targetSlotIds[0];
+    await actionSend(sockets[0], "influence", {
+      type: "dispatch-influence", sourceSlotId: pair.sourceSlotId, targetSlotId: destination,
+    });
+    dispatchMoves++;
+    const afterDispatch = await new PostgresRoomStore(local.sql).read(id);
+    assert.equal(afterDispatch.state.board.influenceBySlot[pair.sourceSlotId], null);
+    assert.deepEqual(afterDispatch.state.board.influenceBySlot[destination], marker);
+    assert.deepEqual(afterDispatch.state.markerSupplyByPlayer, beforeDispatch.state.markerSupplyByPlayer);
+    const pendingOptions = await actionRead(sockets[0]);
+    assert.equal(pendingOptions.options.influence.operationsCompleted, 1);
+    assert.equal(pendingOptions.options.cancelPreparation.legal, false);
+    assert.equal(pendingOptions.options.finishTurn.legal, false);
     const own = (await rpc(sockets[0], "room:subscribe", { roomId: id })).view;
-    saved.push({ id, view: own });
+    saved.push({ id, view: own, options: pendingOptions, marker, destination, count });
     for (const socket of sockets) socket.disconnect();
   }
   assert.equal(entryWrites, 19);
@@ -312,16 +374,36 @@ try {
   local = null;
   await open();
   const restored = await connect(tokens[0]);
-  for (const s of saved)
-    assert.deepEqual(
-      (await rpc(restored, "room:subscribe", { roomId: s.id })).view,
-      s.view,
-    );
-  assert.deepEqual(
-    (await new PostgresRoomStore(local.sql).read(saved[0].id)).state
-      .stateVersion,
-    saved[0].view.public.stateVersion,
-  );
+  for (const s of saved) {
+    assert.deepEqual((await rpc(restored, "room:subscribe", { roomId: s.id })).view, s.view);
+    const options = await rpc(restored, "room:action-options", { roomId: s.id });
+    assert.deepEqual(options, s.options);
+    const before = await new PostgresRoomStore(local.sql).read(s.id);
+    assert.deepEqual(before.state.board.influenceBySlot[s.destination], s.marker);
+    const second = options.options.influence.dispatches.find(p => p.sourceSlotId === s.destination);
+    assert.ok(second);
+    const command = s.count === 2 ? { type: "finish-dispatch" }
+      : { type: "dispatch-influence", sourceSlotId: second.sourceSlotId, targetSlotId: second.targetSlotIds[0] };
+    let result = await rpc(restored, "room:command", { roomId: s.id, request: {
+      apiVersion: "1.0.0", requestId: randomUUID(), channel: "influence",
+      command: { gameId: options.gameId, expectedVersion: options.stateVersion, ...command },
+    } });
+    assert.equal(result.status, "committed"); majorActionWrites++;
+    if (s.count !== 2) dispatchMoves++;
+    const after = await new PostgresRoomStore(local.sql).read(s.id);
+    assert.deepEqual(after.state.markerSupplyByPlayer, before.state.markerSupplyByPlayer);
+    if (s.count !== 2) assert.deepEqual(after.state.board.influenceBySlot[second.targetSlotIds[0]], s.marker);
+    assert.equal((await rpc(restored, "room:action-options", { roomId: s.id })).options.finishTurn.legal, true);
+    result = await rpc(restored, "room:command", { roomId: s.id, request: {
+      apiVersion: "1.0.0", requestId: randomUUID(), channel: "round",
+      command: { gameId: options.gameId, expectedVersion: result.view.public.stateVersion, type: "finish-player-turn" },
+    } });
+    assert.equal(result.status, "committed"); majorActionWrites++;
+    assert.equal(result.view.public.round.actorId, "p2");
+  }
+  assert.equal(majorActionWrites, 45);
+  assert.equal(deployments, 9);
+  assert.equal(dispatchMoves, 5);
   console.log(
     JSON.stringify({
       check: "PASS",
@@ -332,8 +414,9 @@ try {
       entryWrites,
       automaticStartupWrites: autoWrites,
       roundSetupWrites,
-      preparationToFirstAction: true,
-      persistedSessionAndEntryRecovery: true,
+      majorActionWrites, deployments, dispatchMoves,
+      firstCycleAndRecoveredDispatch: true,
+      persistedSessionAndActionRecovery: true,
       browserBundleHasNoServerRuntime: true,
       database: "PGlite test only",
     }),

@@ -1070,3 +1070,14 @@ footer {
     padding: 13px;
   }
 }
+
+/* Shared action controls and lightweight stable-ID slot overview. */
+.action-choices, .slot-choices { display: flex; flex-wrap: wrap; gap: .5rem; }
+.action-choices { margin: 1rem 0; }
+.influence-overview { margin-top: 1.5rem; border-top: 1px solid var(--line, #d9d3c8); padding-top: 1rem; }
+.influence-overview .region > .slot-location { display: block; margin: .8rem 0; }
+.game-grid > .decision { align-self: start; }
+.slot-location > small { display: block; margin-bottom: .4rem; }
+.slot-choice { display: flex; flex-direction: column; gap: .25rem; padding: .5rem; font-size: .75rem; }
+.slot-choice.selected { border-color: #bd582c; background: #f6e4d3; }
+.slot-choice small { font-size: .65rem; }

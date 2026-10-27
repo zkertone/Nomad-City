@@ -8,6 +8,7 @@ import { CityClient } from "./client.js";
 import "./style.css";
 import { BoardRenderer } from "./renderers/BoardRenderer.js";
 import { RoundPreparation } from "./RoundPreparation.js";
+import { MajorActionPanel } from "./MajorActionPanel.js";
 
 const client = new CityClient(sessionStorage);
 const assets: Record<string, string> = {
@@ -76,6 +77,8 @@ function App() {
     [reverse, setReverse] = useState(false),
     [node, setNode] = useState(""),
     [bonus, setBonus] = useState<"claim" | "decline">("decline");
+  const [actionSlot, setActionSlot] = useState(""),
+    [sourceSlot, setSourceSlot] = useState("");
   const [slot, setSlot] = useState(""),
     [boards, setBoards] = useState<{
       three: BoardDefinition;
@@ -106,6 +109,14 @@ function App() {
         ? boards.four
         : boards.three
       : null;
+  const influence = state.actionOptions?.options?.influence;
+  const actionTargets = influence?.kind === "deploy" ? influence.deploymentSlotIds
+    : sourceSlot ? influence?.dispatches.find(row => row.sourceSlotId === sourceSlot)?.targetSlotIds ?? []
+      : influence?.dispatches.map(row => row.sourceSlotId) ?? [];
+  useEffect(() => {
+    setActionSlot("");
+    setSourceSlot("");
+  }, [state.roomId, game?.public.gameId, game?.public.stateVersion]);
   useEffect(() => {
     setNode("");
     setSlot("");
@@ -668,15 +679,29 @@ function App() {
                   targets={{
                     nodeIds: options?.nodeIds ?? [],
                     routeIds: [],
-                    slotIds: [],
+                    slotIds: actionTargets,
                   }}
                   selectedNodeId={node || null}
+                  selectedSlotId={actionSlot || null}
+                  sourceSlotId={sourceSlot || null}
                   disabled={blocked}
                   onIntent={(intent) => {
                     if (intent.type === "select-node") setNode(intent.nodeId);
+                    if (intent.type === "select-slot") {
+                      if (influence?.kind === "dispatch" && !sourceSlot) {
+                        setSourceSlot(intent.slotId);
+                        setActionSlot("");
+                      } else setActionSlot(intent.slotId);
+                    }
                   }}
                 />
-                <section className="card decision">
+                {game.public.round?.stage === "player-actions" ? <MajorActionPanel
+                  view={game} result={state.actionOptions} selectedSlotId={actionSlot}
+                  sourceSlotId={sourceSlot} disabled={blocked}
+                  onRound={command => run(() => client.majorActionCommand(command))}
+                  onInfluence={command => run(() => client.influenceCommand(command))}
+                  onResetSource={() => { setSourceSlot(""); setActionSlot(""); }}
+                /> : <section className="card decision">
                   <div className="eyebrow">YOUR DECISION / 玩家决策</div>
                   <h2>
                     {options?.status === "selecting-node"
@@ -805,12 +830,12 @@ function App() {
                       </p>
                       {!game.public.entry && (
                         <small>
-                          当前已接通入场和回合准备；主要行动等界面待接入。
+                          当前已接通入场、回合准备、部署与调度；其余操作界面待接入。
                         </small>
                       )}
                     </div>
                   )}
-                </section>
+                </section>}
               </div>
               <div className="player-summary">
                 {game.public.players.map((p) => (

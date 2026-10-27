@@ -3,6 +3,7 @@ import type { Socket } from "socket.io-client";
 import type { GamePlayerView } from "@nomad-city-online/game-core";
 import type {
   EntryOptionsResult,
+  ActionOptionsResult,
   LobbyView,
   RoomSummary,
   RoundSetupOptionsResult,
@@ -11,6 +12,14 @@ import type {
 export type RoundPreparationCommand =
   | { readonly type: "remove-round-supply-card"; readonly cardId: string }
   | { readonly type: "place-round-role"; readonly roleId: string };
+
+export type MajorActionCommand =
+  | { readonly type: "choose-major-action"; readonly action: "deploy" | "dispatch" }
+  | { readonly type: "cancel-major-preparation" | "finish-player-turn" };
+export type InfluenceCommand =
+  | { readonly type: "deploy-influence"; readonly slotId: string }
+  | { readonly type: "dispatch-influence"; readonly sourceSlotId: string; readonly targetSlotId: string }
+  | { readonly type: "finish-dispatch" };
 
 export type ClientSnapshot = {
   connected: boolean;
@@ -25,6 +34,7 @@ export type ClientSnapshot = {
   game: GamePlayerView | null;
   entry: Extract<EntryOptionsResult, { status: "ready" }> | null;
   roundSetup: Extract<RoundSetupOptionsResult, { status: "ready" }> | null;
+  actionOptions: Extract<ActionOptionsResult, { status: "ready" }> | null;
   inviteToken: string | null;
 };
 export const emptyClient = (): ClientSnapshot => ({
@@ -39,7 +49,7 @@ export const emptyClient = (): ClientSnapshot => ({
   roomId: null,
   game: null,
   entry: null,
-  roundSetup: null,
+  roundSetup: null, actionOptions: null,
   inviteToken: null,
 });
 const messages: Record<string, string> = {
@@ -183,7 +193,7 @@ export class CityClient {
           connected: false,
           game: null,
           entry: null,
-          roundSetup: null,
+          roundSetup: null, actionOptions: null,
           lobby: null,
           inviteToken: null,
           notice: "连接中断，正在重连…",
@@ -239,7 +249,7 @@ export class CityClient {
         this.patch({
           game: null,
           entry: null,
-          roundSetup: null,
+          roundSetup: null, actionOptions: null,
           error: errorMessage("ROOM_UNAVAILABLE"),
         });
     });
@@ -295,7 +305,7 @@ export class CityClient {
   private acceptGame(view: GamePlayerView) {
     const next = newerGame(this.state.game, view);
     if (next !== this.state.game)
-      this.patch({ game: next, entry: null, roundSetup: null });
+      this.patch({ game: next, entry: null, roundSetup: null, actionOptions: null });
   }
   async refresh() {
     const epoch = this.epoch;
@@ -382,7 +392,7 @@ export class CityClient {
     if (previous && previous !== roomId)
       await this.rpc("room:unsubscribe", { roomId: previous });
     this.storage.setItem("nco.local.room", roomId);
-    this.patch({ roomId, game: null, entry: null, roundSetup: null });
+    this.patch({ roomId, game: null, entry: null, roundSetup: null, actionOptions: null });
     const result = await this.rpc<{ view: GamePlayerView }>("room:subscribe", {
       roomId,
     });
@@ -395,37 +405,36 @@ export class CityClient {
     const roomId = this.state.roomId;
     if (!roomId) return;
     const entryPhase = !!this.state.game?.public.entry;
+    const actionPhase = this.state.game?.public.round?.stage === "player-actions";
     const result = await this.rpc<
-      Extract<EntryOptionsResult | RoundSetupOptionsResult, { status: "ready" }>
-    >(entryPhase ? "room:entry-options" : "room:round-setup-options", {
-      roomId,
-    });
+      Extract<EntryOptionsResult | RoundSetupOptionsResult | ActionOptionsResult, { status: "ready" }>
+    >(entryPhase ? "room:entry-options" : actionPhase ? "room:action-options" : "room:round-setup-options", { roomId });
     if (
       this.state.roomId === result.roomId &&
       this.state.game?.public.gameId === result.gameId &&
       this.state.game.public.stateVersion === result.stateVersion
     )
-      this.patch(
-        entryPhase
-          ? {
-              entry: result as Extract<EntryOptionsResult, { status: "ready" }>,
-            }
-          : {
-              roundSetup: result as Extract<
-                RoundSetupOptionsResult,
-                { status: "ready" }
-              >,
-            },
-      );
+      this.patch(entryPhase
+        ? { entry: result as Extract<EntryOptionsResult, { status: "ready" }> }
+        : actionPhase
+          ? { actionOptions: result as Extract<ActionOptionsResult, { status: "ready" }> }
+          : { roundSetup: result as Extract<RoundSetupOptionsResult, { status: "ready" }> });
   }
+
   async entryCommand(command: Record<string, unknown>) {
     return this.playerCommand("entry", command);
   }
   async roundSetupCommand(command: RoundPreparationCommand) {
     return this.playerCommand("round", command);
   }
+  async majorActionCommand(command: MajorActionCommand) {
+    return this.playerCommand("round", command);
+  }
+  async influenceCommand(command: InfluenceCommand) {
+    return this.playerCommand("influence", command);
+  }
   private async playerCommand(
-    channel: "entry" | "round",
+    channel: "entry" | "round" | "influence",
     command: Record<string, unknown>,
   ) {
     const { game, roomId } = this.state;

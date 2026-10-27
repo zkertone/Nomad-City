@@ -9,6 +9,8 @@ import { getRoomEntryOptions } from './entry-options.js';
 import type { EntryOptionsResult } from './entry-options.js';
 import { getRoomRoundSetupOptions } from './round-setup-options.js';
 import type { RoundSetupOptionsResult } from './round-setup-options.js';
+import { getRoomActionOptions } from './action-options.js';
+import type { ActionOptionsResult } from './action-options.js';
 
 type AutomaticAnnotation = { readonly automatic?: AutomaticProgress };
 type Unavailable = { readonly status: 'unavailable'; readonly error: { readonly code: 'ROOM_UNAVAILABLE' | 'STORAGE_UNAVAILABLE' | 'COMMIT_CONFLICT' | 'AUTOMATION_PENDING' } } & AutomaticAnnotation;
@@ -28,6 +30,18 @@ function playerFor(snapshot: RoomSnapshot | null, principal: RoomPrincipal): str
 /** Provider for a future authenticated gateway. Principal comes from its session, never the body. */
 export class RoomService {
   constructor(private readonly store: RoomStore, private readonly queue = new RoomQueue()) {}
+  async readActionOptions(roomId: string, principalInput: RoomPrincipal): Promise<ActionOptionsResult> {
+    const principal = roomPrincipalSchema.safeParse(principalInput);
+    if (!principal.success || !gameEntityIdSchema.safeParse(roomId).success) return entryUnavailable('ROOM_UNAVAILABLE');
+    return this.queue.run(roomId, async () => {
+      let snapshot: RoomSnapshot | null;
+      try { snapshot = await this.store.read(roomId); }
+      catch { return entryUnavailable('STORAGE_UNAVAILABLE'); }
+      const playerId = playerFor(snapshot, principal.data);
+      if (!snapshot || !playerId) return entryUnavailable('ROOM_UNAVAILABLE');
+      return getRoomActionOptions(snapshot, playerId);
+    });
+  }
   async readRoundSetupOptions(roomId: string, principalInput: RoomPrincipal): Promise<RoundSetupOptionsResult> {
     const principal = roomPrincipalSchema.safeParse(principalInput);
     if (!principal.success || !gameEntityIdSchema.safeParse(roomId).success) return entryUnavailable('ROOM_UNAVAILABLE');

@@ -1,0 +1,28 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+ RUN  v5.0.4 /workspace/scratch/d9545625f110/Nomad-City-Restored
+
+ ❯ packages/web/src/client.test.ts (18 tests | 1 failed) 2227ms
+   ❯ browser session and confirmed-view controller (18)
+     × discards delayed action options after a newer view and clears them on disconnect or room changes 1167ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/web/src/client.test.ts > browser session and confirmed-view controller > discards delayed action options after a newer view and clears them on disconnect or room changes
+AssertionError: expected null not to be null
+ ❯ packages/web/src/client.test.ts:142:77
+    140|     f.socket.disconnect(); expect(f.client.getSnapshot().actionOptions…
+    141|     f.socket.connect();
+    142|     await vi.waitFor(() => expect(f.client.getSnapshot().actionOptions…
+       |                                                                             ^
+    143|     await f.client.openRoom("room-b"); // old room query identity does…
+    144|     expect(f.client.getSnapshot().actionOptions).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  1 failed | 103 passed (104)
+   Start at  23:54:45
+   Duration  13.07s (tests 91%, import 5%, transform 4%)
+

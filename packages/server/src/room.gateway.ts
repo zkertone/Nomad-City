@@ -16,6 +16,7 @@ import { lobbyCommandSchema, lobbyCreateSchema, lobbyIdSchema, lobbyJoinSchema, 
 import type { LobbyListResult, LobbyResult, LobbyView } from './lobby-state.js';
 import type { EntryOptionsResult } from './entry-options.js';
 import type { RoundSetupOptionsResult } from './round-setup-options.js';
+import type { ActionOptionsResult } from './action-options.js';
 import type { AutomaticProgress } from './automatic-lifecycle.js';
 import { ROOM_SOCKET_OPTIONS, SOCKET_PROTOCOL_VERSION, socketAuthSchema, socketCommandSchema, socketRoomSchema, socketEmptySchema } from './socket-protocol.js';
 import type { RoomSocketOptions, SessionInfo, SessionLogoutResult, SocketFailure } from './socket-protocol.js';
@@ -246,6 +247,18 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       try {
         const principal = await this.authenticate(socket); if ('status' in principal) return principal;
         const result = await this.rooms.readRoundSetupOptions(checked.data.roomId, principal);
+        const current = await this.authenticate(socket); return 'status' in current ? current : result;
+      } catch { return failure('SERVER_UNAVAILABLE'); }
+    });
+  }
+  // Read-only action candidates use the same room queue and authentication boundary as writes.
+  @SubscribeMessage('room:action-options')
+  async actionOptions(@ConnectedSocket() socket: Socket, @MessageBody() payload: unknown): Promise<ActionOptionsResult | SocketFailure> {
+    const checked = socketRoomSchema.safeParse(payload); if (!checked.success) return failure('INVALID_MESSAGE');
+    return this.queue.run(checked.data.roomId, async () => {
+      try {
+        const principal = await this.authenticate(socket); if ('status' in principal) return principal;
+        const result = await this.rooms.readActionOptions(checked.data.roomId, principal);
         const current = await this.authenticate(socket); return 'status' in current ? current : result;
       } catch { return failure('SERVER_UNAVAILABLE'); }
     });

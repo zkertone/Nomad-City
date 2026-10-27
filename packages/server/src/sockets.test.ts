@@ -133,6 +133,68 @@ describe('durable opaque sessions', () => {
 });
 
 describe('real loopback Socket.IO session, membership and recovery boundary', () => {
+  it('reads actor-only action choices and commits deployment, cancel, dispatch, early finish and turn handoff through existing channels', async () => {
+    const s = await fixture(true), a = await asUser('bob'), b = await asUser('alice'), outsider = await asUser('action-outsider');
+    const pushed: core.GamePlayerView[] = []; b.socket.on('room:state', (event: { view: core.GamePlayerView }) => pushed.push(event.view));
+    await call(b.socket, 'room:subscribe', { roomId: s.roomId });
+    let next = await call(a.socket, 'room:action-options', { roomId: s.roomId });
+    expect(next.options.actions.every((x: { legal: boolean }) => x.legal)).toBe(true);
+    expect((await call(b.socket, 'room:action-options', { roomId: s.roomId })).options).toBeNull();
+    expect(await call(outsider.socket, 'room:action-options', { roomId: s.roomId })).toEqual(await call(outsider.socket, 'room:action-options', { roomId: 'missing' }));
+    expect(await store.read(s.roomId)).toEqual(s);
+    const send = async (socket: ClientSocket, channel: string, command: Record<string, unknown>, expectedVersion = next.stateVersion) => {
+      return call(socket, 'room:command', { roomId: s.roomId, request: { apiVersion: '1.0.0', requestId: 'ordinary-step', channel,
+        command: { gameId: next.gameId, expectedVersion, ...command } } });
+    };
+    let result = await send(a.socket, 'round', { type: 'choose-major-action', action: 'deploy' }); expect(result.status).toBe('committed');
+    const stale = next.stateVersion; next = await call(a.socket, 'room:action-options', { roomId: s.roomId });
+    const slotId = next.options.influence.deploymentSlotIds[0];
+    expect((await send(b.socket, 'influence', { type: 'deploy-influence', slotId })).status).toBe('rejected');
+    expect((await send(a.socket, 'influence', { type: 'deploy-influence', slotId }, stale)).status).toBe('rejected');
+    result = await send(a.socket, 'round', { type: 'cancel-major-preparation' }); expect(result.status).toBe('committed');
+    next = await call(a.socket, 'room:action-options', { roomId: s.roomId });
+    expect((await send(a.socket, 'round', { type: 'choose-major-action', action: 'deploy' })).status).toBe('committed');
+    next = await call(a.socket, 'room:action-options', { roomId: s.roomId });
+    expect((await send(a.socket, 'influence', { type: 'deploy-influence', slotId })).status).toBe('committed');
+    const deployed = (await store.read(s.roomId))!.state.board.influenceBySlot[slotId];
+    next = await call(a.socket, 'room:action-options', { roomId: s.roomId }); expect(next.options.finishTurn.legal).toBe(true);
+    expect((await send(a.socket, 'round', { type: 'finish-player-turn' })).status).toBe('committed');
+    next = await call(b.socket, 'room:action-options', { roomId: s.roomId });
+    expect((await send(b.socket, 'round', { type: 'choose-major-action', action: 'dispatch' })).status).toBe('committed');
+    next = await call(b.socket, 'room:action-options', { roomId: s.roomId }); expect(next.options.finishTurn.legal).toBe(true);
+    expect((await send(b.socket, 'round', { type: 'finish-player-turn' })).status).toBe('committed');
+    next = await call(a.socket, 'room:action-options', { roomId: s.roomId });
+    expect((await send(a.socket, 'round', { type: 'choose-major-action', action: 'dispatch' })).status).toBe('committed');
+    next = await call(a.socket, 'room:action-options', { roomId: s.roomId });
+    const pair = next.options.influence.dispatches[0], targetSlotId = pair.targetSlotIds[0];
+    expect((await send(a.socket, 'influence', { type: 'dispatch-influence', sourceSlotId: pair.sourceSlotId, targetSlotId })).status).toBe('committed');
+    next = await call(a.socket, 'room:action-options', { roomId: s.roomId });
+    expect(next.options.cancelPreparation.legal).toBe(false); expect(next.options.finishDispatch.legal).toBe(true);
+    expect((await send(a.socket, 'influence', { type: 'finish-dispatch' })).status).toBe('committed');
+    const saved = (await store.read(s.roomId))!;
+    expect(saved.state.board.influenceBySlot[targetSlotId]).toEqual(deployed);
+    expect(saved.state.roundFlow!.turnIndex).toBe(2);
+    await until(() => pushed.some(v => v.public.stateVersion === saved.state.stateVersion));
+    expect(pushed.at(-1)?.private.playerId).toBe('p2');
+    expect(JSON.stringify(next)).not.toMatch(/drawPile|DeckOrder|roleHand|placedRoleId|markerId|members/);
+  });
+  it('rejects action option identity injection and normalizes storage errors without writes', async () => {
+    const s = await fixture(true), a = await asUser('bob');
+    expect(await call(a.socket, 'room:action-options', { roomId: s.roomId, playerId: 'p2' })).toMatchObject({ error: { code: 'INVALID_MESSAGE' } });
+    vi.spyOn(gatewayStore, 'read').mockRejectedValueOnce(Error('PRIVATE_SQL'));
+    expect(await call(a.socket, 'room:action-options', { roomId: s.roomId })).toEqual({ status: 'unavailable', error: { code: 'STORAGE_UNAVAILABLE' } });
+    expect(await store.read(s.roomId)).toEqual(s);
+  });
+  it('discards action choices if authentication is revoked during the read', async () => {
+    const s = await fixture(true), a = await asUser('bob'), blocked = deferred(), release = deferred();
+    const service = app.get(RoomService), original = service.readActionOptions.bind(service);
+    vi.spyOn(service, 'readActionOptions').mockImplementationOnce(async (...args) => { const result = await original(...args); blocked.resolve(); await release.promise; return result; });
+    let acknowledged = false; const invalidated = event(a.socket, 'session:invalidated');
+    a.socket.emit('room:action-options', { roomId: s.roomId }, () => { acknowledged = true; });
+    await blocked.promise; await sessions.revoke(a.token); release.resolve(); await invalidated;
+    expect(acknowledged).toBe(false);
+  });
+
   it('reads authoritative round setup choices, performs two removals and private placements through the original round channel', async () => {
     const s = await fixture(true, true), a = await asUser('bob'), b = await asUser('alice'), outsider = await asUser('round-options-outsider');
     let next = await call(a.socket, 'room:round-setup-options', { roomId: s.roomId });

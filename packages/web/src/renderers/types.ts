@@ -18,6 +18,8 @@ export interface BoardPresentationProps {
     readonly slotIds: readonly string[];
   };
   readonly selectedNodeId: string | null;
+  readonly selectedSlotId?: string | null;
+  readonly sourceSlotId?: string | null;
   readonly disabled: boolean;
   readonly onIntent: (intent: BoardIntent) => void;
 }

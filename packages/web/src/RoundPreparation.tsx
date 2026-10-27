@@ -77,7 +77,7 @@ export function RoundPreparation({
           : placement
             ? "从自己的可用角色中选择一张盖放。其他玩家看不到你的选择。"
             : turn?.stage === "player-actions"
-              ? `当前行动玩家：${turn.actorId?.toUpperCase() ?? "等待中"}。主要行动界面将在下一批接入。`
+              ? `当前行动玩家：${turn.actorId?.toUpperCase() ?? "等待中"}。`
               : `等待 ${turn?.actorId?.toUpperCase() ?? "当前玩家"} 完成回合准备。`}
       </p>
       {result?.blockedReason && (
