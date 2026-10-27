@@ -11,6 +11,7 @@ export * from './room-directory.js';
 export * from './lobby-state.js';
 export * from './lobby-service.js';
 export * from './entry-options.js';
+export * from './round-setup-options.js';
 export * from './base-room-factory.js';
 export type { AutomaticBasePlan } from './automatic-base-plan.js';
 export type { AutomaticProgress, AutomaticIssue } from './automatic-lifecycle.js';

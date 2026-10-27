@@ -16,6 +16,7 @@ import { socketOptionsSchema } from './socket-protocol.js';
 import { createAutomaticBaseRoomSnapshot } from './base-room-factory.js';
 import { baseSetupIds } from './automatic-base-plan.js';
 import { RoomDirectory } from './room-directory.js';
+import { RoomService } from './room-service.js';
 import { LobbyService } from './lobby-service.js';
 
 const db = new PGlite(), sql: RoomSqlExecutor = { query: async (text, values) => {
@@ -52,7 +53,7 @@ async function asUser(userId: string) {
   return { socket: await connect({ protocolVersion: '1.0.0', sessionToken: issued.token }), ...issued };
 }
 const call = (socket: ClientSocket, name: string, payload: unknown) => socket.timeout(3000).emitWithAck(name, payload);
-async function fixture(managed = false) {
+async function fixture(managed = false, preparedOnly = false) {
   const id = `socket-room-${++sequence}`, players = [{ id: 'p1', color: 'red' as const }, { id: 'p2', color: 'blue' as const }];
   const g = core.createPreEntryGame(`game-${id}`, players);
   let state = core.beginEntry(g.state, g.definition, { expectedVersion: 0, startingPlayerId: 'p1', clockwisePlayerIds: ['p1', 'p2'], greenDeckOrder: ['G03', 'G02', 'G04', 'G05', 'G06'] });
@@ -64,8 +65,8 @@ async function fixture(managed = false) {
     }
     state = core.applyEntryCommand(state, g.definition, { authenticatedPlayerId: 'p2' }, { gameId: state.gameId, expectedVersion: state.stateVersion, type: 'choose-entry-influence', slotId: null });
     state = core.beginRoundFlow(state, g.definition, { expectedVersion: state.stateVersion, facilityDeckOrder: core.FOUNDERS_FACILITY_STOCK.cards.filter(c => c.group === 'ordinary').map(c => c.id) });
-    while (state.roundFlow!.stage === 'role-removal') state = core.applyRoundCommand(state, g.definition, { authenticatedPlayerId: core.getRoundTurn(state, g.definition).actorId! }, { gameId: state.gameId, expectedVersion: state.stateVersion, type: 'remove-round-supply-card', cardId: state.facilities!.supply.supply[0] });
-    while (state.roundFlow!.stage === 'role-placement') {
+    while (!preparedOnly && state.roundFlow!.stage === 'role-removal') state = core.applyRoundCommand(state, g.definition, { authenticatedPlayerId: core.getRoundTurn(state, g.definition).actorId! }, { gameId: state.gameId, expectedVersion: state.stateVersion, type: 'remove-round-supply-card', cardId: state.facilities!.supply.supply[0] });
+    while (!preparedOnly && state.roundFlow!.stage === 'role-placement') {
       const actor = core.getRoundTurn(state, g.definition).actorId!;
       state = core.applyRoundCommand(state, g.definition, { authenticatedPlayerId: actor }, { gameId: state.gameId, expectedVersion: state.stateVersion, type: 'place-round-role', roleId: actor === 'p1' ? 'ROLE-03' : 'ROLE-02' });
     }
@@ -132,6 +133,47 @@ describe('durable opaque sessions', () => {
 });
 
 describe('real loopback Socket.IO session, membership and recovery boundary', () => {
+  it('reads authoritative round setup choices, performs two removals and private placements through the original round channel', async () => {
+    const s = await fixture(true, true), a = await asUser('bob'), b = await asUser('alice'), outsider = await asUser('round-options-outsider');
+    let next = await call(a.socket, 'room:round-setup-options', { roomId: s.roomId });
+    expect(next.options.stage).toBe('role-removal'); expect(next.options.cards).toHaveLength(6);
+    expect((await call(b.socket, 'room:round-setup-options', { roomId: s.roomId })).options).toBeNull();
+    expect(await call(outsider.socket, 'room:round-setup-options', { roomId: s.roomId })).toEqual(await call(outsider.socket, 'room:round-setup-options', { roomId: 'missing-room' }));
+    expect(await store.read(s.roomId)).toEqual(s);
+    async function send(socket: ClientSocket, command: Record<string, unknown>) {
+      const result = await call(socket, 'room:command', { roomId: s.roomId, request: { apiVersion: '1.0.0', requestId: 'setup-step', channel: 'round',
+        command: { gameId: next.gameId, expectedVersion: next.stateVersion, ...command } } });
+      expect(result.status).toBe('committed'); return result;
+    }
+    const removed = next.options.cards[0].cardId; await send(a.socket, { type: 'remove-round-supply-card', cardId: removed });
+    next = await call(b.socket, 'room:round-setup-options', { roomId: s.roomId });
+    expect(next.options.cards.some((c: { cardId: string }) => c.cardId === removed)).toBe(false);
+    await send(b.socket, { type: 'remove-round-supply-card', cardId: next.options.cards[0].cardId });
+    next = await call(a.socket, 'room:round-setup-options', { roomId: s.roomId }); expect(next.options.roles).toHaveLength(5);
+    await send(a.socket, { type: 'place-round-role', roleId: 'ROLE-03' });
+    next = await call(b.socket, 'room:round-setup-options', { roomId: s.roomId });
+    expect(next.options.actorId).toBe('p2'); expect(JSON.stringify(next)).not.toMatch(/placedRoleId|rolesByPlayer|drawPile|DeckOrder|members/);
+    const own = await call(b.socket, 'room:subscribe', { roomId: s.roomId });
+    expect(Object.hasOwn(own.view.public.players[0].roles, 'placedRoleId')).toBe(false); expect(own.view.private.placedRoleId).toBeNull();
+    await send(b.socket, { type: 'place-round-role', roleId: 'ROLE-02' });
+    expect((await call(a.socket, 'room:round-setup-options', { roomId: s.roomId })).options).toBeNull();
+    expect((await store.read(s.roomId))!.state.roundFlow!.stage).toBe('player-actions');
+  });
+  it('rejects round setup query identity injection and normalizes storage failures without writes', async () => {
+    const s = await fixture(true, true), a = await asUser('bob');
+    expect(await call(a.socket, 'room:round-setup-options', { roomId: s.roomId, playerId: 'p2' })).toMatchObject({ error: { code: 'INVALID_MESSAGE' } });
+    vi.spyOn(gatewayStore, 'read').mockRejectedValueOnce(Error('DO_NOT_LEAK'));
+    expect(await call(a.socket, 'room:round-setup-options', { roomId: s.roomId })).toEqual({ status: 'unavailable', error: { code: 'STORAGE_UNAVAILABLE' } });
+    expect(await store.read(s.roomId)).toEqual(s);
+  });
+  it('discards round setup choices if the credential is revoked while reading them', async () => {
+    const s = await fixture(true, true), a = await asUser('bob'), blocked = deferred(), release = deferred();
+    const service = app.get(RoomService), original = service.readRoundSetupOptions.bind(service);
+    vi.spyOn(service, 'readRoundSetupOptions').mockImplementationOnce(async (...args) => { const result = await original(...args); blocked.resolve(); await release.promise; return result; });
+    let acknowledged = false; const invalidated = event(a.socket, 'session:invalidated');
+    a.socket.emit('room:round-setup-options', { roomId: s.roomId }, () => { acknowledged = true; });
+    await blocked.promise; await sessions.revoke(a.token); release.resolve(); await invalidated; expect(acknowledged).toBe(false);
+  });
   it('offers current actor entry choices from core rules without advancing, and hides choices from other players', async () => {
     const s = await fixture(), a = await asUser('bob'), b = await asUser('alice'), outsider = await asUser('options-outsider');
     const options = await call(a.socket, 'room:entry-options', { roomId: s.roomId });

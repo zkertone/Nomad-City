@@ -6,6 +6,8 @@ import type {
 } from "@nomad-city-online/game-core";
 import { CityClient } from "./client.js";
 import "./style.css";
+import { BoardRenderer } from "./renderers/BoardRenderer.js";
+import { RoundPreparation } from "./RoundPreparation.js";
 
 const client = new CityClient(sessionStorage);
 const assets: Record<string, string> = {
@@ -645,61 +647,35 @@ function App() {
                   同步局面 ↻
                 </button>
               </div>
+              {game.public.round &&
+                ["role-removal", "role-placement", "player-actions"].includes(
+                  game.public.round.stage,
+                ) && (
+                  <RoundPreparation
+                    view={game}
+                    result={state.roundSetup}
+                    disabled={blocked}
+                    onCommand={(command) =>
+                      run(() => client.roundSetupCommand(command))
+                    }
+                  />
+                )}
               <div className="game-grid">
-                <section className="card board-overview">
-                  <div className="section-heading">
-                    <h2>荒野 · 资源点概览</h2>
-                    <span className="count-tag">
-                      {game.public.players.length} 人地图
-                    </span>
-                  </div>
-                  <p className="muted">
-                    按区块列出资源点；请选择服务端提供的可用位置。
-                  </p>
-                  {board && (
-                    <div className="regions">
-                      {Object.keys(board.regions).map((region) => (
-                        <div className="region" key={region}>
-                          <strong>区块 {region}</strong>
-                          <div>
-                            {Object.values(board.resourceNodes)
-                              .filter((n) => n.regionId === region)
-                              .map((n) => {
-                                const occupant = Object.entries(
-                                  game.public.board.cityNodeByPlayer,
-                                ).find(([, id]) => id === n.id)?.[0];
-                                return (
-                                  <button
-                                    key={n.id}
-                                    data-deck={n.eventDeckColor}
-                                    className={
-                                      node === n.id ? "node selected" : "node"
-                                    }
-                                    disabled={
-                                      blocked ||
-                                      !options?.nodeIds.includes(n.id)
-                                    }
-                                    onClick={() => setNode(n.id)}
-                                  >
-                                    <span>{n.id}</span>
-                                    <small>
-                                      {occupant
-                                        ? `${occupant.toUpperCase()} 城邦`
-                                        : options?.nodeIds.includes(n.id)
-                                          ? "可选择"
-                                          : n.eventDeckColor === "red"
-                                            ? "红色资源点"
-                                            : "资源点"}
-                                    </small>
-                                  </button>
-                                );
-                              })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </section>
+                <BoardRenderer
+                  mode="2d"
+                  board={board}
+                  view={game}
+                  targets={{
+                    nodeIds: options?.nodeIds ?? [],
+                    routeIds: [],
+                    slotIds: [],
+                  }}
+                  selectedNodeId={node || null}
+                  disabled={blocked}
+                  onIntent={(intent) => {
+                    if (intent.type === "select-node") setNode(intent.nodeId);
+                  }}
+                />
                 <section className="card decision">
                   <div className="eyebrow">YOUR DECISION / 玩家决策</div>
                   <h2>
@@ -829,7 +805,7 @@ function App() {
                       </p>
                       {!game.public.entry && (
                         <small>
-                          本批界面已接通入场流程，回合操作界面待接入。
+                          当前已接通入场和回合准备；主要行动等界面待接入。
                         </small>
                       )}
                     </div>

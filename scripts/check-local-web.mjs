@@ -16,7 +16,8 @@ const directory = await mkdtemp(join(tmpdir(), "nco-local-web-")),
 let local,
   base,
   entryWrites = 0,
-  autoWrites = 0;
+  autoWrites = 0,
+  roundSetupWrites = 0;
 const saved = [];
 const headers = {
   Host: "nomad.local",
@@ -220,12 +221,91 @@ try {
       (await rpc(sockets[0], "room:entry-options", { roomId: id })).options,
       null,
     );
+    let removed = 0,
+      placed = 0;
+    while (
+      ["role-removal", "role-placement"].includes(view.public.round.stage)
+    ) {
+      let acting, options;
+      for (const [i, socket] of sockets.entries()) {
+        const current = await rpc(socket, "room:round-setup-options", {
+          roomId: id,
+        });
+        assert.equal(current.status, "ready");
+        assert.equal(current.blockedReason, null);
+        assert.equal(current.stateVersion, view.public.stateVersion);
+        if (current.options) {
+          assert.equal(acting, undefined);
+          acting = i;
+          options = current;
+        }
+      }
+      assert.notEqual(acting, undefined);
+      const choice = options.options;
+      const candidate =
+        choice.stage === "role-removal"
+          ? choice.cards.find((card) => card.legal)
+          : choice.roles.find(
+              (role) =>
+                role.legal &&
+                role.roleId === (acting === 0 ? "ROLE-03" : "ROLE-02"),
+            );
+      assert.ok(candidate);
+      const command =
+        choice.stage === "role-removal"
+          ? { type: "remove-round-supply-card", cardId: candidate.cardId }
+          : { type: "place-round-role", roleId: candidate.roleId };
+      result = await rpc(sockets[acting], "room:command", {
+        roomId: id,
+        request: {
+          apiVersion: "1.0.0",
+          requestId: randomUUID(),
+          channel: "round",
+          command: {
+            gameId: options.gameId,
+            expectedVersion: options.stateVersion,
+            ...command,
+          },
+        },
+      });
+      assert.equal(result.status, "committed");
+      assert.equal(result.view.public.stateVersion, options.stateVersion + 1);
+      view = result.view;
+      roundSetupWrites++;
+      if (choice.stage === "role-removal") {
+        removed++;
+        assert.equal(view.public.facilities.supply.supply.length, 6);
+        assert.equal(
+          view.public.facilities.supply.supply.includes(candidate.cardId),
+          false,
+        );
+        assert.ok(
+          view.public.facilities.supply.returnedToBox.includes(
+            candidate.cardId,
+          ),
+        );
+      } else {
+        placed++;
+        assert.equal(view.private.placedRoleId, candidate.roleId);
+      }
+      for (const player of view.public.players)
+        assert.equal(Object.hasOwn(player.roles, "placedRoleId"), false);
+    }
+    assert.equal(removed, count === 2 ? 2 : 0);
+    assert.equal(placed, count);
+    assert.equal(view.public.round.stage, "player-actions");
+    assert.equal(
+      (await rpc(sockets[0], "room:round-setup-options", { roomId: id }))
+        .options,
+      null,
+    );
     const own = (await rpc(sockets[0], "room:subscribe", { roomId: id })).view;
     saved.push({ id, view: own });
     for (const socket of sockets) socket.disconnect();
   }
   assert.equal(entryWrites, 19);
   assert.equal(autoWrites, 30);
+  assert.equal(roundSetupWrites, 11);
   for (const peer of peers) peer.disconnect();
   peers.clear();
   await local.close();
@@ -251,6 +331,8 @@ try {
       games: 3,
       entryWrites,
       automaticStartupWrites: autoWrites,
+      roundSetupWrites,
+      preparationToFirstAction: true,
       persistedSessionAndEntryRecovery: true,
       browserBundleHasNoServerRuntime: true,
       database: "PGlite test only",

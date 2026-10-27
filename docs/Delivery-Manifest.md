@@ -644,3 +644,8 @@
 ## 2026-10-27 · 本地React大厅与入场界面
 
 基准main26f18ee；新增packages/web的package／HTML／浏览器tsconfig／React页面／样式／CityClient及11测试，server新增entry-options及2网络项，RoomService／网关／包导出接入，工厂增加可信HTTP初始化回调。新增local-app／dev-local／check-local-web三个开发脚本，根workspaces／scripts／lock及Vitest范围更新，忽略.local测试数据。新增Local-Web／local-web-validation及五份原始日志，更新Local-Run／README／DevLog／本清单。最终2485/2485、strict及三包构建、最终编译本地主机HTTP／身份守卫／3场入场到首回合及重启恢复通过；浏览器安全策略拒绝预览，点击／截图／视觉QA未完成。核心／数据／摘要／ADR／存档版本不变；包含明确前端及关联构建依赖更新，不含凭证／邀请、node_modules、dist、测试数据库、官方图像或部署。按既有授权保存main。
+
+
+## 2026-10-27 · 双显示架构与回合准备
+
+基准main3c21df5；新增Accepted ADR-0002、renderers/types／Board2D／BoardRenderer及RoundPreparation，提取原概览并新增移供应／盖放面板；server新增round-setup-options及11测试、3网络项，controller新增候选缓存／原round提交及4客户端项。RoomService／网关／索引接入，check-local-web扩展11次真实准备写入与持久化恢复。新增回合准备合同／验证说明及五份原始日志，README／Local-Run／首批页面历史提示／DevLog／本清单更新。2503/2503、strict及三包构建通过；全量后仅补展示阶段门控，最终前端严格检查／构建、3场本地首回合准备与重启再通过。无浏览器点击／视觉证明，2.5D模型及模式切换未实现。原核心／数据／摘要／存档／ADR-0001／依赖不变，不含凭证、node_modules、dist、测试数据库、官方图像或部署。按既有授权保存main。

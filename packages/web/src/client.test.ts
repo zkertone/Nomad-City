@@ -38,7 +38,10 @@ class FakeSocket {
         return { status: "listed", lobbies: [], nextAfterLobbyId: null };
       if (event === "room:list")
         return { status: "listed", rooms: [], nextAfterRoomId: null };
-      if (event === "room:entry-options")
+      if (
+        event === "room:entry-options" ||
+        event === "room:round-setup-options"
+      )
         return {
           status: "ready",
           roomId: "room-a",
@@ -94,6 +97,141 @@ async function fixture() {
   return { client, socket, values };
 }
 describe("browser session and confirmed-view controller", () => {
+  it("uses the round channel and latest returned view version rather than the earlier player receipt", async () => {
+    const f = await fixture(),
+      original = f.socket.request.getMockImplementation()!;
+    f.socket.request.mockImplementation(async (event, body) => {
+      if (event === "room:subscribe") return { status: "ready", view: game(1) };
+      if (event === "room:command")
+        return {
+          status: "committed",
+          reply: { stateVersion: 2 },
+          view: game(5),
+        };
+      if (event === "room:round-setup-options")
+        return {
+          status: "ready",
+          roomId: "room-a",
+          gameId: "game-a",
+          stateVersion: f.client.getSnapshot().game?.public.stateVersion,
+          blockedReason: null,
+          options: null,
+        };
+      return original(event, body);
+    });
+    await f.client.openRoom("room-a");
+    await f.client.roundSetupCommand({
+      type: "remove-round-supply-card",
+      cardId: "physical-card",
+    });
+    await f.client.roundSetupCommand({
+      type: "place-round-role",
+      roleId: "ROLE-03",
+    });
+    const commands = f.socket.request.mock.calls.filter(
+      ([event]) => event === "room:command",
+    );
+    expect(commands[0]![1]).toMatchObject({
+      request: {
+        channel: "round",
+        command: { expectedVersion: 1, type: "remove-round-supply-card" },
+      },
+    });
+    expect(commands[1]![1]).toMatchObject({
+      request: {
+        channel: "round",
+        command: { expectedVersion: 5, type: "place-round-role" },
+      },
+    });
+    expect(f.client.getSnapshot().roundSetup?.stateVersion).toBe(5);
+    f.client.dispose();
+  });
+  it("does not replace newer round choices with delayed options for an earlier version", async () => {
+    const f = await fixture(),
+      original = f.socket.request.getMockImplementation()!,
+      delayed = gate<unknown>();
+    let queries = 0;
+    f.socket.request.mockImplementation(async (event, body) => {
+      if (event === "room:subscribe") return { status: "ready", view: game(1) };
+      if (event === "room:round-setup-options")
+        return ++queries === 1
+          ? delayed.promise
+          : {
+              status: "ready",
+              roomId: "room-a",
+              gameId: "game-a",
+              stateVersion: 2,
+              blockedReason: null,
+              options: null,
+            };
+      return original(event, body);
+    });
+    const opening = f.client.openRoom("room-a");
+    await vi.waitFor(() => expect(queries).toBe(1));
+    f.socket.emit("room:state", { roomId: "room-a", view: game(2) });
+    await vi.waitFor(() =>
+      expect(f.client.getSnapshot().roundSetup?.stateVersion).toBe(2),
+    );
+    delayed.resolve({
+      status: "ready",
+      roomId: "room-a",
+      gameId: "game-a",
+      stateVersion: 1,
+      blockedReason: null,
+      options: null,
+    });
+    await opening;
+    expect(f.client.getSnapshot().roundSetup?.stateVersion).toBe(2);
+    f.client.dispose();
+  });
+  it("clears round choices on disconnect and invalidation along with the own game view", async () => {
+    const f = await fixture(),
+      original = f.socket.request.getMockImplementation()!;
+    f.socket.request.mockImplementation(async (event, body) =>
+      event === "room:subscribe"
+        ? { status: "ready", view: game(1) }
+        : original(event, body),
+    );
+    await f.client.openRoom("room-a");
+    expect(f.client.getSnapshot().roundSetup).not.toBeNull();
+    f.socket.disconnect();
+    expect(f.client.getSnapshot().roundSetup).toBeNull();
+    f.socket.connect();
+    await vi.waitFor(() =>
+      expect(f.client.getSnapshot().roundSetup).not.toBeNull(),
+    );
+    f.socket.emit("session:invalidated");
+    expect(f.client.getSnapshot()).toMatchObject({
+      game: null,
+      roundSetup: null,
+    });
+    f.client.dispose();
+  });
+  it("keeps the confirmed view and existing choices when a round mutation is rejected", async () => {
+    const f = await fixture(),
+      original = f.socket.request.getMockImplementation()!;
+    f.socket.request.mockImplementation(async (event, body) =>
+      event === "room:subscribe"
+        ? { status: "ready", view: game(1) }
+        : original(event, body),
+    );
+    await f.client.openRoom("room-a");
+    const before = f.client.getSnapshot().roundSetup;
+    f.socket.request.mockResolvedValueOnce({
+      status: "rejected",
+      reply: { error: { code: "STALE_VERSION" } },
+      view: game(99),
+    });
+    await f.client.run(() =>
+      f.client.roundSetupCommand({
+        type: "place-round-role",
+        roleId: "ROLE-03",
+      }),
+    );
+    expect(f.client.getSnapshot().game?.public.stateVersion).toBe(1);
+    expect(f.client.getSnapshot().roundSetup).toBe(before);
+    f.client.dispose();
+  });
   it("ignores an unavailable event from a previously selected lobby or room", async () => {
     const f = await fixture(),
       original = f.socket.request.getMockImplementation()!;

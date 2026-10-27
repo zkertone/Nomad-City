@@ -977,3 +977,96 @@ footer {
     align-items: flex-start;
   }
 }
+
+.round-preparation > p {
+  margin: 16px 0;
+}
+.preparation-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 22px 0;
+}
+.preparation-card,
+.role-choice {
+  text-align: left;
+  border: 1px solid #d2dcc9;
+  background: #f7f9f1;
+  padding: 18px;
+  color: #53694c;
+}
+.preparation-card[data-color="red"] {
+  border-top: 3px solid #bd8b71;
+}
+.preparation-card[data-color="blue"] {
+  border-top: 3px solid #89a9b7;
+}
+.preparation-card[data-color="yellow"] {
+  border-top: 3px solid #c4b473;
+}
+.preparation-card[data-color="rainbow"] {
+  border-top: 3px solid #a7a1b2;
+}
+.preparation-card strong,
+.role-choice strong {
+  display: block;
+  font-size: 14px;
+  margin: 14px 0;
+}
+.preparation-card span,
+.role-choice span {
+  font-size: 10px;
+  color: #8c9b80;
+}
+.preparation-card small,
+.role-choice small {
+  font-size: 9px;
+  color: #8a9e79;
+}
+.preparation-card p {
+  font-size: 11px;
+  color: #7e9073;
+}
+.preparation-card.selected,
+.role-choice.selected {
+  outline: 2px solid #53745c;
+  outline-offset: 1px;
+}
+.role-choices {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin: 20px 0;
+}
+.role-recovery {
+  font-size: 11px;
+  color: #829772;
+  margin-top: 20px;
+}
+.placement-summary {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  border-top: 1px solid #e1e6db;
+  margin-top: 24px;
+  padding-top: 18px;
+  color: #91a27c;
+  font-size: 11px;
+}
+@media (max-width: 1000px) {
+  .role-choices {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 760px) {
+  .preparation-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+  .role-choices {
+    grid-template-columns: 1fr 1fr;
+  }
+  .preparation-card,
+  .role-choice {
+    padding: 13px;
+  }
+}
