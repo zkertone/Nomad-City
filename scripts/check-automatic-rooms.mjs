@@ -15,7 +15,7 @@ if (native && !process.env.NCO_TEST_DATABASE_URL) throw Error('--postgres requir
 const directory = native ? null : await mkdtemp(join(tmpdir(), 'nco-auto-check-'));
 const roomIds = [], tokens = [], sockets = new Set(), origin = 'https://automatic-test.example';
 const seats = [{ id: 'p1', color: 'red' }, { id: 'p2', color: 'blue' }, { id: 'p3', color: 'green' }, { id: 'p4', color: 'yellow' }];
-let connection, app, playerWrites = 0, automaticWrites = 0, pushes = 0, cleanupChoices = 0;
+let connection, app, playerWrites = 0, automaticWrites = 0, pushes = 0, cleanupChoices = 0, entryChecks = 0;
 const finals = [];
 async function open() {
   if (native) { const pool = new Pool({ connectionString: process.env.NCO_TEST_DATABASE_URL, max: 4, connectionTimeoutMillis: 5000 }); return { sql: pool, close: () => pool.end() }; }
@@ -58,6 +58,14 @@ try {
     for (const member of members) {
       const issued = await app.get(SessionService).issue(member.userId); tokens.push(issued.token); credentials.set(member.playerId, issued.token);
       peers.set(member.playerId, await client(issued.token, id, member.playerId));
+      const peer = peers.get(member.playerId);
+      const current = await rpc(peer, 'session:current', {});
+      assert.deepEqual(current, { status: 'authenticated', protocolVersion: '1.0.0', userId: member.userId, expiresAt: issued.expiresAt });
+      const listed = await rpc(peer, 'room:list', { limit: 50 });
+      assert.equal(listed.status, 'listed');
+      assert.deepEqual(listed.rooms.find(r => r.roomId === id), { roomId: id, gameId: room.state.gameId, playerId: member.playerId,
+        playerCount: count, stateVersion: 1, phase: 'entry', roundNumber: null, scored: false });
+      assert.equal(/facilityDeckOrder|drawPile|members|token_hash/.test(JSON.stringify(listed)), false); entryChecks++;
       const subscribed = await rpc(peers.get(member.playerId), 'room:subscribe', { roomId: id });
       assert.equal(subscribed.status, 'ready'); assert.equal(subscribed.automatic.status, 'waiting-for-player');
     }
@@ -123,10 +131,25 @@ try {
     const restored = await rpc(peer, 'room:subscribe', { roomId: saved.roomId });
     assert.deepEqual(restored.view, saved.view); assert.equal(restored.automatic.status, 'finished');
     assert.equal((await store.read(saved.roomId)).state.stateVersion, saved.version);
+    const listed = await rpc(peer, 'room:list', { limit: 50 });
+    assert.equal(listed.status, 'listed');
+    assert.deepEqual(listed.rooms.find(r => r.roomId === saved.roomId), { roomId: saved.roomId, gameId: restored.view.public.gameId, playerId: 'p1',
+      playerCount: saved.count, stateVersion: saved.version, phase: 'round-control', roundNumber: 8, scored: true }); entryChecks++;
+    assert.deepEqual(await rpc(peer, 'session:logout', {}), { status: 'logged-out', protocolVersion: '1.0.0' });
+    assert.equal(await app.get(SessionService).resolve(saved.token), null);
     console.log(JSON.stringify({ players: saved.count, rounds: 8, majorActions: saved.major, automaticTransitions: 35, delayedCleanupChosenByPlayer: true, restoredWithoutRescoring: true, noInjectedState: true }));
   }
+  for (const s of sockets) s.disconnect(); sockets.clear(); await app.close(); app = null;
+  const beforeLogoutRestart = connection; connection = null; await beforeLogoutRestart.close(); connection = await open(); await listen();
+  for (const saved of finals) {
+    assert.equal(await app.get(SessionService).resolve(saved.token), null);
+    await assert.rejects(() => client(saved.token, saved.roomId, 'p1'), /Connection refused/);
+    const persisted = await new PostgresRoomStore(connection.sql).read(saved.roomId);
+    assert.equal(persisted.state.stateVersion, saved.version); entryChecks++;
+  }
   console.log(JSON.stringify({ check: 'PASS', games: 3, playerWrites, automaticWrites, cleanupChoices, pushes,
-    manualStageCalls: 0, realSocketIo: true, persistedPlanAndSessionRecovery: true, database: native ? 'PostgreSQL via pg.Pool' : 'PGlite test only', nativePostgresChecked: native }));
+    manualStageCalls: 0, realSocketIo: true, persistedPlanAndSessionRecovery: true, entryChecks, logoutSurvivesRestart: true,
+    database: native ? 'PostgreSQL via pg.Pool' : 'PGlite test only', nativePostgresChecked: native }));
 } finally {
   for (const s of sockets) s.disconnect(); if (app) await app.close();
   if (connection) {

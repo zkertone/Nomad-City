@@ -19,6 +19,7 @@ function decode(row: Record<string, unknown>): RoomSnapshot {
 export async function migrateRoomStore(sql: RoomSqlExecutor): Promise<void> {
   await sql.query(await readFile(new URL('../migrations/001-rooms.sql', import.meta.url), 'utf8'));
   await sql.query(await readFile(new URL('../migrations/003-automatic-lifecycle.sql', import.meta.url), 'utf8'));
+  await sql.query(await readFile(new URL('../migrations/004-room-directory.sql', import.meta.url), 'utf8'));
 }
 export class PostgresRoomStore implements RoomStore {
   constructor(private readonly sql: RoomSqlExecutor) {}

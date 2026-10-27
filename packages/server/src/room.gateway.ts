@@ -1,5 +1,5 @@
 import { Inject } from '@nestjs/common';
-import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway } from '@nestjs/websockets';
+import { Ack, ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway } from '@nestjs/websockets';
 import type { OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit } from '@nestjs/websockets';
 import type { Namespace, Socket } from 'socket.io';
 import { deepFreeze, gameEntityIdSchema } from '@nomad-city-online/game-core';
@@ -9,9 +9,11 @@ import type { RoomReadResult, RoomSubmitResult, TrustedRoomCommitResult } from '
 import type { RoomSnapshot } from './room-state.js';
 import { RoomQueue } from './room-queue.js';
 import { SessionService } from './sessions.js';
+import { RoomDirectory, roomListRequestSchema } from './room-directory.js';
+import type { RoomListResult } from './room-directory.js';
 import type { AutomaticProgress } from './automatic-lifecycle.js';
-import { ROOM_SOCKET_OPTIONS, SOCKET_PROTOCOL_VERSION, socketAuthSchema, socketCommandSchema, socketRoomSchema } from './socket-protocol.js';
-import type { RoomSocketOptions, SocketFailure } from './socket-protocol.js';
+import { ROOM_SOCKET_OPTIONS, SOCKET_PROTOCOL_VERSION, socketAuthSchema, socketCommandSchema, socketRoomSchema, socketEmptySchema } from './socket-protocol.js';
+import type { RoomSocketOptions, SessionInfo, SessionLogoutResult, SocketFailure } from './socket-protocol.js';
 
 type Connection = { token: string; userId: string; expiresAt: number; rooms: Map<string, number>; timer?: ReturnType<typeof setTimeout> };
 const failure = (code: SocketFailure['error']['code']): SocketFailure => deepFreeze({ status: 'unavailable', error: { code } });
@@ -22,6 +24,7 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   private readonly queue = new RoomQueue();
   constructor(@Inject(RoomService) private readonly rooms: RoomService,
     @Inject(SessionService) private readonly sessions: SessionService,
+    @Inject(RoomDirectory) private readonly directory: RoomDirectory,
     @Inject(ROOM_SOCKET_OPTIONS) private readonly options: RoomSocketOptions) {}
   get connectionCount(): number { return this.connections.size; }
   afterInit(server: Namespace): void {
@@ -58,9 +61,41 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     if (!record || !socket.connected) return failure('AUTH_REQUIRED');
     try {
       const session = await this.sessions.resolve(record.token);
+      if (this.connections.get(socket) !== record || !socket.connected) return failure('AUTH_REQUIRED');
       if (!session || session.userId !== record.userId) return this.invalidate(socket, 'AUTH_REQUIRED');
       return { authenticatedUserId: session.userId };
     } catch { return this.invalidate(socket, 'AUTH_UNAVAILABLE'); }
+  }
+  @SubscribeMessage('session:current')
+  async currentSession(@ConnectedSocket() socket: Socket, @MessageBody() payload: unknown): Promise<SessionInfo | SocketFailure> {
+    if (!socketEmptySchema.safeParse(payload).success) return failure('INVALID_MESSAGE');
+    const principal = await this.authenticate(socket); if ('status' in principal) return principal;
+    return deepFreeze({ status: 'authenticated', protocolVersion: SOCKET_PROTOCOL_VERSION,
+      userId: principal.authenticatedUserId, expiresAt: this.connections.get(socket)!.expiresAt });
+  }
+  @SubscribeMessage('room:list')
+  async listRooms(@ConnectedSocket() socket: Socket, @MessageBody() payload: unknown): Promise<RoomListResult | SocketFailure> {
+    if (!roomListRequestSchema.safeParse(payload).success) return failure('INVALID_MESSAGE');
+    try {
+      const principal = await this.authenticate(socket); if ('status' in principal) return principal;
+      const result = await this.directory.list(principal, payload);
+      // A revoke/expiry during a slow directory query must not disclose the completed result.
+      const current = await this.authenticate(socket); if ('status' in current) return current;
+      return result;
+    } catch { return failure('SERVER_UNAVAILABLE'); }
+  }
+  @SubscribeMessage('session:logout')
+  async logout(@ConnectedSocket() socket: Socket, @MessageBody() payload: unknown,
+    @Ack() ack?: (result: SessionLogoutResult | SocketFailure) => void): Promise<void> {
+    const respond = (result: SessionLogoutResult | SocketFailure) => { if (typeof ack === 'function') ack(result); };
+    if (!socketEmptySchema.safeParse(payload).success) { respond(failure('INVALID_MESSAGE')); return; }
+    const principal = await this.authenticate(socket); if ('status' in principal) { respond(principal); return; }
+    const record = this.connections.get(socket)!;
+    try { await this.sessions.revoke(record.token); }
+    catch { respond(failure('AUTH_UNAVAILABLE')); return; }
+    // SQL deletion is confirmed first. Send the acknowledgement before disconnecting this credential's tabs.
+    respond(deepFreeze({ status: 'logged-out', protocolVersion: SOCKET_PROTOCOL_VERSION }));
+    for (const [peer, connection] of this.connections) if (connection.token === record.token) this.invalidate(peer, 'AUTH_REQUIRED');
   }
   private deliver(socket: Socket, roomId: string, view: GamePlayerView, automatic?: AutomaticProgress): void {
     const record = this.connections.get(socket), version = record?.rooms.get(roomId);

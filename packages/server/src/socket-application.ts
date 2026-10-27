@@ -9,6 +9,7 @@ import type { RoomSqlExecutor } from './postgres-room-store.js';
 import { RoomModule } from './room.module.js';
 import { RoomGateway } from './room.gateway.js';
 import { SessionService } from './sessions.js';
+import { RoomDirectory } from './room-directory.js';
 import { ROOM_SOCKET_OPTIONS, socketOptionsSchema } from './socket-protocol.js';
 import type { RoomSocketOptions } from './socket-protocol.js';
 
@@ -32,8 +33,9 @@ export class RoomSocketModule {
     return { module: RoomSocketModule, imports: [RoomModule.register(input.sql)], providers: [
       { provide: ROOM_SOCKET_OPTIONS, useValue: options },
       { provide: SessionService, useFactory: () => new SessionService(input.sql, input.sessionClock) },
+      { provide: RoomDirectory, useFactory: () => new RoomDirectory(input.sql) },
       RoomGateway,
-    ], exports: [SessionService, RoomGateway] };
+    ], exports: [SessionService, RoomDirectory, RoomGateway] };
   }
 }
 Module({})(RoomSocketModule);

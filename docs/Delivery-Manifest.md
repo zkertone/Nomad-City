@@ -629,3 +629,8 @@
 ## 2026-10-26 · 自动基础局生命周期
 
 基准main fa74634；新增automatic-base-plan、base-room-factory、automatic-lifecycle、32项调度测试及003迁移，扩展RoomSnapshot/SQL适配／RoomService／网关和外层类型，原网络文件新增1项恢复测试。新增独立check-automatic-rooms.mjs及两条检查命令；不修改既有手动编译检查。新增自动生命周期说明、验证记录和四份成功日志，更新README、Socket说明、DevLog与本清单。最终2401/2401、strict、双包构建通过，真实网络3场八回合479玩家提交／105自动写入／1532推送，手动阶段调用0；原生PostgreSQL模式未执行。原依赖锁、规则核心／数据／摘要／ADR和存档版本不变，不含秘密凭证、node_modules、dist、临时数据库或部署。
+
+
+## 2026-10-27 · 本人房间目录与退出会话
+
+基准main7c1eecd；新增room-directory.ts、17项目录测试及004成员索引迁移；原网络文件新增11项，网关增加session:current／room:list／session:logout，模块／导出／协议和迁移入口接入。原check-automatic-rooms.mjs保留全部整局断言并补15个入口／重启／撤销检查点。新增Room-Entry、entry-validation及entry-2026-10-27三份成功日志，更新README／Socket说明／DevLog及本清单。最终2429/2429、strict、双包构建、三场真实八回合网络复验退出0；退出凭证在再次重启后仍拒绝，对局未改变。原依赖锁、规则核心／数据／摘要／ADR及存档版本不变，不含明文凭证、node_modules、dist、临时数据库或部署；原生PostgreSQL未验收。按既有授权提交main。

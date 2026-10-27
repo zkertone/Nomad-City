@@ -15,6 +15,7 @@ import { ROOM_STORE } from './room.module.js';
 import { socketOptionsSchema } from './socket-protocol.js';
 import { createAutomaticBaseRoomSnapshot } from './base-room-factory.js';
 import { baseSetupIds } from './automatic-base-plan.js';
+import { RoomDirectory } from './room-directory.js';
 
 const db = new PGlite(), sql: RoomSqlExecutor = { query: async (text, values) => {
   const r = await db.query<Record<string, unknown>>(text, values); return { rows: r.rows, rowCount: r.affectedRows ?? r.rows.length };
@@ -130,6 +131,67 @@ describe('durable opaque sessions', () => {
 });
 
 describe('real loopback Socket.IO session, membership and recovery boundary', () => {
+  it('returns only the current authenticated identity and original expiry', async () => {
+    const a = await asUser('entry-user');
+    expect(await call(a.socket, 'session:current', {})).toEqual({ status: 'authenticated', protocolVersion: '1.0.0', userId: 'entry-user', expiresAt: a.expiresAt });
+    expect((await sessions.resolve(a.token))!.expiresAt).toBe(a.expiresAt);
+  });
+  it.each(['session:current', 'session:logout', 'room:list'])('rejects identity injection in %s without switching or revoking the session', async name => {
+    const a = await asUser('entry-user');
+    expect(await call(a.socket, name, { userId: 'bob' })).toMatchObject({ error: { code: 'INVALID_MESSAGE' } });
+    expect(await sessions.resolve(a.token)).not.toBeNull(); expect(a.socket.connected).toBe(true);
+  });
+  it('discovers the caller existing games without subscribing or leaking private contents', async () => {
+    const s = await fixture(true), a = await asUser('bob'), outsider = await asUser('entry-outsider');
+    const list = await call(a.socket, 'room:list', { limit: 50 });
+    expect(list.status).toBe('listed');
+    expect(list.rooms.find((r: { roomId: string }) => r.roomId === s.roomId)).toEqual({ roomId: s.roomId, gameId: s.state.gameId, playerId: 'p1', playerCount: 2,
+      stateVersion: s.state.stateVersion, phase: s.state.phase, roundNumber: 1, scored: false });
+    expect(JSON.stringify(list)).not.toMatch(/ROLE-03|placedRoleId|drawPile|members|token|facilityDeckOrder/);
+    expect(await call(outsider.socket, 'room:list', {})).toEqual({ status: 'listed', rooms: [], nextAfterRoomId: null });
+    expect((await store.read(s.roomId))!.state).toEqual(s.state);
+  });
+  it('discards a directory result when its credential is revoked during the query', async () => {
+    const a = await asUser('entry-user'), blocked = deferred(), release = deferred();
+    vi.spyOn(app.get(RoomDirectory), 'list').mockImplementationOnce(async () => { blocked.resolve(); await release.promise; return { status: 'listed', rooms: [], nextAfterRoomId: null }; });
+    const invalidated = event<{ code: string }>(a.socket, 'session:invalidated');
+    a.socket.emit('room:list', {}); await blocked.promise; await sessions.revoke(a.token); release.resolve();
+    expect((await invalidated).code).toBe('AUTH_REQUIRED'); await until(() => !a.socket.connected);
+  });
+  it('discards a directory result when its credential expires during the query', async () => {
+    const a = await asUser('entry-user'), invalidated = event<{ code: string }>(a.socket, 'session:invalidated');
+    vi.spyOn(app.get(RoomDirectory), 'list').mockImplementationOnce(async () => { clockOffset = SESSION_DEFAULT_TTL_MS + 1000; return { status: 'listed', rooms: [], nextAfterRoomId: null }; });
+    a.socket.emit('room:list', {}); expect((await invalidated).code).toBe('AUTH_REQUIRED');
+  });
+  it('returns a safe directory outage and permits retry on the same authenticated connection', async () => {
+    const a = await asUser('entry-user'), directory = app.get(RoomDirectory);
+    vi.spyOn(directory, 'list').mockResolvedValueOnce({ status: 'unavailable', error: { code: 'STORAGE_UNAVAILABLE' } });
+    expect(await call(a.socket, 'room:list', {})).toEqual({ status: 'unavailable', error: { code: 'STORAGE_UNAVAILABLE' } });
+    expect((await call(a.socket, 'room:list', {})).status).toBe('listed');
+  });
+  it('confirms logout before disconnecting every tab using that token, preserving other credentials and game state', async () => {
+    const s = await fixture(), a = await asUser('bob'), other = await asUser('bob');
+    const tab = await connect({ protocolVersion: '1.0.0', sessionToken: a.token });
+    await call(a.socket, 'room:subscribe', { roomId: s.roomId }); await call(tab, 'room:subscribe', { roomId: s.roomId });
+    const invalidA = event(a.socket, 'session:invalidated'), invalidTab = event(tab, 'session:invalidated');
+    expect(await call(a.socket, 'session:logout', {})).toEqual({ status: 'logged-out', protocolVersion: '1.0.0' });
+    await Promise.all([invalidA, invalidTab]); await until(() => !a.socket.connected && !tab.connected);
+    expect(await sessions.resolve(a.token)).toBeNull(); expect(await sessions.resolve(other.token)).not.toBeNull();
+    expect((await call(other.socket, 'session:current', {})).status).toBe('authenticated');
+    expect(await store.read(s.roomId)).toEqual(s);
+    await expect(connect({ protocolVersion: '1.0.0', sessionToken: a.token })).rejects.toThrow('AUTH_REQUIRED');
+  });
+  it('does not acknowledge logout success on a revoke outage and allows a later retry', async () => {
+    const a = await asUser('entry-user');
+    vi.spyOn(sessions, 'revoke').mockRejectedValueOnce(Error('DO_NOT_LEAK'));
+    expect(await call(a.socket, 'session:logout', {})).toEqual({ status: 'unavailable', error: { code: 'AUTH_UNAVAILABLE' } });
+    expect(await sessions.resolve(a.token)).not.toBeNull(); expect(a.socket.connected).toBe(true);
+    expect((await call(a.socket, 'session:logout', {})).status).toBe('logged-out');
+  });
+  it('still revokes and disconnects a logout request sent without an acknowledgement callback', async () => {
+    const a = await asUser('entry-user'), invalidated = event(a.socket, 'session:invalidated');
+    a.socket.emit('session:logout', {}); await invalidated; expect(await sessions.resolve(a.token)).toBeNull();
+  });
   it.each([{}, { userId: 'bob' }, { protocolVersion: '0.0.0', sessionToken: 'A'.repeat(43) }, { protocolVersion: '1.0.0', sessionToken: 'A'.repeat(43) }])('rejects unauthenticated or unsupported handshakes %#', async auth => { await expect(connect(auth)).rejects.toThrow('AUTH_REQUIRED'); });
   it('rejects handshake identity injection even with an otherwise valid credential', async () => {
     const session = await sessions.issue('bob'); await expect(connect({ protocolVersion: '1.0.0', sessionToken: session.token, userId: 'alice' })).rejects.toThrow('AUTH_REQUIRED');
