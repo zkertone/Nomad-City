@@ -109,6 +109,7 @@ export class CityClient {
   private listeners = new Set<() => void>();
   private socket: Socket | null = null;
   private epoch = 0;
+  private activeRun: { epoch: number; promise: Promise<void> } | null = null;
   constructor(
     private readonly storage: Pick<
       Storage,
@@ -134,6 +135,7 @@ export class CityClient {
   }
   private clear(message?: string) {
     this.epoch++;
+    this.activeRun = null;
     this.socket?.disconnect();
     this.socket = null;
     for (const key of [
@@ -294,17 +296,20 @@ export class CityClient {
   }
   async run(work: () => Promise<void>) {
     const epoch = this.epoch;
+    if (this.activeRun?.epoch === epoch) return this.activeRun.promise;
+    const pending = { epoch, promise: Promise.resolve() };
+    this.activeRun = pending;
     this.patch({ busy: true, error: null, notice: null });
-    try {
-      await work();
-    } catch (error) {
-      if (epoch === this.epoch)
-        this.patch({
-          error: errorMessage(error instanceof Error ? error.message : ""),
-        });
-    } finally {
-      if (epoch === this.epoch) this.patch({ busy: false });
-    }
+    pending.promise = Promise.resolve().then(async () => {
+      try { if (epoch === this.epoch) await work(); }
+      catch (error) {
+        if (epoch === this.epoch) this.patch({ error: errorMessage(error instanceof Error ? error.message : "") });
+      } finally {
+        if (this.activeRun === pending) this.activeRun = null;
+        if (epoch === this.epoch) this.patch({ busy: false });
+      }
+    });
+    return pending.promise;
   }
   private acceptLobby(view: LobbyView) {
     this.patch({ lobby: newerLobby(this.state.lobby, view) });
@@ -399,7 +404,7 @@ export class CityClient {
     if (previous && previous !== roomId)
       await this.rpc("room:unsubscribe", { roomId: previous });
     this.storage.setItem("nco.local.room", roomId);
-    this.patch({ roomId, game: null, entry: null, roundSetup: null, actionOptions: null, harvestOptions: null });
+    this.patch({ roomId, game: null, entry: null, roundSetup: null, actionOptions: null, harvestOptions: null, notice: null });
     const result = await this.rpc<{ view: GamePlayerView }>("room:subscribe", {
       roomId,
     });
@@ -499,7 +504,7 @@ export class CityClient {
     channel: "harvest" | "entry" | "round" | "influence" | "exploration" | "city-move" | ConstructionDraft["channel"] | QuickDraft["channel"],
     command: Record<string, unknown>,
   ) {
-    const { game, roomId } = this.state;
+    const { game, roomId } = this.state, epoch = this.epoch;
     if (!game || !roomId) return;
     const result = await this.rpc<{ view: GamePlayerView }>("room:command", {
       roomId,
@@ -516,7 +521,14 @@ export class CityClient {
     });
     if (this.state.roomId === roomId) {
       this.acceptGame(result.view);
-      await this.options();
+      this.patch({ notice: command.type === "set-harvest-plan" ? "采集方案已保存；全员齐备前可修改本人方案。"
+        : command.type === "finish-player-turn" ? "行动轮已保存结束，请按最新指引继续。"
+        : "操作已保存，请按最新局面继续下一步。" });
+      try { await this.options(); }
+      catch {
+        if (epoch === this.epoch && this.state.roomId === roomId && this.socket?.connected && this.state.game?.public.gameId === game.public.gameId)
+          this.patch({ error: "操作已保存，但后续选项未能同步。请同步局面后继续，无需重复提交。" });
+      }
     }
   }
   async logout() {

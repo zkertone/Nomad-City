@@ -13,6 +13,7 @@ import { RoundPreparation } from "./RoundPreparation.js";
 import { MajorActionPanel } from "./MajorActionPanel.js";
 
 import { HarvestPanel } from "./HarvestPanel.js";
+import { PlayGuide } from "./PlayGuide.js";
 import { FinalResults } from "./FinalResults.js";
 
 const client = new CityClient(sessionStorage);
@@ -194,6 +195,7 @@ function App() {
                 </span>
                 <button
                   className="text-button"
+                  disabled={blocked}
                   onClick={() => run(() => client.logout())}
                 >
                   退出
@@ -667,6 +669,7 @@ function App() {
                   同步局面 ↻
                 </button>
               </div>
+              <PlayGuide state={state} />
               {game.public.round &&
                 ["role-removal", "role-placement", "player-actions"].includes(
                   game.public.round.stage,
@@ -704,6 +707,7 @@ function App() {
                     }
                   }}
                 />
+                <div className="decision-column" id="current-decision">
                 {game.public.finalResult ? <FinalResults result={game.public.finalResult} selfPlayerId={game.private.playerId} />
                 : game.public.phase === "harvest" && game.public.harvest?.status === "planning" ? <HarvestPanel
                   key={`harvest:${game.public.gameId}:${game.public.stateVersion}:${state.harvestOptions?.stateVersion ?? "loading"}`}
@@ -857,6 +861,7 @@ function App() {
                     </div>
                   )}
                 </section>}
+                </div>
               </div>
               <div className="player-summary">
                 {game.public.players.map((p) => (

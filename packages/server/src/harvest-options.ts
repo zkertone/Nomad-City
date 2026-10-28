@@ -25,7 +25,7 @@ export function getRoomHarvestOptions(snapshot: RoomSnapshot, playerId: string) 
         return { nodeId, resourceKind: marker.resourceKind, harvestAmount: marker.harvestAmount };
       }),
       routes: tolls.legs.map(leg => ({ ...leg, incidentNodeIds: [...board.routes[leg.routeId]!.incidentNodeIds] })),
-      plan: state.harvest!.plansByPlayer[playerId]!,
+      plan: state.harvest!.plansByPlayer[playerId] ?? null,
     };
   }
   return deepFreeze({ status: 'ready' as const, roomId: snapshot.roomId, gameId: state.gameId, stateVersion: state.stateVersion,

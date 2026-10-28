@@ -1,0 +1,4 @@
+Execution interruption, not a test assertion failure:
+exec_command failed: exec-server transport disconnected
+write_stdin failed: exec-server transport disconnected: pong_timeout; unknown session id
+Recovery: workspace files remained present; protected checkpoint/guide-ui-20261028 at 560b0b8; no active original verify process found; ran a fresh complete verify.

@@ -1123,3 +1123,13 @@ footer {
 .self-result { background: #fff0e4; }
 .final-results details { margin: 16px 0; }
 .final-results summary { cursor: pointer; font-weight: 600; }
+
+.play-guide { display: flex; gap: 20px; justify-content: space-between; align-items: center; padding: 20px 24px; margin: 20px 0; border: 1px solid #d9d5ca; border-left: 4px solid #ef824b; border-radius: 10px; background: #fffaf3; }
+.play-guide h2 { margin: 6px 0; font-size: 20px; }
+.play-guide p { margin: 0; line-height: 1.65; }
+.play-guide.waiting, .play-guide.sync { border-left-color: #798b90; background: #f3f5f3; }
+.play-guide.done { border-left-color: #527760; }
+.guide-jump { flex-shrink: 0; padding: 10px; color: #7a3e24; text-decoration: underline; }
+.decision-column { min-width: 0; align-self: start; }
+#current-decision, #round-decision { scroll-margin-top: 20px; }
+@media (max-width: 760px) { .play-guide { align-items: flex-start; flex-direction: column; gap: 8px; padding: 16px; } }

@@ -57,7 +57,7 @@ export function RoundPreparation({
     removal?.cards.find((c) => c.cardId === selected) ??
     placement?.roles.find((r) => r.roleId === selected);
   return (
-    <section className="card round-preparation" aria-label="回合准备">
+    <section id="round-decision" className="card round-preparation" aria-label="回合准备">
       <div className="section-heading">
         <div>
           <div className="eyebrow">ROUND PREPARATION / 回合准备</div>

@@ -674,3 +674,8 @@
 ## 2026-10-28 · 采集与正式终局界面
 
 基准main7d3251d；新增server/harvest-options及20项测试、web/HarvestPanel／FinalResults及5项React语义测试、scripts/check-harvest-web，原服务／网关／permission／导出、控制器／页面／样式和测试扩展，网络与客户端各增3项，根package增加check:harvest-web。game-core仅导出原quoteRouteTolls，没有改函数实现。新增Harvest-Final-UI、harvest-ui-validation及原始记录，更新README／Local-Run／上一批历史提示／DevLog及本清单。最终42文件2685/2685、strict／三包构建退出0；三项编译流程PASS，新增三场八回合485玩家／105自动写入、78采集／6方案替换、三次整体重启恢复9局面／27个人视图，10份原始日志保留成功及夹具失败。原规则数据／摘要／存档／ADR／锁文件不变，不含node_modules、dist、凭证、原图、临时数据库或部署；浏览器点击／视觉未验收，按既有授权保存main。
+
+
+## 2026-10-28 · 2D操作指引与保存反馈
+
+基准main81d92b2；新增web/play-guide／PlayGuide及22项语义／状态测试，原client新增6项反馈／在途／撤销测试并修正保存后同步失败提示，主页面／MajorActionPanel／RoundPreparation／Board2D及样式接入。server/harvest-options仅修正派生plan可空类型，与原实际值一致。新增Play-Guide、双人整局人工待执行清单、play-guide-validation与原始记录；README／Local-Run／上一批历史提示／DevLog及本清单同步。恢复后完整43文件2713/2713、strict／三包构建退出0，两项编译流程PASS，原八回合恢复流程485玩家／105自动写入、三次整体重启／27个人视图，10份原始记录保留中断与类型失败。中断全量不计通过，原game-core／规则资料／摘要／存档／ADR／package／锁文件不变，不含node_modules、dist、凭证、原图、临时库或部署。浏览器点击／视觉仍待验收，2.5D按负责人偏好暂不推进，按既有授权保存main。

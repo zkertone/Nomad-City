@@ -99,6 +99,65 @@ async function fixture() {
   return { client, socket, values };
 }
 describe("browser session and confirmed-view controller", () => {
+  it("keeps one UI operation in flight and does not submit a second intent before confirmation", async () => {
+    const f = await fixture(), original = f.socket.request.getMockImplementation()!, pending = gate<unknown>();
+    f.socket.request.mockImplementation(async (event, body) => event === "room:subscribe" ? { status: "ready", view: game(1) } : event === "room:command" ? pending.promise : original(event, body));
+    await f.client.openRoom("room-a");
+    const first = f.client.run(() => f.client.majorActionCommand({ type: "finish-player-turn" })), ignored = vi.fn(async () => {});
+    const second = f.client.run(ignored); expect(f.client.getSnapshot().busy).toBe(true);
+    await vi.waitFor(() => expect(f.socket.request.mock.calls.filter(([e]) => e === "room:command")).toHaveLength(1));
+    expect(ignored).not.toHaveBeenCalled(); expect(f.client.getSnapshot().busy).toBe(true);
+    pending.resolve({ status: "committed", view: game(3) }); await Promise.all([first, second]);
+    expect(f.client.getSnapshot()).toMatchObject({ busy: false, notice: "行动轮已保存结束，请按最新指引继续。" });
+    await f.client.run(ignored); expect(ignored).toHaveBeenCalledOnce(); f.client.dispose();
+  });
+  it("distinguishes a saved command from failed follow-up options without retrying the mutation", async () => {
+    const f = await fixture(), original = f.socket.request.getMockImplementation()!;
+    f.socket.request.mockImplementation(async (event, body) => event === "room:subscribe" ? { status: "ready", view: game(1) } : original(event, body)); await f.client.openRoom("room-a");
+    f.socket.request.mockImplementation(async (event, body) => {
+      if (event === "room:command") return { status: "committed", view: game(3) };
+      if (event === "room:round-setup-options") throw Error("SQL SECRET"); return original(event, body);
+    });
+    await f.client.run(() => f.client.entryCommand({ type: "choose-green-event", choiceId: "G03:1" }));
+    expect(f.client.getSnapshot()).toMatchObject({ busy: false, game: game(3), notice: "操作已保存，请按最新局面继续下一步。", error: "操作已保存，但后续选项未能同步。请同步局面后继续，无需重复提交。" });
+    expect(f.socket.request.mock.calls.filter(([e]) => e === "room:command")).toHaveLength(1); expect(JSON.stringify(f.client.getSnapshot())).not.toContain("SQL SECRET"); f.client.dispose();
+  });
+  it("never reports a rejected or unconfirmed command as saved and leaves retry explicit", async () => {
+    const f = await fixture(), original = f.socket.request.getMockImplementation()!;
+    f.socket.request.mockImplementation(async (event, body) => event === "room:subscribe" ? { status: "ready", view: game(1) } : original(event, body)); await f.client.openRoom("room-a");
+    for (const timeout of [false, true]) {
+      f.socket.request.mockImplementationOnce(async () => { if (timeout) throw Error("lost acknowledgement"); return { status: "rejected", reply: { error: { code: "STALE_VERSION" } }, view: game(99) }; });
+      await f.client.run(() => f.client.majorActionCommand({ type: "finish-player-turn" }));
+      expect(f.client.getSnapshot()).toMatchObject({ game: game(1), notice: null, error: errorMessage(timeout ? "TIMEOUT" : "STALE_VERSION") });
+    }
+    expect(f.socket.request.mock.calls.filter(([e]) => e === "room:command")).toHaveLength(2); f.client.dispose();
+  });
+  it("drops post-commit refresh errors and notices after a room change", async () => {
+    const f = await fixture(), original = f.socket.request.getMockImplementation()!, pending = gate<unknown>();
+    let changed = false;
+    f.socket.request.mockImplementation(async (event, body) => {
+      if (event === "room:subscribe") return { status: "ready", view: game(1, changed ? "game-b" : "game-a") };
+      if (event === "room:command") return { status: "committed", view: game(3) };
+      if (event === "room:round-setup-options" && f.client.getSnapshot().game?.public.stateVersion === 3) return pending.promise;
+      return original(event, body);
+    });
+    await f.client.openRoom("room-a"); const work = f.client.run(() => f.client.majorActionCommand({ type: "finish-player-turn" }));
+    await vi.waitFor(() => expect(f.client.getSnapshot().notice).not.toBeNull()); changed = true; await f.client.openRoom("room-b");
+    pending.resolve({ status: "unavailable", error: { code: "STORAGE_UNAVAILABLE" } }); await work;
+    expect(f.client.getSnapshot()).toMatchObject({ roomId: "room-b", game: game(1, "game-b"), notice: null, error: null }); f.client.dispose();
+  });
+  it("does not restore committed feedback after revocation during follow-up refresh", async () => {
+    const f = await fixture(), original = f.socket.request.getMockImplementation()!, pending = gate<unknown>();
+    f.socket.request.mockImplementation(async (event, body) => event === "room:subscribe" ? { status: "ready", view: game(1) } : original(event, body)); await f.client.openRoom("room-a");
+    f.socket.request.mockImplementation(async (event, body) => event === "room:command" ? { status: "committed", view: game(3) } : event === "room:round-setup-options" ? pending.promise : original(event, body));
+    const work = f.client.run(() => f.client.majorActionCommand({ type: "finish-player-turn" }));
+    await vi.waitFor(() => expect(f.client.getSnapshot().notice).not.toBeNull()); f.socket.emit("session:invalidated"); pending.resolve({ status: "ready" }); await work;
+    expect(f.client.getSnapshot()).toMatchObject({ game: null, notice: null, busy: false, error: errorMessage("AUTH_REQUIRED") }); f.client.dispose();
+  });
+  it("cancels a queued old-session intent before executing it", async () => {
+    const f = await fixture(), intent = vi.fn(async () => {}), work = f.client.run(intent);
+    f.client.dispose(); await work; expect(intent).not.toHaveBeenCalled(); expect(f.client.getSnapshot()).toMatchObject({ game: null, busy: false, notice: null });
+  });
   it("sends original role, pattern, cleanup and continuation commands with current confirmed versions", async () => {
     const f = await fixture(), original = f.socket.request.getMockImplementation()!;
     f.socket.request.mockImplementation(async (event, body) => {

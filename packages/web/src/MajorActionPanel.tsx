@@ -29,7 +29,7 @@ export function MajorActionPanel({ view, result, selectedSlotId, sourceSlotId, d
   const selectedLegal = targetIds?.includes(selectedSlotId);
   return <section className="card decision" aria-label="主要行动">
     <div className="eyebrow">YOUR ACTION / 主要行动</div>
-    <h2>{turn?.stage === 'cleanup' ? '回合收尾选择' : !options ? '等待当前玩家' : influence?.status === 'ready'
+    <h2>{turn?.stage === 'cleanup' ? '回合收尾选择' : !options ? turn?.actorId === view.private.playerId ? '正在同步本人操作' : '等待当前玩家' : influence?.status === 'ready'
       ? influence.kind === 'deploy' ? '部署一枚影响力' : '调度影响力'
       : turn?.majorActionStatus === 'complete' ? '主要行动已完成' : options.travel ? '路径与事件选择' : '选择主要行动'}</h2>
     <p>第 {turn?.cycle} 轮 · 当前玩家 {turn?.actorId?.toUpperCase() ?? '—'}</p>

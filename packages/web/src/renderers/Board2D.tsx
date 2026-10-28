@@ -1,3 +1,4 @@
+import { assetLabels } from "../ChoiceControls.js";
 import type { BoardPresentationProps } from "./types.js";
 
 /** Lightweight resource overview. Coordinates/layout do not establish movement or action legality. */
@@ -29,9 +30,10 @@ export function Board2D({
                 {Object.values(board.resourceNodes)
                   .filter((n) => n.regionId === region)
                   .map((n) => {
-                    const occupant = Object.entries(
+                    const occupants = Object.entries(
                       view.public.board.cityNodeByPlayer,
-                    ).find(([, id]) => id === n.id)?.[0];
+                    ).filter(([, id]) => id === n.id).map(([id]) => id.toUpperCase());
+                    const marker = view.public.board.resourceMarkerByNode[n.id];
                     return (
                       <button
                         key={n.id}
@@ -39,6 +41,7 @@ export function Board2D({
                         className={
                           selectedNodeId === n.id ? "node selected" : "node"
                         }
+                        aria-pressed={selectedNodeId === n.id}
                         disabled={disabled || !targets.nodeIds.includes(n.id)}
                         onClick={() =>
                           onIntent({ type: "select-node", nodeId: n.id })
@@ -46,14 +49,15 @@ export function Board2D({
                       >
                         <span>{n.id}</span>
                         <small>
-                          {occupant
-                            ? `${occupant.toUpperCase()} 城邦`
+                          {occupants.length
+                            ? `${occupants.join("、")} 城邦`
                             : targets.nodeIds.includes(n.id)
                               ? "可选择"
                               : n.eventDeckColor === "red"
                                 ? "红色资源点"
                                 : "资源点"}
                         </small>
+                        <small>{marker ? `${assetLabels[marker.resourceKind]} ×${marker.harvestAmount}` : "尚未揭示资源"}</small>
                       </button>
                     );
                   })}

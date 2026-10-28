@@ -1,0 +1,10 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> nomad-city-online@0.2.0 typecheck
+> tsc --noEmit && tsc -p packages/web/tsconfig.json
+
+packages/web/src/play-guide.test.ts(86,169): error TS2322: Type 'null' is not assignable to type '{ readonly nodeIds: readonly string[]; readonly routeIds: readonly string[]; readonly tollRecipients?: readonly { readonly routeId: string; readonly payeePlayerId: string; }[] | undefined; }'.
+packages/web/src/play-guide.test.ts(90,5): error TS2322: Type '{ stateVersion: number; status?: "ready"; roomId?: string; gameId?: string; blockedReason?: "AUTOMATION_PENDING" | null; options?: { nodeChoices: { nodeId: string; resourceKind: "orirock" | "originium" | "iron" | "pure-originium"; harvestAmount: 1 | 2; }[]; routes: { ...; }[]; plan: { ...; }; } | null; }' is not assignable to type '{ status: "ready"; roomId: string; gameId: string; stateVersion: number; blockedReason: "AUTOMATION_PENDING" | null; options: { nodeChoices: { nodeId: string; resourceKind: "orirock" | "originium" | "iron" | "pure-originium"; harvestAmount: 1 | 2; }[]; routes: { ...; }[]; plan: { ...; }; } | null; }'.
+  Property 'status' is optional in type '{ stateVersion: number; status?: "ready"; roomId?: string; gameId?: string; blockedReason?: "AUTOMATION_PENDING" | null; options?: { nodeChoices: { nodeId: string; resourceKind: "orirock" | "originium" | "iron" | "pure-originium"; harvestAmount: 1 | 2; }[]; routes: { ...; }[]; plan: { ...; }; } | null; }' but required in type '{ status: "ready"; roomId: string; gameId: string; stateVersion: number; blockedReason: "AUTOMATION_PENDING" | null; options: { nodeChoices: { nodeId: string; resourceKind: "orirock" | "originium" | "iron" | "pure-originium"; harvestAmount: 1 | 2; }[]; routes: { ...; }[]; plan: { ...; }; } | null; }'.
+
+COMMAND_EXIT=2
