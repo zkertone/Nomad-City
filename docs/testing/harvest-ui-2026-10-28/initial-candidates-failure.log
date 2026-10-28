@@ -1,0 +1,49 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+ RUN  v5.0.4 /workspace/scratch/d9545625f110/Nomad-City-Restored
+
+ ❯ packages/server/src/harvest-options.test.ts (20 tests | 2 failed) 5812ms
+   ❯ member-owned simultaneous harvest advice (20)
+     × uses original self route costs and explicit recipient choices 27ms
+     × uses original multiple route costs and explicit recipient choices 23ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/server/src/harvest-options.test.ts > member-owned simultaneous harvest advice > uses original self route costs and explicit recipient choices
+Error: STATE_KEYS: Snapshot must cover exactly the loaded definition IDs
+ ❯ parseGameState packages/game-core/src/game/state.ts:174:30
+    172| export function parseGameState(input: unknown, definition: GameDefinit…
+    173|   const result = validateGameState(input, definition);
+    174|   if (!result.success) throw new Error(result.issues.map(issue => `${i…
+       |                              ^
+    175|   return result.data;
+    176| }
+ ❯ parseRoomSnapshot packages/server/src/room-state.ts:23:17
+ ❯ marked packages/server/src/harvest-options.test.ts:129:10
+ ❯ packages/server/src/harvest-options.test.ts:170:33
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  packages/server/src/harvest-options.test.ts > member-owned simultaneous harvest advice > uses original multiple route costs and explicit recipient choices
+Error: STATE_KEYS: Snapshot must cover exactly the loaded definition IDs
+ ❯ parseGameState packages/game-core/src/game/state.ts:174:30
+    172| export function parseGameState(input: unknown, definition: GameDefinit…
+    173|   const result = validateGameState(input, definition);
+    174|   if (!result.success) throw new Error(result.issues.map(issue => `${i…
+       |                              ^
+    175|   return result.data;
+    176| }
+ ❯ parseRoomSnapshot packages/server/src/room-state.ts:23:17
+ ❯ marked packages/server/src/harvest-options.test.ts:129:10
+ ❯ packages/server/src/harvest-options.test.ts:169:37
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 18 passed (20)
+   Start at  15:59:49
+   Duration  6.77s (tests 89%, transform 6%, import 5%)
+
+
+COMMAND_EXIT=1

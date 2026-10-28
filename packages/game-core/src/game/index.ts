@@ -32,3 +32,6 @@ export type { FinalizeBaseGameOptions, FinalScoringResult } from './final-scorin
 export * from './views.js';
 export * from './player-api.js';
 export { cityPatternContinuationCommandSchema } from './city-pattern-continuations.js';
+
+// Original shared toll quote for trusted harvest/travel advice; does not validate a network.
+export { quoteRouteTolls } from './route-tolls.js';

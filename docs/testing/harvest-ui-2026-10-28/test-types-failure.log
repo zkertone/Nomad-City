@@ -1,0 +1,12 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> nomad-city-online@0.2.0 typecheck
+> tsc --noEmit && tsc -p packages/web/tsconfig.json
+
+packages/server/src/sockets.test.ts(115,34): error TS2345: Argument of type '{ nodeIds: string[]; routeIds: never[]; }' is not assignable to parameter of type '{ nodeIds: never[]; routeIds: never[]; }'.
+  Types of property 'nodeIds' are incompatible.
+    Type 'string[]' is not assignable to type 'never[]'.
+      Type 'string' is not assignable to type 'never'.
+packages/server/src/sockets.test.ts(120,46): error TS2322: Type 'string' is not assignable to type 'never'.
+
+COMMAND_EXIT=2

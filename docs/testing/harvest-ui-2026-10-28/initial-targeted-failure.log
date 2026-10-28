@@ -1,0 +1,62 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+ RUN  v5.0.4 /workspace/scratch/d9545625f110/Nomad-City-Restored
+
+ ❯ packages/server/src/sockets.test.ts (88 tests | 3 failed) 20685ms
+   ❯ simultaneous harvest query boundary (3)
+     × permits every member and only their own submitted plan, with read-only quotes and original settlement 645ms
+     × rejects schema/identity injection, hides unavailable membership, and keeps stale/errors write-free 542ms
+     × reauthenticates after harvest reads and discards a response revoked during the query 458ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/server/src/sockets.test.ts > simultaneous harvest query boundary > permits every member and only their own submitted plan, with read-only quotes and original settlement
+Error: Room commits must advance exactly one game version
+ ❯ PostgresRoomStore.compareAndSwap packages/server/src/postgres-room-store.ts:47:58
+     45|     const next = parseGameState(input, current.definition);
+     46|     parseRoomSnapshot({ ...current, state: next });
+     47|     if (next.stateVersion !== expectedVersion + 1) throw new Error('Ro…
+       |                                                          ^
+     48|     // One conditional statement is the commit. There is no detached m…
+     49|     const result = await this.sql.query(`UPDATE nco_rooms SET state_ve…
+ ❯ harvestFixture packages/server/src/sockets.test.ts:105:10
+ ❯ packages/server/src/sockets.test.ts:110:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  packages/server/src/sockets.test.ts > simultaneous harvest query boundary > rejects schema/identity injection, hides unavailable membership, and keeps stale/errors write-free
+Error: Room commits must advance exactly one game version
+ ❯ PostgresRoomStore.compareAndSwap packages/server/src/postgres-room-store.ts:47:58
+     45|     const next = parseGameState(input, current.definition);
+     46|     parseRoomSnapshot({ ...current, state: next });
+     47|     if (next.stateVersion !== expectedVersion + 1) throw new Error('Ro…
+       |                                                          ^
+     48|     // One conditional statement is the commit. There is no detached m…
+     49|     const result = await this.sql.query(`UPDATE nco_rooms SET state_ve…
+ ❯ harvestFixture packages/server/src/sockets.test.ts:105:10
+ ❯ packages/server/src/sockets.test.ts:126:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  packages/server/src/sockets.test.ts > simultaneous harvest query boundary > reauthenticates after harvest reads and discards a response revoked during the query
+Error: Room commits must advance exactly one game version
+ ❯ PostgresRoomStore.compareAndSwap packages/server/src/postgres-room-store.ts:47:58
+     45|     const next = parseGameState(input, current.definition);
+     46|     parseRoomSnapshot({ ...current, state: next });
+     47|     if (next.stateVersion !== expectedVersion + 1) throw new Error('Ro…
+       |                                                          ^
+     48|     // One conditional statement is the commit. There is no detached m…
+     49|     const result = await this.sql.query(`UPDATE nco_rooms SET state_ve…
+ ❯ harvestFixture packages/server/src/sockets.test.ts:105:10
+ ❯ packages/server/src/sockets.test.ts:141:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  3 failed | 136 passed (139)
+   Start at  16:01:59
+   Duration  22.35s (tests 91%, import 5%, transform 4%)
+
+
+COMMAND_EXIT=1

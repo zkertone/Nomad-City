@@ -42,7 +42,7 @@ class FakeSocket {
         return { status: "listed", rooms: [], nextAfterRoomId: null };
       if (
         event === "room:entry-options" ||
-        event === "room:round-setup-options" || event === "room:action-options"
+        event === "room:round-setup-options" || event === "room:action-options" || event === "room:harvest-options"
       )
         return {
           status: "ready",
@@ -571,6 +571,52 @@ describe("browser session and confirmed-view controller", () => {
     });
     expect(f.values.size).toBe(0);
     f.client.dispose();
+  });
+  it("routes simultaneous harvest options and writes using the latest committed view rather than the write receipt", async () => {
+    const f = await fixture(), original = f.socket.request.getMockImplementation()!;
+    let current = { ...game(1), public: { ...game(1).public, phase: "harvest", harvest: { status: "planning" } } } as GamePlayerView;
+    f.socket.request.mockImplementation(async (event, body) => {
+      if (event === "room:subscribe") return { status: "ready", view: current };
+      if (event === "room:harvest-options") return { status: "ready", roomId: "room-a", gameId: "game-a", stateVersion: current.public.stateVersion, options: { plan: null } };
+      if (event === "room:harvest-preview") return { status: "ready", roomId: "room-a", gameId: "game-a", stateVersion: current.public.stateVersion, options: { draft: { type: "set-harvest-plan", plan: { nodeIds: [], routeIds: [] } } } };
+      if (event === "room:command") { current = { ...current, public: { ...current.public, stateVersion: current.public.stateVersion + 2 } }; return { status: "committed", view: current, reply: { stateVersion: current.public.stateVersion - 1 } }; }
+      return original(event, body);
+    });
+    await f.client.openRoom("room-a"); expect(f.client.getSnapshot().harvestOptions?.stateVersion).toBe(1);
+    const draft = { type: "set-harvest-plan" as const, plan: { nodeIds: [], routeIds: [] } };
+    expect(await f.client.harvestPreview(draft)).not.toBeNull();
+    await f.client.harvestCommand(draft); await f.client.harvestCommand(draft);
+    const calls = f.socket.request.mock.calls.filter(([event]) => event === "room:command");
+    expect(calls.map(([, raw]) => (raw as { request: { channel: string } }).request.channel)).toEqual(["harvest", "harvest"]);
+    expect(calls.map(([, raw]) => (raw as { request: { command: { expectedVersion: number } } }).request.command.expectedVersion)).toEqual([1, 3]);
+    f.socket.disconnect(); expect(f.client.getSnapshot().harvestOptions).toBeNull(); f.client.dispose();
+  });
+  it("discards delayed harvest previews on new versions, room switches and session revocation", async () => {
+    const f = await fixture(), original = f.socket.request.getMockImplementation()!, first = gate<unknown>();
+    f.socket.request.mockImplementation(async (event, body) => event === "room:subscribe" ? { status: "ready", view: game(1) } : event === "room:harvest-preview" ? first.promise : original(event, body));
+    await f.client.openRoom("room-a"); const draft = { type: "set-harvest-plan" as const, plan: { nodeIds: [], routeIds: [] } };
+    const preview = f.client.harvestPreview(draft); f.socket.emit("room:state", { roomId: "room-a", view: game(2) });
+    first.resolve({ status: "ready", roomId: "room-a", gameId: "game-a", stateVersion: 1, options: {} }); expect(await preview).toBeNull();
+    const second = gate<unknown>(); f.socket.request.mockImplementationOnce(() => second.promise); const switched = f.client.harvestPreview(draft);
+    await f.client.openRoom("room-b"); second.resolve({ status: "ready", roomId: "room-a", gameId: "game-a", stateVersion: 2, options: {} }); expect(await switched).toBeNull();
+    const third = gate<unknown>(); f.socket.request.mockImplementationOnce(() => third.promise); const revoked = f.client.harvestPreview(draft);
+    f.client.dispose(); third.resolve({ status: "ready", roomId: "room-b", gameId: "game-a", stateVersion: 1, options: {} }); await expect(revoked).rejects.toThrow("AUTH_REQUIRED");
+  });
+  it("ignores delayed harvest options, avoids final-state option queries and never retries failed harvest writes", async () => {
+    const f = await fixture(), original = f.socket.request.getMockImplementation()!, pending = gate<unknown>();
+    const harvesting = { ...game(1), public: { ...game(1).public, phase: "harvest", harvest: { status: "planning" } } } as GamePlayerView;
+    f.socket.request.mockImplementation(async (event, body) => event === "room:subscribe" ? { status: "ready", view: harvesting } : event === "room:harvest-options" ? pending.promise : original(event, body));
+    const open = f.client.openRoom("room-a"); await vi.waitFor(() => expect(f.socket.request).toHaveBeenCalledWith("room:harvest-options", { roomId: "room-a" }));
+    const final = { ...game(8), public: { ...game(8).public, finalResult: { status: "finished" } } } as GamePlayerView;
+    const count = f.socket.request.mock.calls.length; f.socket.emit("room:state", { roomId: "room-a", view: final });
+    pending.resolve({ status: "ready", roomId: "room-a", gameId: "game-a", stateVersion: 1, options: {} }); await open;
+    expect(f.client.getSnapshot().harvestOptions).toBeNull(); expect(f.socket.request.mock.calls).toHaveLength(count);
+    const draft = { type: "set-harvest-plan" as const, plan: { nodeIds: [], routeIds: [] } };
+    for (const reject of [false, true]) {
+      f.socket.request.mockImplementationOnce(async () => { if (reject) throw Error("lost"); return { status: "rejected", reply: { error: { code: "STALE_VERSION" } }, view: game(99) }; });
+      await f.client.run(() => f.client.harvestCommand(draft)); expect(f.client.getSnapshot().game?.public.stateVersion).toBe(8);
+    }
+    expect(f.socket.request.mock.calls.filter(([event]) => event === "room:command")).toHaveLength(2); f.client.dispose();
   });
   it("clears individual views on disconnect and reauthenticates/resubscribes saved selections on reconnect", async () => {
     const f = await fixture();

@@ -5,7 +5,7 @@ import type {
   EntryOptionsResult,
   ActionOptionsResult,
   ExplorationRouteResult,
-  ConstructionDraft, ConstructionPreviewResult, QuickDraft, QuickPreviewResult,
+  ConstructionDraft, ConstructionPreviewResult, QuickDraft, QuickPreviewResult, HarvestDraft, HarvestPreviewResult, HarvestOptionsResult,
   LobbyView,
   RoomSummary,
   RoundSetupOptionsResult,
@@ -41,6 +41,7 @@ export type ClientSnapshot = {
   entry: Extract<EntryOptionsResult, { status: "ready" }> | null;
   roundSetup: Extract<RoundSetupOptionsResult, { status: "ready" }> | null;
   actionOptions: Extract<ActionOptionsResult, { status: "ready" }> | null;
+  harvestOptions: Extract<HarvestOptionsResult, { status: "ready" }> | null;
   inviteToken: string | null;
 };
 export const emptyClient = (): ClientSnapshot => ({
@@ -55,7 +56,7 @@ export const emptyClient = (): ClientSnapshot => ({
   roomId: null,
   game: null,
   entry: null,
-  roundSetup: null, actionOptions: null,
+  roundSetup: null, actionOptions: null, harvestOptions: null,
   inviteToken: null,
 });
 const messages: Record<string, string> = {
@@ -199,7 +200,7 @@ export class CityClient {
           connected: false,
           game: null,
           entry: null,
-          roundSetup: null, actionOptions: null,
+          roundSetup: null, actionOptions: null, harvestOptions: null,
           lobby: null,
           inviteToken: null,
           notice: "连接中断，正在重连…",
@@ -255,7 +256,7 @@ export class CityClient {
         this.patch({
           game: null,
           entry: null,
-          roundSetup: null, actionOptions: null,
+          roundSetup: null, actionOptions: null, harvestOptions: null,
           error: errorMessage("ROOM_UNAVAILABLE"),
         });
     });
@@ -311,7 +312,7 @@ export class CityClient {
   private acceptGame(view: GamePlayerView) {
     const next = newerGame(this.state.game, view);
     if (next !== this.state.game)
-      this.patch({ game: next, entry: null, roundSetup: null, actionOptions: null });
+      this.patch({ game: next, entry: null, roundSetup: null, actionOptions: null, harvestOptions: null });
   }
   async refresh() {
     const epoch = this.epoch;
@@ -398,7 +399,7 @@ export class CityClient {
     if (previous && previous !== roomId)
       await this.rpc("room:unsubscribe", { roomId: previous });
     this.storage.setItem("nco.local.room", roomId);
-    this.patch({ roomId, game: null, entry: null, roundSetup: null, actionOptions: null });
+    this.patch({ roomId, game: null, entry: null, roundSetup: null, actionOptions: null, harvestOptions: null });
     const result = await this.rpc<{ view: GamePlayerView }>("room:subscribe", {
       roomId,
     });
@@ -411,16 +412,20 @@ export class CityClient {
     const roomId = this.state.roomId;
     if (!roomId) return;
     const entryPhase = !!this.state.game?.public.entry;
+    if (this.state.game?.public.finalResult) return;
+    const harvestPhase = this.state.game?.public.phase === "harvest" && this.state.game.public.harvest?.status === "planning";
     const actionPhase = ["player-actions", "cleanup"].includes(this.state.game?.public.round?.stage ?? "");
     const result = await this.rpc<
-      Extract<EntryOptionsResult | RoundSetupOptionsResult | ActionOptionsResult, { status: "ready" }>
-    >(entryPhase ? "room:entry-options" : actionPhase ? "room:action-options" : "room:round-setup-options", { roomId });
+      Extract<EntryOptionsResult | RoundSetupOptionsResult | ActionOptionsResult | HarvestOptionsResult, { status: "ready" }>
+    >(harvestPhase ? "room:harvest-options" : entryPhase ? "room:entry-options" : actionPhase ? "room:action-options" : "room:round-setup-options", { roomId });
     if (
       this.state.roomId === result.roomId &&
       this.state.game?.public.gameId === result.gameId &&
       this.state.game.public.stateVersion === result.stateVersion
     )
-      this.patch(entryPhase
+      this.patch(harvestPhase
+        ? { harvestOptions: result as Extract<HarvestOptionsResult, { status: "ready" }> }
+        : entryPhase
         ? { entry: result as Extract<EntryOptionsResult, { status: "ready" }> }
         : actionPhase
           ? { actionOptions: result as Extract<ActionOptionsResult, { status: "ready" }> }
@@ -466,6 +471,18 @@ export class CityClient {
     return this.state.roomId === result.roomId && this.state.game?.public.gameId === result.gameId &&
       this.state.game.public.stateVersion === result.stateVersion && result.stateVersion === game.public.stateVersion ? result : null;
   }
+  async harvestCommand(draft: HarvestDraft) {
+    return this.playerCommand("harvest", draft);
+  }
+  async harvestPreview(draft: HarvestDraft): Promise<Extract<HarvestPreviewResult, { status: "ready" }> | null> {
+    const { game, roomId } = this.state;
+    if (!game || !roomId) return null;
+    const result = await this.rpc<Extract<HarvestPreviewResult, { status: "ready" }>>("room:harvest-preview", {
+      roomId, command: { gameId: game.public.gameId, expectedVersion: game.public.stateVersion, ...draft },
+    });
+    return this.state.roomId === result.roomId && this.state.game?.public.gameId === result.gameId &&
+      this.state.game.public.stateVersion === result.stateVersion && result.stateVersion === game.public.stateVersion ? result : null;
+  }
   async quickCommand(draft: QuickDraft) {
     return this.playerCommand(draft.channel, draft.command);
   }
@@ -479,7 +496,7 @@ export class CityClient {
       this.state.game.public.stateVersion === result.stateVersion && result.stateVersion === game.public.stateVersion ? result : null;
   }
   private async playerCommand(
-    channel: "entry" | "round" | "influence" | "exploration" | "city-move" | ConstructionDraft["channel"] | QuickDraft["channel"],
+    channel: "harvest" | "entry" | "round" | "influence" | "exploration" | "city-move" | ConstructionDraft["channel"] | QuickDraft["channel"],
     command: Record<string, unknown>,
   ) {
     const { game, roomId } = this.state;

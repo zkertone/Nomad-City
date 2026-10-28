@@ -5,14 +5,18 @@ import type {
   EventEffect,
   ExplorationPathStep,
 } from "@nomad-city-online/game-core";
-import type { ConstructionDraft, QuickDraft } from "@nomad-city-online/server";
+import type { ConstructionDraft, QuickDraft, HarvestDraft } from "@nomad-city-online/server";
 import { CityClient } from "./client.js";
 import "./style.css";
 import { BoardRenderer } from "./renderers/BoardRenderer.js";
 import { RoundPreparation } from "./RoundPreparation.js";
 import { MajorActionPanel } from "./MajorActionPanel.js";
 
+import { HarvestPanel } from "./HarvestPanel.js";
+import { FinalResults } from "./FinalResults.js";
+
 const client = new CityClient(sessionStorage);
+const previewHarvest = (draft: HarvestDraft) => client.harvestPreview(draft);
 const previewQuick = (draft: QuickDraft) => client.quickPreview(draft);
 const previewConstruction = (draft: ConstructionDraft) => client.constructionPreview(draft);
 const previewExploration = (path: readonly ExplorationPathStep[]) => client.explorationPreview(path);
@@ -700,7 +704,12 @@ function App() {
                     }
                   }}
                 />
-                {["player-actions", "cleanup"].includes(game.public.round?.stage ?? "") ? <MajorActionPanel
+                {game.public.finalResult ? <FinalResults result={game.public.finalResult} selfPlayerId={game.private.playerId} />
+                : game.public.phase === "harvest" && game.public.harvest?.status === "planning" ? <HarvestPanel
+                  key={`harvest:${game.public.gameId}:${game.public.stateVersion}:${state.harvestOptions?.stateVersion ?? "loading"}`}
+                  view={game} result={state.harvestOptions} disabled={blocked} preview={previewHarvest}
+                  onCommand={draft => run(() => client.harvestCommand(draft))} />
+                : ["player-actions", "cleanup"].includes(game.public.round?.stage ?? "") ? <MajorActionPanel
                   view={game} result={state.actionOptions} selectedSlotId={actionSlot}
                   sourceSlotId={sourceSlot} disabled={blocked}
                   onRound={command => run(() => client.majorActionCommand(command))}
@@ -842,7 +851,7 @@ function App() {
                       </p>
                       {!game.public.entry && (
                         <small>
-                          当前已接通入场、回合准备、五种普通主要行动；其余操作界面待接入。
+                          正在等待服务器推进或当前玩家确认；可点击同步局面获取最新状态。
                         </small>
                       )}
                     </div>

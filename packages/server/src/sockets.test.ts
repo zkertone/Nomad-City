@@ -89,6 +89,66 @@ afterEach(async () => {
 });
 afterAll(async () => { if (app) await app.close(); await db.close(); });
 
+async function harvestFixture() {
+  const initial = await fixture(true); let state = initial.state;
+  const command = async (channel: string, body: Record<string, unknown>) => {
+    const actor = core.getRoundTurn(state, initial.definition).actorId!;
+    const result = core.executeGamePlayerRequest(state, initial.definition, { authenticatedPlayerId: actor }, { apiVersion: '1.0.0', requestId: 'harvest-network-setup', channel, command: { gameId: state.gameId, expectedVersion: state.stateVersion, ...body } });
+    if (result.status !== 'accepted') throw Error('Harvest fixture failed');
+    expect(await store.compareAndSwap(initial.roomId, state.stateVersion, result.state)).toBe(true); state = result.state;
+  };
+  while (state.roundFlow!.stage === 'player-actions') {
+    await command('round', { type: 'choose-major-action', action: 'dispatch' });
+    if (state.influenceAction!.status === 'ready') await command('influence', { type: 'finish-dispatch' });
+    await command('round', { type: 'finish-player-turn' });
+  }
+  const version = state.stateVersion;
+  state = core.openHarvestPhase(state, initial.definition, { expectedVersion: state.stateVersion, roundNumber: 1 });
+  expect(await store.compareAndSwap(initial.roomId, version, state)).toBe(true);
+  return parseRoomSnapshot({ ...initial, state });
+}
+describe('simultaneous harvest query boundary', () => {
+  it('permits every member and only their own submitted plan, with read-only quotes and original settlement', async () => {
+    const s = await harvestFixture(), a = await asUser('bob'), b = await asUser('alice'), empty = { nodeIds: [], routeIds: [] };
+    for (const peer of [a.socket, b.socket]) expect((await call(peer, 'room:harvest-options', { roomId: s.roomId })).options).not.toBeNull();
+    const body = { roomId: s.roomId, command: { type: 'set-harvest-plan', gameId: s.state.gameId, expectedVersion: s.state.stateVersion, plan: { nodeIds: ['A-01'], routeIds: [] } } };
+    expect((await call(a.socket, 'room:harvest-preview', body)).options.execution.legal).toBe(true); expect(await store.read(s.roomId)).toEqual(s);
+    const send = async (peer: ClientSocket, plan: core.HarvestPlayerCommand['plan']) => { const snapshot = (await store.read(s.roomId))!; return call(peer, 'room:command', { roomId: s.roomId, request: { apiVersion: '1.0.0', requestId: 'harvest-net', channel: 'harvest', command: { type: 'set-harvest-plan', gameId: snapshot.state.gameId, expectedVersion: snapshot.state.stateVersion, plan } } }); };
+    expect((await send(a.socket, body.command.plan)).status).toBe('committed');
+    expect((await store.read(s.roomId))!.state.players).toEqual(s.state.players);
+    expect((await call(a.socket, 'room:harvest-options', { roomId: s.roomId })).options.plan).toEqual(body.command.plan);
+    const other = await call(b.socket, 'room:harvest-options', { roomId: s.roomId }); expect(other.options.plan).toBeNull(); expect(JSON.stringify(other)).not.toMatch(/drawPile|plansByPlayer|members|placedRoleId/);
+    expect((await send(a.socket, empty)).status).toBe('committed');
+    expect((await send(b.socket, { nodeIds: ['A-02'], routeIds: [] })).status).toBe('committed');
+    const complete = (await store.read(s.roomId))!.state; expect(complete.harvest!.status).toBe('complete');
+    expect(complete.players.p1).toEqual(s.state.players.p1); expect(complete.players.p2!.balances).not.toEqual(s.state.players.p2!.balances);
+    expect((await call(a.socket, 'room:harvest-options', { roomId: s.roomId })).options).toBeNull();
+  });
+  it('rejects schema/identity injection, hides unavailable membership, and keeps stale/errors write-free', async () => {
+    const s = await harvestFixture(), a = await asUser('bob'), outsider = await asUser('other'), before = await store.read(s.roomId);
+    const body = { roomId: s.roomId, command: { type: 'set-harvest-plan', gameId: s.state.gameId, expectedVersion: s.state.stateVersion, plan: { nodeIds: [], routeIds: [] } } };
+    expect(await call(a.socket, 'room:harvest-options', { roomId: s.roomId, playerId: 'p2' })).toMatchObject({ error: { code: 'INVALID_MESSAGE' } });
+    expect(await call(a.socket, 'room:harvest-preview', { ...body, actorId: 'p2' })).toMatchObject({ error: { code: 'INVALID_MESSAGE' } });
+    expect(await call(a.socket, 'room:harvest-preview', { ...body, command: { ...body.command, score: 100 } })).toMatchObject({ error: { code: 'INVALID_MESSAGE' } });
+    for (const event of ['room:harvest-options', 'room:harvest-preview']) {
+      const req = event.endsWith('options') ? { roomId: s.roomId } : body;
+      expect(await call(outsider.socket, event, req)).toEqual(await call(outsider.socket, event, { ...req, roomId: 'missing' }));
+    }
+    expect((await call(a.socket, 'room:harvest-preview', { ...body, command: { ...body.command, expectedVersion: 0 } })).options).toBeNull();
+    vi.spyOn(gatewayStore, 'read').mockRejectedValueOnce(Error('SQL SECRET'));
+    expect(await call(a.socket, 'room:harvest-preview', body)).toEqual({ status: 'unavailable', error: { code: 'STORAGE_UNAVAILABLE' } });
+    expect(await store.read(s.roomId)).toEqual(before);
+  });
+  it('reauthenticates after harvest reads and discards a response revoked during the query', async () => {
+    const s = await harvestFixture(), a = await asUser('bob'), held = deferred(), service = app.get(RoomService), original = service.readHarvestPreview.bind(service);
+    let started = false, acknowledged = false;
+    vi.spyOn(service, 'readHarvestPreview').mockImplementation(async (...args) => { const result = await original(...args); started = true; await held.promise; return result; });
+    a.socket.emit('room:harvest-preview', { roomId: s.roomId, command: { type: 'set-harvest-plan', gameId: s.state.gameId, expectedVersion: s.state.stateVersion, plan: { nodeIds: [], routeIds: [] } } }, () => { acknowledged = true; });
+    await until(() => started); await sessions.revoke(a.token); held.resolve();
+    await until(() => !a.socket.connected); expect(acknowledged).toBe(false); expect(await store.read(s.roomId)).toEqual(s);
+  });
+});
+
 describe('durable opaque sessions', () => {
   it('issues distinct random credentials and stores only their SHA-256 digests', async () => {
     now = 1000; const a = await unitSessions.issue('session-user'), b = await unitSessions.issue('session-user');

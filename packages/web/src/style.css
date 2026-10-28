@@ -1109,3 +1109,17 @@ footer {
 .pattern-shape { display: grid; grid-template-columns: repeat(3, 44px); gap: 4px; margin: .75rem 0; }
 .pattern-square { display: grid; place-items: center; min-height: 40px; background: #e9e4d6; font-size: .75rem; border: 1px solid #d1c9b9; }
 .pattern-square.empty { background: transparent; border-color: transparent; color: #aaa; }
+
+.harvest-panel fieldset { border: 1px solid var(--line, #d9d5ca); margin: 18px 0; padding: 14px; border-radius: 8px; }
+.harvest-panel .harvest-choice { display: flex; flex-direction: row; align-items: flex-start; gap: 8px; margin: 8px 0; }
+.harvest-choice input { width: auto; margin-top: 3px; }
+.harvest-route { border-bottom: 1px solid var(--line, #d9d5ca); padding: 6px 0; }
+.harvest-quote { background: #f5f1e8; border-radius: 8px; padding: 12px; margin: 16px 0; }
+.final-results { min-width: 0; }
+.results-table { overflow-x: auto; margin: 16px 0; }
+.results-table table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.results-table th, .results-table td { border-bottom: 1px solid #d9d5ca; padding: 10px; white-space: nowrap; text-align: left; }
+.results-table caption { text-align: left; font-weight: 700; padding: 10px 0; }
+.self-result { background: #fff0e4; }
+.final-results details { margin: 16px 0; }
+.final-results summary { cursor: pointer; font-weight: 600; }

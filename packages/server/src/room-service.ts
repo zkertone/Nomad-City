@@ -18,6 +18,9 @@ import type { ConstructionPreviewResult } from './construction-options.js';
 import { quickPreviewRequestSchema, getRoomQuickPreview } from './quick-options.js';
 import type { QuickPreviewResult } from './quick-options.js';
 
+import { getRoomHarvestOptions, getRoomHarvestPreview, harvestPreviewRequestSchema } from './harvest-options.js';
+import type { HarvestOptionsResult, HarvestPreviewResult } from './harvest-options.js';
+
 type AutomaticAnnotation = { readonly automatic?: AutomaticProgress };
 type Unavailable = { readonly status: 'unavailable'; readonly error: { readonly code: 'ROOM_UNAVAILABLE' | 'STORAGE_UNAVAILABLE' | 'COMMIT_CONFLICT' | 'AUTOMATION_PENDING' } } & AutomaticAnnotation;
 export type RoomReadResult = DeepReadonly<({ status: 'ready'; view: GamePlayerView } & AutomaticAnnotation) | Unavailable>;
@@ -36,6 +39,27 @@ function playerFor(snapshot: RoomSnapshot | null, principal: RoomPrincipal): str
 /** Provider for a future authenticated gateway. Principal comes from its session, never the body. */
 export class RoomService {
   constructor(private readonly store: RoomStore, private readonly queue = new RoomQueue()) {}
+  async readHarvestOptions(roomId: string, principalInput: RoomPrincipal): Promise<HarvestOptionsResult> {
+    const principal = roomPrincipalSchema.safeParse(principalInput);
+    if (!principal.success) return entryUnavailable('ROOM_UNAVAILABLE');
+    return this.queue.run(roomId, async () => {
+      let snapshot: RoomSnapshot | null;
+      try { snapshot = await this.store.read(roomId); } catch { return entryUnavailable('STORAGE_UNAVAILABLE'); }
+      const playerId = playerFor(snapshot, principal.data);
+      return !snapshot || !playerId ? entryUnavailable('ROOM_UNAVAILABLE') : getRoomHarvestOptions(snapshot, playerId);
+    });
+  }
+  async readHarvestPreview(payload: unknown, principalInput: RoomPrincipal): Promise<HarvestPreviewResult> {
+    const request = harvestPreviewRequestSchema.safeParse(payload), principal = roomPrincipalSchema.safeParse(principalInput);
+    if (!request.success) return { status: 'unavailable', error: { code: 'INVALID_MESSAGE' } };
+    if (!principal.success) return entryUnavailable('ROOM_UNAVAILABLE');
+    return this.queue.run(request.data.roomId, async () => {
+      let snapshot: RoomSnapshot | null;
+      try { snapshot = await this.store.read(request.data.roomId); } catch { return entryUnavailable('STORAGE_UNAVAILABLE'); }
+      const playerId = playerFor(snapshot, principal.data);
+      return !snapshot || !playerId ? entryUnavailable('ROOM_UNAVAILABLE') : getRoomHarvestPreview(snapshot, playerId, request.data);
+    });
+  }
   async readQuickPreview(payload: unknown, principalInput: RoomPrincipal): Promise<QuickPreviewResult> {
     const request = quickPreviewRequestSchema.safeParse(payload), principal = roomPrincipalSchema.safeParse(principalInput);
     if (!request.success) return { status: 'unavailable', error: { code: 'INVALID_MESSAGE' } };

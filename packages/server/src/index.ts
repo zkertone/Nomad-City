@@ -21,3 +21,5 @@ export type { AutomaticProgress, AutomaticIssue } from './automatic-lifecycle.js
 export * from './construction-options.js';
 
 export * from './quick-options.js';
+
+export * from './harvest-options.js';
