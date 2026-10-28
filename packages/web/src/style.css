@@ -1133,3 +1133,22 @@ footer {
 .decision-column { min-width: 0; align-self: start; }
 #current-decision, #round-decision { scroll-margin-top: 20px; }
 @media (max-width: 760px) { .play-guide { align-items: flex-start; flex-direction: column; gap: 8px; padding: 16px; } }
+
+.guide-links { display: flex; flex-wrap: wrap; flex-shrink: 0; gap: 6px; }
+#player-panels { scroll-margin-top: 20px; margin-top: 24px; }
+.city-panel { min-width: 0; }
+.city-panel .city-balances { display: flex; flex-wrap: wrap; gap: 14px; }
+.player-summary .card > .city-facilities { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 16px; }
+.city-facility { min-width: 0; padding: 10px; border: 1px solid #d6d1c4; border-radius: 6px; display: flex; flex-direction: column; gap: 6px; font-size: 12px; background: #f9f7f0; }
+.city-facility.empty { color: #817b6b; background: #f5f3ec; min-height: 75px; }
+.city-facility[data-color="blue"] { border-top: 3px solid #5991a4; }
+.city-facility[data-color="yellow"] { border-top: 3px solid #c5a347; }
+.city-facility[data-color="red"] { border-top: 3px solid #bf745b; }
+.city-facility[data-color="rainbow"] { border-top: 3px solid #89806b; }
+.city-facility details p { line-height: 1.6; overflow-wrap: anywhere; }
+.city-facility details summary { cursor: pointer; }
+.facility-used { color: #7a5136; font-size: 11px; }
+@media (max-width: 760px) { .city-facility { padding: 7px; } }
+
+.city-panel .city-facility strong { font-size: 12px; margin-top: 0; }
+.city-panel .city-facility small { font-size: 10px; overflow-wrap: anywhere; }

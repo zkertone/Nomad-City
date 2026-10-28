@@ -1,0 +1,3 @@
+{"check":"PASS","staticAssets":2,"fixtureOriginAndIdentityGuards":true,"productionHasNoFixtureRoute":true,"games":3,"entryWrites":19,"automaticStartupWrites":30,"roundSetupWrites":12,"majorActionWrites":45,"deployments":9,"dispatchMoves":5,"firstCycleAndRecoveredDispatch":true,"persistedSessionAndActionRecovery":true,"browserBundleHasNoServerRuntime":true,"database":"PGlite test only"}
+
+COMMAND_EXIT=0

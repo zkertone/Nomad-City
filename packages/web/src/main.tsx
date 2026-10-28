@@ -13,6 +13,8 @@ import { RoundPreparation } from "./RoundPreparation.js";
 import { MajorActionPanel } from "./MajorActionPanel.js";
 
 import { HarvestPanel } from "./HarvestPanel.js";
+import { PlayerPanels } from "./PlayerPanels.js";
+import type { PlayerFacilityCatalog } from "./PlayerPanels.js";
 import { PlayGuide } from "./PlayGuide.js";
 import { FinalResults } from "./FinalResults.js";
 
@@ -93,6 +95,7 @@ function App() {
     [boards, setBoards] = useState<{
       three: BoardDefinition;
       four: BoardDefinition;
+      facilities: PlayerFacilityCatalog;
     } | null>(null);
   const [copied, setCopied] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
@@ -863,26 +866,7 @@ function App() {
                 </section>}
                 </div>
               </div>
-              <div className="player-summary">
-                {game.public.players.map((p) => (
-                  <section className="card" key={p.playerId}>
-                    <h3>
-                      <span className="color-dot" data-color={p.color} />
-                      {p.playerId.toUpperCase()}
-                      {p.playerId === game.private.playerId ? " · 你" : ""}
-                      <span>{p.score} 分</span>
-                    </h3>
-                    <div>
-                      {Object.entries(p.balances).map(([asset, amount]) => (
-                        <span key={asset}>
-                          <small>{assets[asset]}</small>
-                          <strong>{amount}</strong>
-                        </span>
-                      ))}
-                    </div>
-                  </section>
-                ))}
-              </div>
+              <PlayerPanels view={game} catalog={boards?.facilities ?? null} />
             </>
           ) : (
             <section className="card empty-list">

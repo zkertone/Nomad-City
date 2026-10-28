@@ -40,8 +40,12 @@ const envelope = (state: GameState) => ({ gameId: state.gameId, expectedVersion:
 function send(state: GameState, definition: GameDefinition, command: Record<string, unknown>, actorId = getRoundTurn(state, definition).actorId!) {
   return applyRoundCommand(state, definition, { authenticatedPlayerId: actorId }, { ...envelope(state), ...command });
 }
+function rolesReady(state: GameState, definition: GameDefinition): GameState {
+  while (getRoundTurn(state, definition).stage === 'role-removal') state = send(state, definition, { type: 'remove-round-supply-card', cardId: definition.players.length === 3 ? state.facilities!.supply.supply.at(-1)! : state.facilities!.supply.supply[0]! });
+  return state;
+}
 function ready(state: GameState, definition: GameDefinition): GameState {
-  while (state.roundFlow!.stage === 'role-removal') state = send(state, definition, { type: 'remove-round-supply-card', cardId: state.facilities!.supply.supply[0]! });
+  state = rolesReady(state, definition);
   while (state.roundFlow!.stage === 'role-placement') state = send(state, definition, { type: 'place-round-role', roleId: 'ROLE-01' });
   return state;
 }
@@ -81,7 +85,7 @@ describe('verified base role identities and new managed round setup', () => {
     expect(f.state.stateVersion).toBe(f.entry.stateVersion + 1); expect(f.state.players).toEqual(f.entry.players);
     expect(f.state.board).toEqual(f.entry.board); expect(f.state.markerSupplyByPlayer).toEqual(f.entry.markerSupplyByPlayer);
     expect(f.state.playerOrder).toEqual(f.entry.entry!.playerOrder); expect(f.state.eventDecks!.green).toEqual(f.entry.entry!.remainingGreenEventIds);
-    expect(f.state.roundFlow!.stage).toBe(count === 2 ? 'role-removal' : 'role-placement'); expect(f.state.roundFlow!.roundNumber).toBe(1);
+    expect(f.state.roundFlow!.stage).toBe(count < 4 ? 'role-removal' : 'role-placement'); expect(f.state.roundFlow!.roundNumber).toBe(1);
     expect(f.state.roundFlow!.rolesByPlayer.every(role => role.hand.length === 5 && role.discarded.length === 0 && role.placed === null)).toBe(true);
     expect(f.state.facilities!.supply.supply).toHaveLength(6); expect(f.state.facilities!.supply.drawPile).toHaveLength(35);
     expect(Object.keys(getMarkerLedger(f.state, f.definition))).toHaveLength(count * 30);
@@ -101,19 +105,17 @@ describe('verified base role identities and new managed round setup', () => {
 });
 
 describe('role placement and two-player supply removals', () => {
-  it.each([3, 4])('places one facedown role in clockwise order for %i players before any action', count => {
-    const f = fixture(count); let state = f.state;
-    for (const [index, player] of f.definition.players.entries()) {
-      expect(getRoundTurn(state, f.definition).actorId).toBe(player.id);
+  it.each([2, 3, 4])('allows all %i-player members to place independently before actions', count => {
+    const f = fixture(count); let state = rolesReady(f.state, f.definition);
+    for (const [index, player] of [...f.definition.players].reverse().entries()) {
       errorCode(() => send(state, f.definition, { type: 'choose-major-action', action: 'deploy' }), 'MAJOR_ACTION_USED');
-      errorCode(() => send(state, f.definition, { type: 'place-round-role', roleId: 'ROLE-01' }, index === 0 ? 'p2' : 'p1'), 'WRONG_ACTOR');
-      state = send(state, f.definition, { type: 'place-round-role', roleId: 'ROLE-01' });
+      state = send(state, f.definition, { type: 'place-round-role', roleId: 'ROLE-01' }, player.id);
       expect(state.roundFlow!.rolePlacementCount).toBe(index + 1);
+      if (index < count - 1) errorCode(() => send(state, f.definition, { type: 'place-round-role', roleId: 'ROLE-02' }, player.id), 'ROLE_ALREADY_PLACED');
+      expect(validateGameState(state, f.definition).success).toBe(true);
     }
-    expect(state.roundFlow!.stage).toBe('player-actions'); expect(getRoundTurn(state, f.definition)).toMatchObject({ actorId: 'p1', cycle: 1, majorActionStatus: 'not-started' });
+    expect(getRoundTurn(state, f.definition)).toMatchObject({ stage: 'player-actions', actorId: 'p1', cycle: 1, majorActionStatus: 'not-started' });
     expect(state.roundFlow!.rolesByPlayer.every(role => role.hand.length === 4 && role.placed === 'ROLE-01')).toBe(true);
-    // Identical named roles belong to different players; they are distinct personal copies.
-    expect(validateGameState(state, f.definition).success).toBe(true);
   });
   it('removes two chosen market cards and immediately refills each before either role placement', () => {
     const f = fixture(2), before = structuredClone(f.state); let state = f.state;
@@ -129,11 +131,19 @@ describe('role placement and two-player supply removals', () => {
     expect(state.facilities!.supply.revision).toBe(2); expect(state.roundFlow!.stage).toBe('role-placement');
     expect(getRoundTurn(state, f.definition).actorId).toBe('p1'); expect(f.state).toEqual(before);
   });
-  it.each([3, 4])('forbids two-player removal for %i players', count => {
-    const f = fixture(count); errorCode(() => send(f.state, f.definition, { type: 'remove-round-supply-card', cardId: f.state.facilities!.supply.supply[0] }), 'ROUND_STAGE');
+  it.each([3, 4])('applies the specific %i-player pre-placement removal rule', count => {
+    const f = fixture(count), body = { type: 'remove-round-supply-card', cardId: f.state.facilities!.supply.supply[0] };
+    if (count === 4) errorCode(() => send(f.state, f.definition, body), 'ROUND_STAGE');
+    else {
+      errorCode(() => send(f.state, f.definition, body, 'p2'), 'WRONG_ACTOR');
+      const next = send(f.state, f.definition, body);
+      expect(next.roundFlow).toMatchObject({ stage: 'role-placement', supplyRemovalCount: 1 });
+      expect(next.facilities!.supply.returnedToBox).toEqual([body.cardId]); expect(next.facilities!.supply.supply).toHaveLength(6);
+      errorCode(() => send(next, f.definition, { ...body, cardId: next.facilities!.supply.supply[0] }), 'ROUND_STAGE');
+    }
   });
   it('does not use a discarded role while the hand still has a card, and recovers only an empty hand', () => {
-    const f = fixture(), state = gameStateSchema.parse(f.state), roles = state.roundFlow!.rolesByPlayer[0]!;
+    const f = fixture(), state = gameStateSchema.parse(rolesReady(f.state, f.definition)), roles = state.roundFlow!.rolesByPlayer[0]!;
     roles.discarded.push(roles.hand.pop()!); const before = structuredClone(state);
     errorCode(() => send(state, f.definition, { type: 'place-round-role', roleId: 'ROLE-05' }), 'ROLE_NOT_IN_HAND'); expect(state).toEqual(before);
     roles.discarded.push(...roles.hand.splice(0));
@@ -150,7 +160,7 @@ describe('role placement and two-player supply removals', () => {
     expect(state).toEqual(before);
   });
   it('hides opponents hands and facedown selections and the facility draw order', () => {
-    const f = fixture(); let state = send(f.state, f.definition, { type: 'place-round-role', roleId: 'ROLE-01' });
+    const f = fixture(); let state = send(rolesReady(f.state, f.definition), f.definition, { type: 'place-round-role', roleId: 'ROLE-01' });
     state = send(state, f.definition, { type: 'place-round-role', roleId: 'ROLE-02' });
     const before = JSON.stringify(state), view = getRoundPublicView(state, f.definition, 'p1');
     expect(view.roles[0]).toMatchObject({ hand: ['ROLE-02', 'ROLE-03', 'ROLE-04', 'ROLE-05'], placedRoleId: 'ROLE-01' });
@@ -287,8 +297,8 @@ describe('harvest, cleanup, role return, starting-player rotation and eight-roun
       state = parseGameState(JSON.parse(JSON.stringify(state)), f.definition);
     }
     expect(state.roundFlow!.stage).toBe('finished'); expect(state.roundFlow!.roundNumber).toBe(8); expect(getRoundTurn(state, f.definition).actorId).toBe(null);
-    expect(state.facilities!.supply.returnedToBox).toHaveLength(count === 2 ? 16 : 0);
-    expect(state.facilities!.supply.drawPile).toHaveLength(count === 2 ? 19 : 35);
+    expect(state.facilities!.supply.returnedToBox).toHaveLength(count === 2 ? 16 : count === 3 ? 8 : 0);
+    expect(state.facilities!.supply.drawPile).toHaveLength(count === 2 ? 19 : count === 3 ? 27 : 35);
     errorCode(() => finishManagedRound(state, f.definition, { expectedVersion: state.stateVersion }), 'HARVEST_PENDING');
     errorCode(() => openDispatchWindow(state, f.definition, { actorId: 'p1', roundNumber: 8, expectedVersion: state.stateVersion }), 'ROUND_WINDOW', false);
     expect(Object.keys(getMarkerLedger(state, f.definition))).toHaveLength(count * 30);
@@ -318,7 +328,7 @@ describe('untrusted commands, unsupported effects and snapshot tampering', () =>
     errorCode(() => applyRoundCommand(state, f.definition, { authenticatedPlayerId: problem === 'wrong-actor' ? 'p2' : 'p1' }, payload),
       problem === 'wrong-game' ? 'GAME_REFERENCE' : problem === 'stale' ? 'STALE_VERSION' : problem === 'wrong-actor' ? 'WRONG_ACTOR' : 'VERSION_OVERFLOW'); expect(state).toEqual(before);
   });
-  it.each(['flow-missing', 'old-format', 'duplicate-role', 'missing-role', 'unknown-role', 'wrong-player', 'duplicate-player', 'wrong-placed-prefix', 'premature-actions', 'premature-harvest', 'third-cycle', 'false-open', 'wrong-action-actor', 'wrong-action-round', 'wrong-phase', 'premature-finish', 'bad-removal-count'] as const)('rejects corrupt %s schedule', problem => {
+  it.each(['flow-missing', 'old-format', 'duplicate-role', 'missing-role', 'unknown-role', 'wrong-player', 'duplicate-player', 'placed-before-removal', 'premature-actions', 'premature-harvest', 'third-cycle', 'false-open', 'wrong-action-actor', 'wrong-action-round', 'wrong-phase', 'premature-finish', 'bad-removal-count'] as const)('rejects corrupt %s schedule', problem => {
     const f = fixture(), state = gameStateSchema.parse(problem === 'wrong-action-actor' || problem === 'wrong-action-round' ? send(ready(f.state, f.definition), f.definition, { type: 'choose-major-action', action: 'dispatch' }) : f.state);
     const flow = state.roundFlow!;
     if (problem === 'flow-missing') delete state.roundFlow;
@@ -328,7 +338,7 @@ describe('untrusted commands, unsupported effects and snapshot tampering', () =>
     if (problem === 'unknown-role') Object.assign(flow.rolesByPlayer[0]!.hand, { 0: 'enterprise' });
     if (problem === 'wrong-player') flow.rolesByPlayer[0]!.playerId = 'unknown';
     if (problem === 'duplicate-player') flow.rolesByPlayer[1]!.playerId = 'p1';
-    if (problem === 'wrong-placed-prefix') { flow.rolePlacementCount = 1; const role = flow.rolesByPlayer[1]!; role.placed = role.hand.pop()!; }
+    if (problem === 'placed-before-removal') { flow.rolePlacementCount = 1; const role = flow.rolesByPlayer[1]!; role.placed = role.hand.pop()!; }
     if (problem === 'premature-actions') flow.stage = 'player-actions';
     if (problem === 'premature-harvest') { flow.stage = 'harvest'; flow.turnIndex = 6; }
     if (problem === 'third-cycle') { flow.stage = 'player-actions'; flow.turnIndex = 6; }
@@ -350,9 +360,35 @@ describe('untrusted commands, unsupported effects and snapshot tampering', () =>
   });
   it('uses player identity rather than array index even with prototype-like IDs', () => {
     const players: readonly PlayerSetup[] = [{ id: 'constructor', color: 'red' }, { id: 'toString', color: 'blue' }, { id: 'p3', color: 'green' }];
-    const f = fixture(3, players), state = gameStateSchema.parse(f.state); state.roundFlow!.rolesByPlayer.reverse();
+    const f = fixture(3, players), state = gameStateSchema.parse(rolesReady(f.state, f.definition)); state.roundFlow!.rolesByPlayer.reverse();
     const next = send(state, f.definition, { type: 'place-round-role', roleId: 'ROLE-02' }, 'constructor');
     expect(next.roundFlow!.rolesByPlayer.find(row => row.playerId === 'constructor')!.placed).toBe('ROLE-02');
     expect(getRoundTurn(next, f.definition).actorId).toBe('toString');
+  });
+});
+
+
+describe('legacy three-player preparation recovery', () => {
+  it('restores the missing current-round choice before any old saved role placement without rewriting history', () => {
+    const f = fixture(3), raw = gameStateSchema.parse(f.state); raw.roundFlow!.stage = 'role-placement';
+    const old = parseGameState(raw, f.definition), before = JSON.stringify(old);
+    expect(getRoundTurn(old, f.definition)).toMatchObject({ stage: 'role-removal', actorId: 'p1' });
+    errorCode(() => send(old, f.definition, { type: 'place-round-role', roleId: 'ROLE-02' }), 'ROUND_STAGE');
+    const chosen = old.facilities!.supply.supply.at(-1)!, next = send(old, f.definition, { type: 'remove-round-supply-card', cardId: chosen });
+    expect(next.roundFlow).toMatchObject({ stage: 'role-placement', supplyRemovalCount: 1, rolePlacementCount: 0 });
+    expect(next.players).toEqual(old.players); expect(next.roundFlow!.rolesByPlayer).toEqual(old.roundFlow!.rolesByPlayer);
+    expect(next.facilities!.supply.returnedToBox).toEqual([chosen]); expect(next.facilities!.supply.supply).toHaveLength(6);
+    expect(next.stateVersion).toBe(old.stateVersion + 1); expect(JSON.stringify(old)).toBe(before);
+  });
+  it('preserves already saved old placements and requires the next starting player removal only at the next round', () => {
+    const f = fixture(3), raw = gameStateSchema.parse(f.state); raw.roundFlow!.stage = 'role-placement'; raw.roundFlow!.rolePlacementCount = 1;
+    const own = raw.roundFlow!.rolesByPlayer[0]!; own.placed = own.hand.shift()!;
+    let state = parseGameState(raw, f.definition);
+    expect(getRoundTurn(state, f.definition).stage).toBe('role-placement');
+    state = send(state, f.definition, { type: 'place-round-role', roleId: 'ROLE-02' }, 'p3');
+    state = send(state, f.definition, { type: 'place-round-role', roleId: 'ROLE-02' }, 'p2');
+    expect(state.facilities!.supply.returnedToBox).toHaveLength(0); expect(state.roundFlow!.rolesByPlayer[0]!.placed).toBe(own.placed);
+    state = harvested(twoCycles(state, f.definition), f.definition); state = finishManagedRound(state, f.definition, { expectedVersion: state.stateVersion });
+    expect(getRoundTurn(state, f.definition)).toMatchObject({ roundNumber: 2, stage: 'role-removal', actorId: 'p2' });
   });
 });

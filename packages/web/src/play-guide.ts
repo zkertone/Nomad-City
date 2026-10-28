@@ -24,7 +24,8 @@ export function getPlayGuide(state: Input): PlayGuide {
       : show('现在所有玩家同时规划采集', '选择本人资源点、连接航道和必要收款人，核对费用与收益后提交；不采集也须明确提交空方案。');
   }
   const actor = view.public.entry && view.public.entry.status !== 'complete' ? view.public.entry.actorId : turn?.actorId;
-  if (actor && actor !== own) return show(`等待 ${actor.toUpperCase()} 操作`, '请等待当前玩家确认选择；局面会自动同步，你的操作入口在轮到本人时显示。', 'waiting');
+  if (turn?.stage === 'role-placement' && view.public.players.find(p => p.playerId === own)?.roles?.hasPlacedRole) return show('你已盖放角色', '等待其余玩家独立确认；全部盖放后，主要行动才从先手开始顺时针进行。', 'waiting');
+  if (actor && actor !== own && turn?.stage !== 'role-placement') return show(`等待 ${actor.toUpperCase()} 操作`, '请等待当前玩家确认选择；局面会自动同步，你的操作入口在轮到本人时显示。', 'waiting');
   if (view.public.entry && view.public.entry.status !== 'complete') {
     if (!entry?.options) return sync();
     if (entry.options.status === 'selecting-node') return show('轮到你选择起点', '先在资源点概览选择可用起点，再在操作区确认；B-01的额外奖励须明确选择。');
@@ -34,7 +35,7 @@ export function getPlayGuide(state: Input): PlayGuide {
   if (turn?.stage === 'role-removal' || turn?.stage === 'role-placement') {
     if (!prep?.options || prep.blockedReason) return sync();
     return turn.stage === 'role-removal' ? show('轮到你移除供应设施', '选择一张可移除的公开设施，再确认；保存后由服务器补牌并交给下一位。')
-      : show('轮到你盖放角色', '从本人可用角色中选择一张并确认盖放；其他玩家只看到盖放进度。');
+      : show('轮到你盖放角色', '所有未盖放玩家均可独立选择并确认，无须等待席位顺序；其他玩家只看到盖放进度。');
   }
   if (!actor || !actions?.options || actions.blockedReason) return sync();
   const options = actions.options, travel = options.travel, construction = options.construction;

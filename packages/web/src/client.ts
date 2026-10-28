@@ -73,6 +73,7 @@ const messages: Record<string, string> = {
   AUTH_REQUIRED: "会话已失效，请重新选择本地测试身份。",
   AUTH_UNAVAILABLE: "暂时无法验证会话，请稍后重试。",
   TIMEOUT: "请求未收到确认。请刷新状态，确认结果后再操作。",
+  ROLE_ALREADY_PLACED: "本回合已经盖放角色，请等待其余玩家确认。",
   WRONG_ACTOR: "请等待当前玩家完成选择。",
 };
 export function errorMessage(code: string): string {

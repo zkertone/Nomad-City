@@ -134,7 +134,7 @@ try {
     const snapshot = await new PostgresRoomStore(local.sql).read(game.id); assert.equal(core.validateFacilitySupplyState(snapshot.state.facilities.supply).success, true);
   }
   await restart(); // committed results restore without paying or scoring twice
-  assert.equal(playerWrites, 485); assert.equal(automaticWrites, 105); assert.equal(harvestWrites, 78); assert.equal(replacements, 6); assert.equal(rejectedWrites, 6); assert.equal(restarts, 3); assert.equal(cleanupChoices, 3);
+  assert.equal(playerWrites, 493); assert.equal(automaticWrites, 105); assert.equal(harvestWrites, 78); assert.equal(replacements, 6); assert.equal(rejectedWrites, 6); assert.equal(restarts, 3); assert.equal(cleanupChoices, 3);
   console.log(JSON.stringify({ check: 'PASS', games: 3, roundsPerGame: 8, playerWrites, automaticWrites, harvestWrites, replacements, rejectedWrites, cleanupChoices, restarts,
     restoredGames: 9, restoredIndividualViews: 27, originalPlansAndCommittedResults: true, manualStageCalls: 0, noInjectedState: true, trustedDeterministicSetup: true, database: 'PGlite test only' }));
 } finally { for (const peer of peers) peer.disconnect(); if (local) await local.close(); await rm(directory, { recursive: true, force: true }); }

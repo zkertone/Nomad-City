@@ -1,0 +1,311 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+ RUN  v5.0.4 /workspace/scratch/d9545625f110/Nomad-City-Restored
+
+ ❯ packages/server/src/round-setup-options.test.ts (11 tests | 5 failed) 1955ms
+   ❯ read-only authoritative round preparation options (11)
+     × offers 3-player actor roles from the real reducer and gives nonactors no choices 189ms
+     × offers 4-player actor roles from the real reducer and gives nonactors no choices 162ms
+     × uses only the own remaining hand and permits original empty-hand discard recovery without executing it 79ms
+     × does not reveal a previous player placed role and returns no setup choices after everyone places 17ms
+     × keeps legacy manual rooms manual and does not create options before managed rounds exist 97ms
+ ❯ packages/game-core/src/game/round.test.ts (72 tests | 10 failed) 19935ms
+   ❯ verified base role identities and new managed round setup (5)
+     × starts 3 players only after real entry and conserves all setup facts 98ms
+   ❯ role placement and two-player supply removals (9)
+     × places one facedown role in clockwise order for 3 players before any action 112ms
+     × places one facedown role in clockwise order for 4 players before any action 222ms
+     × forbids two-player removal for 3 players 224ms
+     × does not use a discarded role while the hand still has a card, and recovers only an empty hand 135ms
+     × hides opponents hands and facedown selections and the facility draw order 99ms
+   ❯ two cycles and no alternate grant bypass (17)
+     × does not consume the turn or major slot on failed underlying construction 199ms
+     × supports every implemented major action through a real scheduled six-turn round 167ms
+   ❯ harvest, cleanup, role return, starting-player rotation and eight-round stop (4)
+     × runs all eight rounds for 3 players without skipping roles, turns, collection or cleanup 2956ms
+   ❯ untrusted commands, unsupported effects and snapshot tampering (37)
+     × uses player identity rather than array index even with prototype-like IDs 90ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 15 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/server/src/round-setup-options.test.ts > read-only authoritative round preparation options > offers 3-player actor roles from the real reducer and gives nonactors no choices
+AssertionError: expected 'role-removal' to be 'role-placement' // Object.is equality
+
+Expected: "role-placement"
+Received: "role-removal"
+
+ ❯ packages/server/src/round-setup-options.test.ts:151:37
+    149|       const room = snapshots.get(count)!,
+    150|         result = options(room);
+    151|       expect(result.options?.stage).toBe("role-placement");
+       |                                     ^
+    152|       if (result.options?.stage !== "role-placement") return;
+    153|       expect(result.options.roles.map((r) => r.roleId)).toEqual(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/15]⎯
+
+ FAIL  packages/server/src/round-setup-options.test.ts > read-only authoritative round preparation options > offers 4-player actor roles from the real reducer and gives nonactors no choices
+AssertionError: expected { stage: 'role-placement', …(3) } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "actorId": "p2",
+  "recoversDiscard": false,
+  "roles": [
+    {
+      "blockedBy": null,
+      "legal": true,
+      "name": "雷蛇",
+      "roleId": "ROLE-01",
+    },
+    {
+      "blockedBy": null,
+      "legal": true,
+      "name": "极境",
+      "roleId": "ROLE-02",
+    },
+    {
+      "blockedBy": null,
+      "legal": true,
+      "name": "德克萨斯",
+      "roleId": "ROLE-03",
+    },
+    {
+      "blockedBy": null,
+      "legal": true,
+      "name": "坎诺特",
+      "roleId": "ROLE-04",
+    },
+    {
+      "blockedBy": null,
+      "legal": true,
+      "name": "锡人",
+      "roleId": "ROLE-05",
+    },
+  ],
+  "stage": "role-placement",
+}
+
+ ❯ packages/server/src/round-setup-options.test.ts:157:43
+    155|       );
+    156|       expect(result.options.recoversDiscard).toBe(false);
+    157|       expect(options(room, "p2").options).toBeNull();
+       |                                           ^
+    158|       for (const role of result.options.roles)
+    159|         expect(() =>
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/15]⎯
+
+ FAIL  packages/server/src/round-setup-options.test.ts > read-only authoritative round preparation options > uses only the own remaining hand and permits original empty-hand discard recovery without executing it
+AssertionError: expected 'role-removal' to be 'role-placement' // Object.is equality
+
+Expected: "role-placement"
+Received: "role-removal"
+
+ ❯ packages/server/src/round-setup-options.test.ts:202:35
+    200|     let changed = parseRoomSnapshot({ ...room, state: s });
+    201|     let result = options(changed);
+    202|     expect(result.options?.stage).toBe("role-placement");
+       |                                   ^
+    203|     if (result.options?.stage !== "role-placement") return;
+    204|     expect(result.options.roles.map((r) => r.roleId)).toEqual(["ROLE-0…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/15]⎯
+
+ FAIL  packages/server/src/round-setup-options.test.ts > read-only authoritative round preparation options > does not reveal a previous player placed role and returns no setup choices after everyone places
+RoundFlowError: Place one facedown role during placement
+ ❯ reject packages/game-core/src/game/round.ts:23:66
+     21|   constructor(readonly code: string, message: string) { super(message)…
+     22| }
+     23| const reject = (code: string, message: string): never => { throw new R…
+       |                                                                  ^
+     24| const version = z.number().int().nonnegative().safe();
+     25| const beginOptionsSchema = z.strictObject({ expectedVersion: version, …
+ ❯ Module.applyRoundCommand packages/game-core/src/game/round.ts:141:114
+ ❯ round packages/server/src/round-setup-options.test.ts:105:17
+ ❯ packages/server/src/round-setup-options.test.ts:220:12
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/15]⎯
+
+ FAIL  packages/server/src/round-setup-options.test.ts > read-only authoritative round preparation options > keeps legacy manual rooms manual and does not create options before managed rounds exist
+AssertionError: expected 'role-removal' to be 'role-placement' // Object.is equality
+
+Expected: "role-placement"
+Received: "role-removal"
+
+ ❯ packages/server/src/round-setup-options.test.ts:277:63
+    275|   it("keeps legacy manual rooms manual and does not create options bef…
+    276|     const { lifecycle: _life, ...manual } = snapshots.get(3)!;
+    277|     expect(options(parseRoomSnapshot(manual)).options?.stage).toBe(
+       |                                                               ^
+    278|       "role-placement",
+    279|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/15]⎯
+
+ FAIL  packages/game-core/src/game/round.test.ts > verified base role identities and new managed round setup > starts 3 players only after real entry and conserves all setup facts
+AssertionError: expected 'role-removal' to be 'role-placement' // Object.is equality
+
+Expected: "role-placement"
+Received: "role-removal"
+
+ ❯ packages/game-core/src/game/round.test.ts:84:38
+     82|     expect(f.state.board).toEqual(f.entry.board); expect(f.state.marke…
+     83|     expect(f.state.playerOrder).toEqual(f.entry.entry!.playerOrder); e…
+     84|     expect(f.state.roundFlow!.stage).toBe(count === 2 ? 'role-removal'…
+       |                                      ^
+     85|     expect(f.state.roundFlow!.rolesByPlayer.every(role => role.hand.le…
+     86|     expect(f.state.facilities!.supply.supply).toHaveLength(6); expect(…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/15]⎯
+
+ FAIL  packages/game-core/src/game/round.test.ts > role placement and two-player supply removals > places one facedown role in clockwise order for 3 players before any action
+RoundFlowError: Place one facedown role during placement
+ ❯ reject packages/game-core/src/game/round.ts:23:66
+     21|   constructor(readonly code: string, message: string) { super(message)…
+     22| }
+     23| const reject = (code: string, message: string): never => { throw new R…
+       |                                                                  ^
+     24| const version = z.number().int().nonnegative().safe();
+     25| const beginOptionsSchema = z.strictObject({ expectedVersion: version, …
+ ❯ applyRoundCommand packages/game-core/src/game/round.ts:141:114
+ ❯ send packages/game-core/src/game/round.test.ts:41:10
+ ❯ packages/game-core/src/game/round.test.ts:110:15
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/15]⎯
+
+ FAIL  packages/game-core/src/game/round.test.ts > role placement and two-player supply removals > places one facedown role in clockwise order for 4 players before any action
+AssertionError: expected Error: Expected round rejection to be an instance of RoundFlowError
+ ❯ errorCode packages/game-core/src/game/round.test.ts:64:49
+     62| function errorCode(fn: () => unknown, code: string, roundError = true)…
+     63|   try { fn(); throw new Error('Expected round rejection'); }
+     64|   catch (error) { if (roundError) expect(error).toBeInstanceOf(RoundFl…
+       |                                                 ^
+     65| }
+     66| function firstChoice(state: GameState, definition: GameDefinition, act…
+ ❯ packages/game-core/src/game/round.test.ts:109:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/15]⎯
+
+ FAIL  packages/game-core/src/game/round.test.ts > role placement and two-player supply removals > forbids two-player removal for 3 players
+AssertionError: expected Error: Expected round rejection to be an instance of RoundFlowError
+ ❯ errorCode packages/game-core/src/game/round.test.ts:64:49
+     62| function errorCode(fn: () => unknown, code: string, roundError = true)…
+     63|   try { fn(); throw new Error('Expected round rejection'); }
+     64|   catch (error) { if (roundError) expect(error).toBeInstanceOf(RoundFl…
+       |                                                 ^
+     65| }
+     66| function firstChoice(state: GameState, definition: GameDefinition, act…
+ ❯ packages/game-core/src/game/round.test.ts:133:31
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/15]⎯
+
+ FAIL  packages/game-core/src/game/round.test.ts > role placement and two-player supply removals > does not use a discarded role while the hand still has a card, and recovers only an empty hand
+AssertionError: expected 'ROUND_STAGE' to be 'ROLE_NOT_IN_HAND' // Object.is equality
+
+Expected: "ROLE_NOT_IN_HAND"
+Received: "ROUND_STAGE"
+
+ ❯ errorCode packages/game-core/src/game/round.test.ts:64:122
+     62| function errorCode(fn: () => unknown, code: string, roundError = true)…
+     63|   try { fn(); throw new Error('Expected round rejection'); }
+     64|   catch (error) { if (roundError) expect(error).toBeInstanceOf(RoundFl…
+       |                                                                                                                          ^
+     65| }
+     66| function firstChoice(state: GameState, definition: GameDefinition, act…
+ ❯ packages/game-core/src/game/round.test.ts:138:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/15]⎯
+
+ FAIL  packages/game-core/src/game/round.test.ts > role placement and two-player supply removals > hides opponents hands and facedown selections and the facility draw order
+RoundFlowError: Place one facedown role during placement
+ ❯ reject packages/game-core/src/game/round.ts:23:66
+     21|   constructor(readonly code: string, message: string) { super(message)…
+     22| }
+     23| const reject = (code: string, message: string): never => { throw new R…
+       |                                                                  ^
+     24| const version = z.number().int().nonnegative().safe();
+     25| const beginOptionsSchema = z.strictObject({ expectedVersion: version, …
+ ❯ applyRoundCommand packages/game-core/src/game/round.ts:141:114
+ ❯ send packages/game-core/src/game/round.test.ts:41:10
+ ❯ packages/game-core/src/game/round.test.ts:153:38
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/15]⎯
+
+ FAIL  packages/game-core/src/game/round.test.ts > two cycles and no alternate grant bypass > does not consume the turn or major slot on failed underlying construction
+FacilityConstructionError: Candidate card is not in supply or extension reserve
+ ❯ rejectFacilityConstruction packages/game-core/src/facilities/construction-spec.ts:10:93
+      8|   constructor(readonly code: string, message: string) { super(message)…
+      9| }
+     10| export const rejectFacilityConstruction = (code: string, message: stri…
+       |                                                                                             ^
+     11| export type SupportedFacilityEntry =
+     12|   | { readonly kind: 'none' }
+ ❯ prepare packages/game-core/src/facilities/construction.ts:77:62
+ ❯ beginFacilityConstruction packages/game-core/src/facilities/construction.ts:121:13
+ ❯ applyConstructionCommand packages/game-core/src/game/construction.ts:93:19
+ ❯ packages/game-core/src/game/round.test.ts:211:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/15]⎯
+
+ FAIL  packages/game-core/src/game/round.test.ts > two cycles and no alternate grant bypass > supports every implemented major action through a real scheduled six-turn round
+FacilityConstructionError: Candidate card is not in supply or extension reserve
+ ❯ rejectFacilityConstruction packages/game-core/src/facilities/construction-spec.ts:10:93
+      8|   constructor(readonly code: string, message: string) { super(message)…
+      9| }
+     10| export const rejectFacilityConstruction = (code: string, message: stri…
+       |                                                                                             ^
+     11| export type SupportedFacilityEntry =
+     12|   | { readonly kind: 'none' }
+ ❯ prepare packages/game-core/src/facilities/construction.ts:77:62
+ ❯ beginFacilityConstruction packages/game-core/src/facilities/construction.ts:121:13
+ ❯ applyConstructionCommand packages/game-core/src/game/construction.ts:93:19
+ ❯ packages/game-core/src/game/round.test.ts:246:13
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/15]⎯
+
+ FAIL  packages/game-core/src/game/round.test.ts > harvest, cleanup, role return, starting-player rotation and eight-round stop > runs all eight rounds for 3 players without skipping roles, turns, collection or cleanup
+AssertionError: expected [ 'FC:FAC-013:rainbow:01', …(7) ] to have a length of +0 but got 8
+
+- Expected
++ Received
+
+- 0
++ 8
+
+ ❯ packages/game-core/src/game/round.test.ts:290:52
+    288|     }
+    289|     expect(state.roundFlow!.stage).toBe('finished'); expect(state.roun…
+    290|     expect(state.facilities!.supply.returnedToBox).toHaveLength(count …
+       |                                                    ^
+    291|     expect(state.facilities!.supply.drawPile).toHaveLength(count === 2…
+    292|     errorCode(() => finishManagedRound(state, f.definition, { expected…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/15]⎯
+
+ FAIL  packages/game-core/src/game/round.test.ts > untrusted commands, unsupported effects and snapshot tampering > uses player identity rather than array index even with prototype-like IDs
+RoundFlowError: Place one facedown role during placement
+ ❯ reject packages/game-core/src/game/round.ts:23:66
+     21|   constructor(readonly code: string, message: string) { super(message)…
+     22| }
+     23| const reject = (code: string, message: string): never => { throw new R…
+       |                                                                  ^
+     24| const version = z.number().int().nonnegative().safe();
+     25| const beginOptionsSchema = z.strictObject({ expectedVersion: version, …
+ ❯ applyRoundCommand packages/game-core/src/game/round.ts:141:114
+ ❯ send packages/game-core/src/game/round.test.ts:41:10
+ ❯ packages/game-core/src/game/round.test.ts:354:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/15]⎯
+
+
+ Test Files  2 failed | 1 passed (3)
+      Tests  15 failed | 90 passed (105)
+   Start at  01:30:49
+   Duration  20.62s (tests 93%, import 4%, transform 3%)
+
+
+COMMAND_EXIT=1

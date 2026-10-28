@@ -1,3 +1,4 @@
+import { requiredRoundSupplyRemovals } from './round-preparation.js';
 import type { ValidationIssue } from '../board/types.js';
 import type { GameDefinition, GameState } from './types.js';
 import { FOUNDERS_BASE_ROLES } from './round-schema.js';
@@ -37,15 +38,14 @@ export function roundFlowIssues(state: GameState, definition: GameDefinition): V
   }
   const placedPlayers = new Set(flow.rolesByPlayer.filter(row => row.placed !== null || row.used != null).map(row => row.playerId));
   if (flow.stage === 'role-removal') {
-    if (count !== 2 || flow.supplyRemovalCount >= 2 || flow.rolePlacementCount !== 0) report('Two-player removals precede every role placement');
+    if (!requiredRoundSupplyRemovals(count) || flow.supplyRemovalCount >= requiredRoundSupplyRemovals(count) || flow.rolePlacementCount !== 0) report('Required supply removals precede role placement');
   } else if (flow.stage === 'finished') {
     if (flow.roundNumber !== 8 || flow.supplyRemovalCount !== 0 || flow.rolePlacementCount !== 0) report('Only eight completed rounds finish exploration');
-  } else if (flow.supplyRemovalCount !== (count === 2 ? 2 : 0)) report('Required supply removals must be complete before placing roles');
+  } else if ((count === 3 ? ![0, 1].includes(flow.supplyRemovalCount) : flow.supplyRemovalCount !== requiredRoundSupplyRemovals(count))) report('Required supply removals must be complete before placing roles');
   if (flow.stage === 'role-placement' && flow.rolePlacementCount >= count) report('Completed role placement must enter player actions');
   if (['player-actions', 'harvest', 'cleanup'].includes(flow.stage) && flow.rolePlacementCount !== count) report('All players must place a role before actions');
   if (flow.stage === 'cleanup' && !['1.9.0', '1.10.0', '1.11.0', '1.12.0', '1.13.0', '1.14.0', '1.15.0', '1.16.0', '1.17.0'].includes(state.schemaVersion)) report('Explicit role cleanup requires snapshot 1.9.0');
-  const expectedPlaced = order.slice(0, flow.rolePlacementCount);
-  if (placedPlayers.size !== expectedPlaced.length || expectedPlaced.some(id => !placedPlayers.has(id))) report('Placed roles must follow clockwise placement progress');
+  if (placedPlayers.size !== flow.rolePlacementCount) report('Placement count must match exactly the actual placed/used personal roles');
   if (flow.completedMajorAction != null && (flow.stage !== 'player-actions' || !flow.majorActionOpened || (state.phase !== 'round-control' && state.cityPatternContinuation?.kind !== 'declaration-build') || (!['1.13.0', '1.14.0', '1.15.0', '1.16.0', '1.17.0'].includes(state.schemaVersion) && !flow.rolesByPlayer.some(role => role.playerId === order[flow.turnIndex % count] && role.used?.turnIndex === flow.turnIndex)))) report('Retired major action must preserve completion in its exact turn');
   if (flow.stage === 'player-actions') {
     if (flow.turnIndex >= count * 2) report('Each player receives one turn in each of two cycles');

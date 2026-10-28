@@ -1,0 +1,11 @@
+file:///workspace/scratch/d9545625f110/Nomad-City-Restored/scripts/check-local-web.mjs:185
+          if (current.options.stage === "role-removal") assert.equal(acting, undefined);
+          ^
+
+ReferenceError: current is not defined
+    at file:///workspace/scratch/d9545625f110/Nomad-City-Restored/scripts/check-local-web.mjs:185:11
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+Node.js v24.22.1
+
+COMMAND_EXIT=1

@@ -179,7 +179,7 @@ try {
     assert.equal(saved.state.board.resourceMarkerByNode['D-02'].markerDefinitionId, 'Y05');
     assert.equal(saved.state.board.resourceMarkerByNode['D-01'].markerDefinitionId, 'Y06');
   }
-  assert.equal(entryWrites, 19); assert.equal(preparationWrites, 11); assert.equal(automaticWrites, 30); assert.equal(actionWrites, 48);
+  assert.equal(entryWrites, 19); assert.equal(preparationWrites, 12); assert.equal(automaticWrites, 30); assert.equal(actionWrites, 48);
   assert.equal(restarts, 4); assert.equal(eventChoices, 6); assert.equal(finalPlacements, 6); assert.equal(conditionalPayments, 3);
   console.log(JSON.stringify({ check: 'PASS', games: 3, entryWrites, preparationWrites, automaticWrites, actionWrites,
     explorations: 3, cityMoves: 3, eventChoices, conditionalPayments, finalPlacements, restarts,

@@ -50,7 +50,7 @@ function send(f: Fixture, state: GameState, payload: Record<string, unknown>, ac
 function addBuilt(state: Mutable, id: string, cellId: string, actor = 'p1', color = getFoundersFacilityFace(id).observedColor) {
   const card = FOUNDERS_FACILITY_STOCK.cards.find(card => card.facilityId === id && card.color === color && !state.facilities!.supply.playerHoldings.some(row => row.cardIds.includes(card.id)))!;
   const supply = state.facilities!.supply;
-  for (const zone of [supply.supply, supply.drawPile, supply.extensionReserve]) { const index = zone.indexOf(card.id); if (index >= 0) zone.splice(index, 1); }
+  for (const zone of [supply.supply, supply.drawPile, supply.extensionReserve, supply.returnedToBox]) { const index = zone.indexOf(card.id); if (index >= 0) zone.splice(index, 1); }
   if (supply.supply.length < 6) supply.supply.push(supply.drawPile.shift()!);
   supply.playerHoldings.find(row => row.playerId === actor)!.cardIds.push(card.id);
   state.facilities!.panels.find(row => row.playerId === actor)!.placements.push({ cardId: card.id, cellId }); return card.id;
@@ -125,7 +125,7 @@ describe('engineering camp pays for an actual additional construction, with nest
     const f = fixture('FAC-016', 3, ['FAC-008']), state = build(f); expect(state.players.p1!.score).toBe(-1);
     const next = send(f, saved(state, f.definition), { type: 'construct-entry-facility', cardId: cardOf('FAC-008').id, cellId: 'CP-2-1', paymentMode: 'vouchers', entryChoice: mining });
     expect(next.players.p1!.balances['columbia-voucher']).toBe(82); expect(next.players.p1!.balances.orirock).toBe(32); expect(next.players.p1!.balances.originium).toBe(32); expect(next.players.p1!.balances.iron).toBe(31);
-    expect(next.facilities!.supply.drawPile).toHaveLength(33); expect(next.facilities!.supply.revision).toBe(state.facilities!.supply.revision + 1); expect(next.construction!.builtCardId).toBe(f.cardId); expect(next.construction!.constructionsCompleted).toBe(1); expect(next.construction!.status).toBe('complete');
+    expect(next.facilities!.supply.drawPile).toHaveLength(f.state.facilities!.supply.drawPile.length - 2); expect(next.facilities!.supply.revision).toBe(state.facilities!.supply.revision + 1); expect(next.construction!.builtCardId).toBe(f.cardId); expect(next.construction!.constructionsCompleted).toBe(1); expect(next.construction!.status).toBe('complete');
     code(() => round(next, f.definition, { type: 'choose-major-action', action: 'construct' }), 'MAJOR_ACTION_USED');
   });
   it('uses the just-revealed refill as its child card, not a pre-refill fixed target', () => {

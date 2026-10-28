@@ -149,6 +149,31 @@ describe('simultaneous harvest query boundary', () => {
   });
 });
 
+it('accepts independent private role placement in reverse seat order while retaining version CAS and first-player actions', async () => {
+  const s = await fixture(true, true), a = await asUser('bob'), b = await asUser('alice');
+  let version = s.state.stateVersion;
+  const write = async (socket: ClientSocket, command: Record<string, unknown>, expectedVersion = version) => {
+    const reply = await call(socket, 'room:command', { roomId: s.roomId, request: { apiVersion: '1.0.0', requestId: 'independent-role', channel: 'round', command: { gameId: s.state.gameId, expectedVersion, ...command } } });
+    if (reply.status === 'committed') version = reply.view.public.stateVersion;
+    return reply;
+  };
+  for (const peer of [a.socket, b.socket]) {
+    const row = (await store.read(s.roomId))!;
+    expect((await write(peer, { type: 'remove-round-supply-card', cardId: row.state.facilities!.supply.supply.at(-1) })).status).toBe('committed');
+  }
+  for (const peer of [a.socket, b.socket]) expect((await call(peer, 'room:round-setup-options', { roomId: s.roomId })).options.stage).toBe('role-placement');
+  const sharedVersion = version;
+  expect((await write(b.socket, { type: 'place-round-role', roleId: 'ROLE-02' })).status).toBe('committed');
+  const before = await store.read(s.roomId);
+  expect((await write(b.socket, { type: 'place-round-role', roleId: 'ROLE-03' })).reply.error.ruleCode).toBe('ROLE_ALREADY_PLACED');
+  expect((await write(a.socket, { type: 'place-round-role', roleId: 'ROLE-03' }, sharedVersion)).reply.error.code).toBe('STALE_VERSION');
+  expect(await store.read(s.roomId)).toEqual(before);
+  const observed = await call(a.socket, 'room:subscribe', { roomId: s.roomId }); expect(observed.view.private.placedRoleId).toBeNull();
+  expect(observed.view.public.players[1].roles.hasPlacedRole).toBe(true); expect(observed.view.public.players[1].roles.placedRoleId).toBeUndefined();
+  const result = await write(a.socket, { type: 'place-round-role', roleId: 'ROLE-03' });
+  expect(result.view.public.round).toMatchObject({ stage: 'player-actions', actorId: 'p1', cycle: 1 });
+});
+
 describe('durable opaque sessions', () => {
   it('issues distinct random credentials and stores only their SHA-256 digests', async () => {
     now = 1000; const a = await unitSessions.issue('session-user'), b = await unitSessions.issue('session-user');

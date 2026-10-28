@@ -338,7 +338,7 @@ describe('authoritative role and pattern presentation', () => {
     let saved = room; const store: RoomStore = { create: async () => false, read: async () => saved,
       compareAndSwap: async (_id, version, next) => { if (saved.state.stateVersion !== version) return false; saved = parseRoomSnapshot({ ...saved, state: next }); return true; } };
     await new RoomService(store).readView(room.roomId, { authenticatedUserId: 'user-p1' });
-    expect(saved.state.roundFlow!.roundNumber).toBe(2); expect(saved.state.roundFlow!.stage).toBe('role-placement');
+    expect(saved.state.roundFlow!.roundNumber).toBe(2); expect(saved.state.roundFlow!.stage).toBe('role-removal');
   });
   it('respects nonstarting both-mode authority, special-role conflicts, charges and per-round cooldown', () => {
     let room = dispatch(roleFixture('ROLE-02'));

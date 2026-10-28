@@ -102,6 +102,7 @@ describe('explicit 1.9.0 Liskarm support and complete strategy', () => {
   });
   it('upgrades a real prior role use without erasing its discard history', () => {
     const f = fixture(); let state = f.legacy;
+    while (getRoundTurn(state, f.definition).stage === 'role-removal') state = roundSend(state, f.definition, { type: 'remove-round-supply-card', cardId: state.facilities!.supply.supply.at(-1) });
     while (state.roundFlow!.stage === 'role-placement') state = roundSend(state, f.definition, { type: 'place-round-role', roleId: getRoundTurn(state, f.definition).actorId === 'p1' ? 'ROLE-02' : 'ROLE-01' });
     state = applyBaseRoleCommand(state, f.definition, { authenticatedPlayerId: 'p1' }, { ...env(state), type: 'use-base-role', roleId: 'ROLE-02', mode: 'strategy', strategyChoice: { kind: 'minimum-resource', asset: 'iron' } });
     const upgraded = enableLiskarmEffects(state, f.definition, { expectedVersion: state.stateVersion });

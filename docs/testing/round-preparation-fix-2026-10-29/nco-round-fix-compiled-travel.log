@@ -1,0 +1,3 @@
+{"check":"PASS","games":3,"entryWrites":19,"preparationWrites":12,"automaticWrites":30,"actionWrites":48,"explorations":3,"cityMoves":3,"eventChoices":6,"conditionalPayments":3,"finalPlacements":6,"restarts":4,"recoveredEventAndFinalPlacementStages":12,"trustedDeterministicSetup":true,"database":"PGlite test only"}
+
+COMMAND_EXIT=0

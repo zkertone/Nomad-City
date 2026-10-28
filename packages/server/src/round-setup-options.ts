@@ -90,14 +90,16 @@ export function getRoomRoundSetupOptions(
     flow = state.roundFlow;
   const pending = automaticProgress(snapshot)?.status === "pending";
   let options: RoundSetupOptions | null = null;
+  const turn = flow ? getRoundTurn(state, definition) : null;
+  const ownRole = flow?.rolesByPlayer.find(role => role.playerId === playerId);
   if (
     !pending &&
     flow &&
     state.phase === "round-control" &&
-    ["role-removal", "role-placement"].includes(flow.stage) &&
-    getRoundTurn(state, definition).actorId === playerId
+    ["role-removal", "role-placement"].includes(turn!.stage) &&
+    (turn!.stage === "role-removal" ? turn!.actorId === playerId : !!ownRole && ownRole.placed === null && !ownRole.used)
   ) {
-    if (flow.stage === "role-removal") {
+    if (turn!.stage === "role-removal") {
       options = {
         stage: "role-removal",
         actorId: playerId,

@@ -192,6 +192,7 @@ describe('round cleanup, lifetime limits, pending actions and save integrity', (
     const f = setup('PAT-009'), start = declare(f.state, f.definition, 'PAT-009');
     let s = send(start, f.definition, { type: 'use-pattern-special', patternId: 'PAT-009', markerId: markerFor(start, 'PAT-009'), effect: { kind: 'security', choices: [{ kind: 'replace', costDecision: 'decline' }, { kind: 'replace', costDecision: 'decline' }] } });
     s = finish(s, f.definition); expect(s.cityPatterns!.useTracks[0]!.remainingUses).toBe(1);
+    while (getRoundTurn(s, f.definition).stage === 'role-removal') s = round(s, f.definition, { type: 'remove-round-supply-card', cardId: s.facilities!.supply.supply.at(-1) });
     while (s.roundFlow!.stage === 'role-placement') s = round(s, f.definition, { type: 'place-round-role', roleId: 'ROLE-02' });
     while (getRoundTurn(s, f.definition).actorId !== 'p1') s = dispatch(s, f.definition);
     s = send(s, f.definition, { type: 'use-pattern-special', patternId: 'PAT-009', markerId: markerFor(s, 'PAT-009'), effect: { kind: 'security', choices: [{ kind: 'replace', costDecision: 'decline' }, { kind: 'replace', costDecision: 'decline' }] } });

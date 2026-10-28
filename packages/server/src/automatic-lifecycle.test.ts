@@ -76,7 +76,7 @@ describe('explicit automatic-base provisioning and private persisted setup', () 
     let state = core.beginRoundFlow(s.state, s.definition, { expectedVersion: s.state.stateVersion,
       facilityDeckOrder: core.FOUNDERS_FACILITY_STOCK.cards.filter(c => c.group === 'ordinary').map(c => c.id),
       deckOrder: { yellow: plan.yellowDeckOrder, red: plan.redDeckOrder } });
-    state = core.applyRoundCommand(state, s.definition, { authenticatedPlayerId: 'p1' }, { ...env(state), type: 'place-round-role', roleId: 'ROLE-02' });
+    state = core.applyRoundCommand(state, s.definition, { authenticatedPlayerId: 'p1' }, { ...env(state), type: 'remove-round-supply-card', cardId: state.facilities!.supply.supply.at(-1) });
     expect(() => parseRoomSnapshot({ ...s, state })).toThrow(/pristine/);
   });
   it('leaves migrated manual rooms manual and never upgrades them on reads', async () => {
@@ -99,7 +99,7 @@ describe('persisted automatic initialization and interruption recovery', () => {
     expect(saved.state.facilities!.supply.drawPile).toEqual(room.lifecycle!.facilityDeckOrder.slice(6));
     expect(saved.state.players).toEqual(room.state.players); expect(saved.state.board).toEqual(room.state.board);
     expect(Object.keys(core.getMarkerLedger(saved.state, saved.definition))).toHaveLength(count * 30);
-    expect(saved.state.roundFlow!.stage).toBe(count === 2 ? 'role-removal' : 'role-placement');
+    expect(saved.state.roundFlow!.stage).toBe(count < 4 ? 'role-removal' : 'role-placement');
     expect(await new RoomService(store).readView(room.roomId, principal)).toEqual(result);
     expect(JSON.stringify(result)).not.toContain('facilityDeckOrder');
   });
@@ -157,6 +157,7 @@ async function finalHarvest(impossible = false) {
   const room = await save(completedEntry(initial())), service = new RoomService(store); await service.readView(room.roomId, principal);
   const raw = core.gameStateSchema.parse((await store.read(room.roomId))!.state); raw.roundFlow!.roundNumber = 8;
   await sql.query('UPDATE nco_rooms SET state = $2::jsonb WHERE room_id = $1', [room.roomId, JSON.stringify(raw)]);
+  await send(service, room.roomId, 'round', { type: 'remove-round-supply-card', cardId: raw.facilities!.supply.supply.at(-1) });
   for (const player of seats.slice(0, 3)) await send(service, room.roomId, 'round', { type: 'place-round-role', roleId: player.id === 'p1' ? 'ROLE-01' : 'ROLE-02' });
   await send(service, room.roomId, 'role', { type: 'use-base-role', roleId: 'ROLE-01', mode: 'strategy', strategyChoice: { kind: 'liskarm-place', slotIds: ['route:A-route-01:slot:1', 'route:B-route-02:slot:1'] } });
   while ((await store.read(room.roomId))!.state.roundFlow!.stage === 'player-actions') {

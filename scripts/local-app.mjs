@@ -1,12 +1,13 @@
 import { mkdir, readFile } from "node:fs/promises";
 import { resolve, sep } from "node:path";
 import { PGlite } from "@electric-sql/pglite";
-import { loadFoundersBoard } from "@nomad-city-online/game-core";
+import { loadFoundersBoard, FOUNDERS_FACILITY_PANEL, PROJECT_BASE_FACILITY_STOCK } from "@nomad-city-online/game-core";
 import {
   createRoomSocketApplication,
   migrateRoomStore,
   migrateSessionStore,
   SessionService,
+  facilityCardView,
 } from "@nomad-city-online/server";
 
 /** Development harness only. Production RoomSocketModule never installs these fixture or static routes. */
@@ -37,6 +38,7 @@ export async function createLocalApplication({
     const catalog = {
       three: loadFoundersBoard("three-player"),
       four: loadFoundersBoard("four-player"),
+      facilities: { cards: PROJECT_BASE_FACILITY_STOCK.cards.map(c => facilityCardView(c.id)), cells: FOUNDERS_FACILITY_PANEL.cells },
     };
     app = await createRoomSocketApplication({
       sql,

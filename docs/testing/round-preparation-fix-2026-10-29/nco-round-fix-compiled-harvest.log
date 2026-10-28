@@ -1,0 +1,3 @@
+{"check":"PASS","games":3,"roundsPerGame":8,"playerWrites":493,"automaticWrites":105,"harvestWrites":78,"replacements":6,"rejectedWrites":6,"cleanupChoices":3,"restarts":3,"restoredGames":9,"restoredIndividualViews":27,"originalPlansAndCommittedResults":true,"manualStageCalls":0,"noInjectedState":true,"trustedDeterministicSetup":true,"database":"PGlite test only"}
+
+COMMAND_EXIT=0

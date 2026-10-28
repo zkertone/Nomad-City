@@ -114,6 +114,10 @@ function round(
     ),
   });
 }
+function placement(room: RoomSnapshot): RoomSnapshot {
+  while (core.getRoundTurn(room.state, room.definition).stage === 'role-removal') room = round(room, { type: 'remove-round-supply-card', cardId: room.state.facilities!.supply.supply.at(-1) });
+  return room;
+}
 describe("read-only authoritative round preparation options", () => {
   it("offers exactly the actual two-player supply without changing the saved state or hidden deck", () => {
     const room = snapshots.get(2)!,
@@ -144,9 +148,9 @@ describe("read-only authoritative round preparation options", () => {
     );
   });
   it.each([3, 4])(
-    "offers %i-player actor roles from the real reducer and gives nonactors no choices",
+    "offers every unplaced %i-player member their own real role choices",
     (count) => {
-      const room = snapshots.get(count)!,
+      const room = placement(snapshots.get(count)!),
         result = options(room);
       expect(result.options?.stage).toBe("role-placement");
       if (result.options?.stage !== "role-placement") return;
@@ -154,7 +158,7 @@ describe("read-only authoritative round preparation options", () => {
         core.FOUNDERS_BASE_ROLES.map((r) => r.id),
       );
       expect(result.options.recoversDiscard).toBe(false);
-      expect(options(room, "p2").options).toBeNull();
+      expect(options(room, "p2").options?.stage).toBe("role-placement");
       for (const role of result.options.roles)
         expect(() =>
           round(room, { type: "place-round-role", roleId: role.roleId }),
@@ -193,7 +197,7 @@ describe("read-only authoritative round preparation options", () => {
     expect(changed.state.stateVersion).toBe(room.state.stateVersion);
   });
   it("uses only the own remaining hand and permits original empty-hand discard recovery without executing it", () => {
-    const room = snapshots.get(3)!,
+    const room = placement(snapshots.get(3)!),
       s = core.gameStateSchema.parse(room.state),
       row = s.roundFlow!.rolesByPlayer[0]!;
     row.discarded = row.hand.splice(1);
@@ -216,7 +220,7 @@ describe("read-only authoritative round preparation options", () => {
     ).toBe("ROLE-04");
   });
   it("does not reveal a previous player placed role and returns no setup choices after everyone places", () => {
-    let room = snapshots.get(3)!;
+    let room = placement(snapshots.get(3)!);
     room = round(room, { type: "place-round-role", roleId: "ROLE-03" });
     const result = options(room, "p2");
     expect(JSON.stringify(result)).not.toMatch(/placed|hand|discarded/);
@@ -275,9 +279,17 @@ describe("read-only authoritative round preparation options", () => {
   it("keeps legacy manual rooms manual and does not create options before managed rounds exist", () => {
     const { lifecycle: _life, ...manual } = snapshots.get(3)!;
     expect(options(parseRoomSnapshot(manual)).options?.stage).toBe(
-      "role-placement",
+      "role-removal",
     );
     expect(options(entries.get(3)!).options).toBeNull();
+  });
+  it("projects the missing three-player choice from an unstarted legacy round without a query write", async () => {
+    const room = snapshots.get(3)!, raw = core.gameStateSchema.parse(room.state); raw.roundFlow!.stage = 'role-placement';
+    const old = parseRoomSnapshot({ ...room, state: raw }), compareAndSwap = vi.fn(async () => true);
+    const service = new RoomService({ create: async () => false, read: async () => old, compareAndSwap });
+    const result = await service.readRoundSetupOptions(old.roomId, { authenticatedUserId: 'user-p1' });
+    expect(result).toMatchObject({ status: 'ready', stateVersion: old.state.stateVersion, options: { stage: 'role-removal', actorId: 'p1' } });
+    expect(options(old, 'p2').options).toBeNull(); expect(old.state.roundFlow!.stage).toBe('role-placement'); expect(compareAndSwap).not.toHaveBeenCalled();
   });
   it("enforces membership and normalizes missing or failed storage without invoking a write", async () => {
     const room = snapshots.get(3)!,

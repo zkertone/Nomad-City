@@ -9,6 +9,8 @@ export const FOUNDERS_BASE_ROLES = deepFreeze([
 export const ROUND_RULE_SOURCE = deepFreeze({
   rulebookSha256: '6b87c026e317606de2324276ff117480b8e104f5b925a21d43b95af176ddbf42',
   printedPages: [3, 4, 5, 8, 10, 11, 14, 23], roleEffectsImplemented: true,
+  threePlayerRevision: { rulebook: '游城拓荒感染者-规则书20241111.pdf', printedPage: 4, pdfPage: 3,
+    rulebookSha256: 'f6d57d308d91bb90abee199c527b8b60650119ee73d2b4eb604db543e2404a0d' },
 });
 export const baseRoleIdSchema = z.enum(['ROLE-01', 'ROLE-02', 'ROLE-03', 'ROLE-04', 'ROLE-05']);
 const roleIds = z.array(baseRoleIdSchema).max(5);

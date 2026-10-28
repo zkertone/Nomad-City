@@ -106,3 +106,12 @@ describe('current-player guidance without executable authority', () => {
     expect(html).toContain('P1、P2 城邦'); expect(html).toContain('源岩 ×2'); expect(html).toContain('尚未揭示资源'); expect(html).toContain('disabled=""');
   });
 });
+
+
+it('gives every unplaced member a role choice and only waits after their own placement', () => {
+  const state = fixture(game({ round: round('role-placement', 'p2') }));
+  state.roundSetup = { status: 'ready', roomId: 'guide-room', gameId: 'guide-game', stateVersion: 7, blockedReason: null, options: { stage: 'role-placement', actorId: 'p1', recoversDiscard: false, roles: [] } };
+  expect(getPlayGuide(state)).toMatchObject({ tone: 'you', title: '轮到你盖放角色' });
+  state.game = game({ ...state.game!.public, players: [{ ...state.game!.public.players[0]!, roles: { handCount: 4, discardedRoleIds: [], hasPlacedRole: true, usedRole: null } }, state.game!.public.players[1]!] });
+  expect(getPlayGuide(state)).toMatchObject({ tone: 'waiting', title: '你已盖放角色' });
+});

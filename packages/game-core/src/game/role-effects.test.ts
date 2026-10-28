@@ -216,6 +216,7 @@ describe('Tin Man recovery and one move per recovered card', () => {
   it('uses the rotated round starting player rather than the original first seat for both modes', () => {
     const f = fixture('ROLE-05', 3, 'p2'); let state = completedRound(f.state, f.definition);
     expect(state.playerOrder![0]).toBe('p2');
+    while (getRoundTurn(state, f.definition).stage === 'role-removal') state = roundSend(state, f.definition, { type: 'remove-round-supply-card', cardId: state.facilities!.supply.supply.at(-1) });
     while (state.roundFlow!.stage === 'role-placement') state = roundSend(state, f.definition, { type: 'place-round-role', roleId: getRoundTurn(state, f.definition).actorId === 'p2' ? 'ROLE-05' : 'ROLE-01' });
     const current = { ...f, state };
     const next = run(current, command(current, { kind: 'tin-point' }, 'both', { kind: 'recover-roles', rewards: [] }));
@@ -287,6 +288,7 @@ describe('quick action timing, atomic failures, privacy and lifecycle integratio
     state = completedRound(state, f.definition);
     expect(state.schemaVersion).toBe('1.8.0'); expect(state.playerOrder![0]).toBe('p2'); expect(ownedRoles(state)).toMatchObject({ placed: null, discarded: ['ROLE-02'], used: null });
     expect(ownedRoles(state).hand).not.toContain('ROLE-02');
+    while (getRoundTurn(state, f.definition).stage === 'role-removal') state = roundSend(state, f.definition, { type: 'remove-round-supply-card', cardId: state.facilities!.supply.supply.at(-1) });
     while (state.roundFlow!.stage === 'role-placement') state = roundSend(state, f.definition, { type: 'place-round-role', roleId: getRoundTurn(state, f.definition).actorId === 'p1' ? 'ROLE-05' : 'ROLE-01' });
     state = dispatchTurn(state, f.definition); state = dispatchTurn(state, f.definition);
     const tin = { ...f, roleId: 'ROLE-05', state }, cash = state.players.p1!.balances['columbia-voucher'];

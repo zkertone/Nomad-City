@@ -118,6 +118,8 @@ try {
   ).json();
   assert.equal(Object.keys(catalog.three.resourceNodes).length, 18);
   assert.equal(Object.keys(catalog.four.resourceNodes).length, 22);
+  assert.equal(catalog.facilities.cards.length, 51); assert.equal(catalog.facilities.cells.length, 12);
+  assert.doesNotMatch(JSON.stringify(catalog.facilities), /drawPile|members|placedRoleId/);
   const ordinary = await createRoomSocketApplication({
     sql: local.sql,
     allowedOrigins: [origin],
@@ -229,7 +231,7 @@ try {
     while (
       ["role-removal", "role-placement"].includes(view.public.round.stage)
     ) {
-      let acting, options;
+      let acting, options, eligible = 0;
       for (const [i, socket] of sockets.entries()) {
         const current = await rpc(socket, "room:round-setup-options", {
           roomId: id,
@@ -238,13 +240,15 @@ try {
         assert.equal(current.blockedReason, null);
         assert.equal(current.stateVersion, view.public.stateVersion);
         if (current.options) {
-          assert.equal(acting, undefined);
+          eligible++;
+          if (current.options.stage === "role-removal") assert.equal(acting, undefined);
           acting = i;
           options = current;
         }
       }
       assert.notEqual(acting, undefined);
       const choice = options.options;
+      assert.equal(eligible, choice.stage === "role-placement" ? count - placed : 1);
       const candidate =
         choice.stage === "role-removal"
           ? choice.cards.find((card) => card.legal)
@@ -294,7 +298,7 @@ try {
       for (const player of view.public.players)
         assert.equal(Object.hasOwn(player.roles, "placedRoleId"), false);
     }
-    assert.equal(removed, count === 2 ? 2 : 0);
+    assert.equal(removed, count === 2 ? 2 : count === 3 ? 1 : 0);
     assert.equal(placed, count);
     assert.equal(view.public.round.stage, "player-actions");
     assert.equal(
@@ -367,7 +371,7 @@ try {
   }
   assert.equal(entryWrites, 19);
   assert.equal(autoWrites, 30);
-  assert.equal(roundSetupWrites, 11);
+  assert.equal(roundSetupWrites, 12);
   for (const peer of peers) peer.disconnect();
   peers.clear();
   await local.close();

@@ -1,0 +1,12 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+ RUN  v5.0.4 /workspace/scratch/d9545625f110/Nomad-City-Restored
+
+
+ Test Files  7 passed (7)
+      Tests  422 passed (422)
+   Start at  01:40:31
+   Duration  49.39s (tests 98%, import 1%, transform 1%)
+
+
+COMMAND_EXIT=0

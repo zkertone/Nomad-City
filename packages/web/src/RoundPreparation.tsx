@@ -48,7 +48,7 @@ export function RoundPreparation({
   const [selected, setSelected] = useState("");
   useEffect(() => {
     setSelected("");
-  }, [result?.stateVersion, view.public.gameId]);
+  }, [view.public.gameId, view.public.round?.roundNumber, view.public.round?.stage, view.private.placedRoleId]);
   const options = result?.options,
     turn = view.public.round;
   const removal = options?.stage === "role-removal" ? options : null,
@@ -75,10 +75,10 @@ export function RoundPreparation({
         {removal
           ? "选择要移出本局的一张公开供应设施。确认后，服务端补齐供应。"
           : placement
-            ? "从自己的可用角色中选择一张盖放。其他玩家看不到你的选择。"
+            ? "所有未盖放玩家可独立选择角色并确认，不分先后；其他玩家看不到你的选择。"
             : turn?.stage === "player-actions"
               ? `当前行动玩家：${turn.actorId?.toUpperCase() ?? "等待中"}。`
-              : `等待 ${turn?.actorId?.toUpperCase() ?? "当前玩家"} 完成回合准备。`}
+              : turn?.stage === "role-placement" ? "你已盖放角色，等待其余玩家确认。" : `等待 ${turn?.actorId?.toUpperCase() ?? "当前玩家"} 完成回合准备。`}
       </p>
       {result?.blockedReason && (
         <div className="message" role="status">

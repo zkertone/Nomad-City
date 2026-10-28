@@ -122,7 +122,7 @@ try {
     assert.equal(game.view.public.round.majorActionStatus, 'not-started'); assert.equal((await options(game)).quick.role, null);
   }
   await restart(); // per-recipient role use/discards with the major action still available
-  assert.equal(playerWrites, 66); assert.equal(automaticWrites, 30); assert.equal(declarations, 3); assert.equal(specials, 3); assert.equal(roleUses, 6); assert.equal(constructions, 3); assert.equal(deniedPreviews, 6); assert.equal(restarts, 3);
+  assert.equal(playerWrites, 67); assert.equal(automaticWrites, 30); assert.equal(declarations, 3); assert.equal(specials, 3); assert.equal(roleUses, 6); assert.equal(constructions, 3); assert.equal(deniedPreviews, 6); assert.equal(restarts, 3);
   console.log(JSON.stringify({ check: 'PASS', games: 3, playerWrites, automaticWrites, constructions, roleUses, declarations, specials, deniedPreviews, restarts,
     restoredGames: 9, restoredIndividualViews: 27, actualConstructionAndIncome: true, trustedDeterministicSetup: true, database: 'PGlite test only' }));
 } finally { for (const peer of peers) peer.disconnect(); if (local) await local.close(); await rm(directory, { recursive: true, force: true }); }

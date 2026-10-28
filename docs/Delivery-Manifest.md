@@ -679,3 +679,12 @@
 ## 2026-10-28 · 2D操作指引与保存反馈
 
 基准main81d92b2；新增web/play-guide／PlayGuide及22项语义／状态测试，原client新增6项反馈／在途／撤销测试并修正保存后同步失败提示，主页面／MajorActionPanel／RoundPreparation／Board2D及样式接入。server/harvest-options仅修正派生plan可空类型，与原实际值一致。新增Play-Guide、双人整局人工待执行清单、play-guide-validation与原始记录；README／Local-Run／上一批历史提示／DevLog及本清单同步。恢复后完整43文件2713/2713、strict／三包构建退出0，两项编译流程PASS，原八回合恢复流程485玩家／105自动写入、三次整体重启／27个人视图，10份原始记录保留中断与类型失败。中断全量不计通过，原game-core／规则资料／摘要／存档／ADR／package／锁文件不变，不含node_modules、dist、凭证、原图、临时库或部署。浏览器点击／视觉仍待验收，2.5D按负责人偏好暂不推进，按既有授权保存main。
+
+
+## 2026-10-29 · 三人准备修订与常驻面板增量
+
+基准main11712201ff92e5d6296fa599fb9a215a4b20f0fd；按负责人指出的《感染者》20241111印刷p4三人修订补每轮先手供应设施回盒，双人两次／四人零次保持。独立盖放按负责人优化，主要行动顺序不变；旧档未盖放只读投影待移牌，已有盖放保留到下轮。玩家面板公开设施／核心塔与效果，静态目录51卡／12格，不公开暗牌或当前牌序。
+
+本批交付round-preparation与round／invariants／来源标识、准备候选／指引、PlayerPanels及语义测试、五项编译流程适配，修订说明与验证文档，以及docs/testing/round-preparation-fix-2026-10-29/下16份原始日志（失败保留）。最终44文件2721项、strict／三包构建及五项编译流程退出0。check-local-web初次脚本变量误改失败，已修正并重跑通过，不计初次为成功。详细数字与范围见round-preparation-fix-validation-2026-10-29.md。
+
+本批修改规则核心，但不改存档字段／版本、原PDF／地图／卡牌数据、ADR、依赖锁或项目版本；不含node_modules／dist／凭证／测试数据库／规则原图。浏览器点击和视觉、原生PostgreSQL及部署未验收，企业家／完整三档等待确认项不冒称完成；2.5D继续暂缓。按既有授权提交main。

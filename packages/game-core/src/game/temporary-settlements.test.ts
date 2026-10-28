@@ -91,7 +91,7 @@ describe('project-base temporary settlements', () => {
     if (kind === 'duplicate') options = { ...opts, deckOrder: projectDeck.map((id, i) => i === 1 ? projectDeck[0] : id) };
     if (kind === 'foreign') options = { ...opts, deckOrder: projectDeck.map((id, i) => i === 1 ? 'FC:FAC-019:red:01' : id) };
     if (kind === 'extra-option') options = { ...opts, free: true };
-    if (kind === 'already-playing') state = round(state, f.definition, { type: 'place-round-role', roleId: 'ROLE-02' });
+    if (kind === 'already-playing') { state = round(state, f.definition, { type: 'remove-round-supply-card', cardId: state.facilities!.supply.supply.at(-1) }); options = { ...opts, expectedVersion: state.stateVersion }; }
     if (kind === 'twice') state = core.enableTemporarySettlements(state, f.definition, opts);
     const before = JSON.stringify(state);
     expect(() => core.enableTemporarySettlements(state, f.definition, options as typeof opts)).toThrow(); expect(JSON.stringify(state)).toBe(before);
@@ -153,6 +153,7 @@ describe('project-base temporary settlements', () => {
   });
   it('rejects new return choices on old snapshots while preserving normal old declarations', () => {
     const f = fresh(); let s = f.state;
+    while (core.getRoundTurn(s, f.definition).stage === 'role-removal') s = round(s, f.definition, { type: 'remove-round-supply-card', cardId: s.facilities!.supply.supply.at(-1) });
     while (s.roundFlow!.stage === 'role-placement') s = round(s, f.definition, { type: 'place-round-role', roleId: 'ROLE-02' });
     expect(() => core.applyCityPatternCommand(s, f.definition, { authenticatedPlayerId: 'p1' }, { ...env(s), type: 'declare-city-pattern', patternId: 'PAT-001', facilityCardIds: ['x', 'y'], returnTemporaryFacilityIds: [] })).toThrow(/1.16.0/);
     expect(saved(s, f.definition).schemaVersion).toBe('1.15.0');

@@ -1,3 +1,4 @@
+import { requiredRoundSupplyRemovals, roundPreparationStage } from './round-preparation.js';
 import { getFinalScoringResult } from './final-scoring.js';
 import { z } from 'zod';
 import { resetCityPatternsForCleanup } from './city-pattern-rules.js';
@@ -51,7 +52,7 @@ export function beginRoundFlow(input: GameState, definition: GameDefinition, raw
   catch (error) { return reject('FACILITY_SETUP', error instanceof Error ? error.message : String(error)); }
   return parseGameState({ ...prepared.position, schemaVersion: '1.7.0', phase: 'round-control', stateVersion: prepared.stateVersion,
     playerOrder: prepared.playerOrder, eventDecks: prepared.eventDecks, facilities: { supply, panels: createInitialFacilityPanels(supply) },
-    roundFlow: { roundNumber: 1, stage: definition.players.length === 2 ? 'role-removal' : 'role-placement', supplyRemovalCount: 0,
+    roundFlow: { roundNumber: 1, stage: requiredRoundSupplyRemovals(definition.players.length) ? 'role-removal' : 'role-placement', supplyRemovalCount: 0,
       rolePlacementCount: 0, turnIndex: 0, majorActionOpened: false,
       rolesByPlayer: definition.players.map(player => ({ playerId: player.id, hand: FOUNDERS_BASE_ROLES.map(role => role.id), discarded: [], placed: null })) },
   }, definition);
@@ -62,10 +63,13 @@ function checkedRound(input: GameState, definition: GameDefinition) {
   if (!state.roundFlow) return reject('ROUND_REQUIRED', 'This snapshot has no managed round schedule');
   return state;
 }
-function currentActor(state: GameState, playerCount: number): string | null {
+function currentActor(state: GameState, definition: GameDefinition): string | null {
+  const playerCount = definition.players.length;
   const flow = state.roundFlow!;
-  if (flow.stage === 'role-removal') return state.playerOrder![flow.supplyRemovalCount]!;
-  if (flow.stage === 'role-placement') return state.playerOrder![flow.rolePlacementCount]!;
+  const stage = roundPreparationStage(state, definition);
+  if (stage === 'role-removal') return state.playerOrder![flow.supplyRemovalCount]!;
+  // Compatibility hint only; any authenticated, unplaced member can place a role.
+  if (stage === 'role-placement') return state.playerOrder!.find(id => { const row = flow.rolesByPlayer.find(r => r.playerId === id)!; return row.placed === null && !row.used; }) ?? null;
   if (flow.stage === 'cleanup') return pendingLiskarmPlayers(state)[0] ?? null;
   return flow.stage === 'player-actions' ? state.playerOrder![flow.turnIndex % playerCount]! : null;
 }
@@ -86,7 +90,7 @@ function actionUnstarted(state: GameState): boolean {
 /** Returns current scheduling facts only. Unsupported quick actions are not treated as executed. */
 export function getRoundTurn(input: GameState, definition: GameDefinition) {
   const state = checkedRound(input, definition), flow = state.roundFlow!;
-  return deepFreeze({ roundNumber: flow.roundNumber, stage: flow.stage, actorId: currentActor(state, definition.players.length),
+  return deepFreeze({ roundNumber: flow.roundNumber, stage: roundPreparationStage(state, definition), actorId: currentActor(state, definition),
     cycle: flow.stage === 'player-actions' ? Math.floor(flow.turnIndex / definition.players.length) + 1 : null,
     majorActionStatus: flow.stage !== 'player-actions' ? null : state.cityPatternContinuation ? 'pending' : patternMajorActionReady(state) || !flow.majorActionOpened ? 'not-started' : actionComplete(state) ? 'complete' : 'pending',
     ...(state.cityPatternMajorActions !== undefined ? { patternActions: state.cityPatternMajorActions } : {}),
@@ -100,8 +104,10 @@ export function applyRoundCommand(input: GameState, definition: GameDefinition, 
   const command = parsed.data, flow = state.roundFlow!;
   if (command.gameId !== state.gameId) return reject('GAME_REFERENCE', 'Wrong round game');
   if (command.expectedVersion !== state.stateVersion) return reject('STALE_VERSION', 'Expected state version is stale');
-  const actorId = currentActor(state, definition.players.length);
-  if (actorId === null || context.authenticatedPlayerId !== actorId) return reject('WRONG_ACTOR', 'Only the scheduled player may act');
+  const scheduled = currentActor(state, definition), placing = command.type === 'place-round-role' && roundPreparationStage(state, definition) === 'role-placement';
+  const actorId = placing ? context.authenticatedPlayerId : scheduled;
+  if (!definition.players.some(p => p.id === actorId) || (!placing && (actorId === null || context.authenticatedPlayerId !== actorId))) return reject('WRONG_ACTOR', 'Only an entitled member may act');
+  if (!actorId) return reject('WRONG_ACTOR', 'No scheduled member');
   if (state.stateVersion === Number.MAX_SAFE_INTEGER) return reject('VERSION_OVERFLOW', 'State version exhausted');
   if (command.type === 'choose-major-action') {
     if (flow.stage !== 'player-actions' || state.phase !== 'round-control' || (flow.majorActionOpened && !patternMajorActionReady(state))) return reject('MAJOR_ACTION_USED', 'Use only the scheduled ordinary or pattern-granted major action');
@@ -120,7 +126,7 @@ export function applyRoundCommand(input: GameState, definition: GameDefinition, 
     finishPatternMajorAction(next); next.stateVersion++; return parseGameState(next, definition);
   }
   if (command.type === 'remove-round-supply-card') {
-    if (flow.stage !== 'role-removal' || state.phase !== 'round-control') return reject('ROUND_STAGE', 'Only two-player pre-placement removal accepts this command');
+    if (roundPreparationStage(state, definition) !== 'role-removal' || state.phase !== 'round-control') return reject('ROUND_STAGE', 'Remove supply cards only during the required pre-placement decision');
     const supply = next.facilities!.supply, index = supply.supply.indexOf(command.cardId);
     if (index < 0) return reject('CARD_SOURCE', 'Choose a current supply card');
     if (supply.supply.length !== 6 || !supply.drawPile.length) return reject('REFILL_UNRESOLVED', 'Cannot complete the required immediate refill');
@@ -130,10 +136,11 @@ export function applyRoundCommand(input: GameState, definition: GameDefinition, 
     if (refill.status !== 'replenished') return reject('REFILL_UNRESOLVED', 'Required immediate refill did not finish');
     next.facilities!.supply = facilitySupplyStateSchema.parse(refill.state);
     progress.supplyRemovalCount++;
-    if (progress.supplyRemovalCount === 2) progress.stage = 'role-placement';
+    if (progress.supplyRemovalCount === requiredRoundSupplyRemovals(definition.players.length)) progress.stage = 'role-placement';
   } else if (command.type === 'place-round-role') {
-    if (flow.stage !== 'role-placement' || state.phase !== 'round-control') return reject('ROUND_STAGE', 'Place one facedown role during placement');
+    if (roundPreparationStage(state, definition) !== 'role-placement' || state.phase !== 'round-control') return reject('ROUND_STAGE', 'Place one facedown role during placement');
     const roles = progress.rolesByPlayer.find(row => row.playerId === actorId)!;
+    if (roles.placed !== null || roles.used) return reject('ROLE_ALREADY_PLACED', 'This member already placed a role');
     // p05/p11: recover the discard only when the hand is empty, before choosing this round's role.
     if (!roles.hand.length) roles.hand.push(...roles.discarded.splice(0));
     const index = roles.hand.indexOf(command.roleId);
@@ -189,7 +196,7 @@ export function finishManagedRound(input: GameState, definition: GameDefinition,
   if (flow.completedMajorAction !== undefined) flow.completedMajorAction = null;
   flow.supplyRemovalCount = 0; flow.rolePlacementCount = 0; flow.turnIndex = 0; flow.majorActionOpened = false;
   if (flow.roundNumber === 8) flow.stage = 'finished';
-  else { flow.roundNumber++; flow.stage = definition.players.length === 2 ? 'role-removal' : 'role-placement'; }
+  else { flow.roundNumber++; flow.stage = requiredRoundSupplyRemovals(definition.players.length) ? 'role-removal' : 'role-placement'; }
   next.stateVersion++;
   return parseGameState(next, definition);
 }

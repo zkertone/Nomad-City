@@ -165,7 +165,7 @@ try {
     const saved = await new PostgresRoomStore(local.sql).read(game.id);
     assert.equal(Object.keys(core.getMarkerLedger(saved.state, saved.definition)).length, game.count * 30);
   }
-  assert.equal(playerWrites, 108); assert.equal(automaticWrites, 60); assert.equal(constructions, 6); assert.equal(roleUses, 6);
+  assert.equal(playerWrites, 110); assert.equal(automaticWrites, 60); assert.equal(constructions, 6); assert.equal(roleUses, 6);
   assert.equal(events, 6); assert.equal(finalPlacements, 6); assert.equal(routePlacements, 3); assert.equal(restarts, 4);
   console.log(JSON.stringify({ check: 'PASS', games: 6, playerWrites, automaticWrites, constructions, roleUses, warehouseExplorations: 3,
     freeCityMoves: 3, events, finalPlacements, routePlacements, restarts, restoredSnapshots: 24,
