@@ -5,7 +5,7 @@ import type {
   EntryOptionsResult,
   ActionOptionsResult,
   ExplorationRouteResult,
-  ConstructionDraft, ConstructionPreviewResult,
+  ConstructionDraft, ConstructionPreviewResult, QuickDraft, QuickPreviewResult,
   LobbyView,
   RoomSummary,
   RoundSetupOptionsResult,
@@ -17,7 +17,7 @@ export type RoundPreparationCommand =
 
 export type MajorActionCommand =
   | { readonly type: "choose-major-action"; readonly action: "deploy" | "dispatch" | "explore" | "city-move" | "construct" }
-  | { readonly type: "cancel-major-preparation" | "finish-player-turn" };
+  | { readonly type: "cancel-major-preparation" | "finish-player-turn" | "finish-pattern-action" };
 export type InfluenceCommand =
   | { readonly type: "deploy-influence"; readonly slotId: string }
   | { readonly type: "dispatch-influence"; readonly sourceSlotId: string; readonly targetSlotId: string }
@@ -411,7 +411,7 @@ export class CityClient {
     const roomId = this.state.roomId;
     if (!roomId) return;
     const entryPhase = !!this.state.game?.public.entry;
-    const actionPhase = this.state.game?.public.round?.stage === "player-actions";
+    const actionPhase = ["player-actions", "cleanup"].includes(this.state.game?.public.round?.stage ?? "");
     const result = await this.rpc<
       Extract<EntryOptionsResult | RoundSetupOptionsResult | ActionOptionsResult, { status: "ready" }>
     >(entryPhase ? "room:entry-options" : actionPhase ? "room:action-options" : "room:round-setup-options", { roomId });
@@ -466,8 +466,20 @@ export class CityClient {
     return this.state.roomId === result.roomId && this.state.game?.public.gameId === result.gameId &&
       this.state.game.public.stateVersion === result.stateVersion && result.stateVersion === game.public.stateVersion ? result : null;
   }
+  async quickCommand(draft: QuickDraft) {
+    return this.playerCommand(draft.channel, draft.command);
+  }
+  async quickPreview(draft: QuickDraft): Promise<Extract<QuickPreviewResult, { status: "ready" }> | null> {
+    const { game, roomId } = this.state;
+    if (!game || !roomId) return null;
+    const result = await this.rpc<Extract<QuickPreviewResult, { status: "ready" }>>("room:quick-preview", {
+      roomId, channel: draft.channel, command: { gameId: game.public.gameId, expectedVersion: game.public.stateVersion, ...draft.command },
+    });
+    return this.state.roomId === result.roomId && this.state.game?.public.gameId === result.gameId &&
+      this.state.game.public.stateVersion === result.stateVersion && result.stateVersion === game.public.stateVersion ? result : null;
+  }
   private async playerCommand(
-    channel: "entry" | "round" | "influence" | "exploration" | "city-move" | ConstructionDraft["channel"],
+    channel: "entry" | "round" | "influence" | "exploration" | "city-move" | ConstructionDraft["channel"] | QuickDraft["channel"],
     command: Record<string, unknown>,
   ) {
     const { game, roomId } = this.state;

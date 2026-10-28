@@ -5,7 +5,7 @@ import type {
   EventEffect,
   ExplorationPathStep,
 } from "@nomad-city-online/game-core";
-import type { ConstructionDraft } from "@nomad-city-online/server";
+import type { ConstructionDraft, QuickDraft } from "@nomad-city-online/server";
 import { CityClient } from "./client.js";
 import "./style.css";
 import { BoardRenderer } from "./renderers/BoardRenderer.js";
@@ -13,6 +13,7 @@ import { RoundPreparation } from "./RoundPreparation.js";
 import { MajorActionPanel } from "./MajorActionPanel.js";
 
 const client = new CityClient(sessionStorage);
+const previewQuick = (draft: QuickDraft) => client.quickPreview(draft);
 const previewConstruction = (draft: ConstructionDraft) => client.constructionPreview(draft);
 const previewExploration = (path: readonly ExplorationPathStep[]) => client.explorationPreview(path);
 const assets: Record<string, string> = {
@@ -699,7 +700,7 @@ function App() {
                     }
                   }}
                 />
-                {game.public.round?.stage === "player-actions" ? <MajorActionPanel
+                {["player-actions", "cleanup"].includes(game.public.round?.stage ?? "") ? <MajorActionPanel
                   view={game} result={state.actionOptions} selectedSlotId={actionSlot}
                   sourceSlotId={sourceSlot} disabled={blocked}
                   onRound={command => run(() => client.majorActionCommand(command))}
@@ -709,6 +710,8 @@ function App() {
                   preview={previewExploration}
                   onConstruction={draft => run(() => client.constructionCommand(draft))}
                   previewConstruction={previewConstruction}
+                  onQuick={draft => run(() => client.quickCommand(draft))}
+                  previewQuick={previewQuick}
                   onResetSource={() => { setSourceSlot(""); setActionSlot(""); }}
                 /> : <section className="card decision">
                   <div className="eyebrow">YOUR DECISION / 玩家决策</div>

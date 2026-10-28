@@ -133,6 +133,40 @@ describe('durable opaque sessions', () => {
 });
 
 describe('real loopback Socket.IO session, membership and recovery boundary', () => {
+  it('previews actor-only role use and commits the original role before a major action without spending that action', async () => {
+    let s = await fixture(true);
+    for (const upgrade of [core.enableBaseRoleEffects, core.enableLiskarmEffects, core.enableRemainingBaseRoleEffects, core.enableWarehouseEntries, core.enableNestedFacilityEntries]) {
+      const next = upgrade(s.state, s.definition, { expectedVersion: s.state.stateVersion }); expect(await store.compareAndSwap(s.roomId, s.state.stateVersion, next)).toBe(true); s = parseRoomSnapshot({ ...s, state: next });
+    }
+    const a = await asUser('bob'), b = await asUser('alice');
+    const own = (await call(a.socket, 'room:subscribe', { roomId: s.roomId })).view;
+    const command = { gameId: own.public.gameId, expectedVersion: own.public.stateVersion, type: 'use-base-role', roleId: 'ROLE-03', mode: 'strategy', strategyChoice: { kind: 'cycle-facility', cardId: own.public.facilities.supply.supply[0] } };
+    const req = { roomId: s.roomId, channel: 'role', command }, before = await store.read(s.roomId);
+    expect((await call(a.socket, 'room:quick-preview', req)).options.execution.legal).toBe(true);
+    expect((await call(b.socket, 'room:quick-preview', req)).options).toBeNull(); expect(await store.read(s.roomId)).toEqual(before);
+    const result = await call(a.socket, 'room:command', { roomId: s.roomId, request: { apiVersion: '1.0.0', requestId: 'quick-role', channel: 'role', command } });
+    expect(result.status).toBe('committed'); expect(result.view.public.players[0].balances['columbia-voucher']).toBe(22);
+    expect(result.view.public.round.majorActionStatus).toBe('not-started'); expect(result.view.private.placedRoleId).toBeNull();
+    expect((await call(a.socket, 'room:action-options', { roomId: s.roomId })).options.quick.role).toBeNull();
+  });
+  it('rejects quick identity/channel injection, nonmembers, stale references and storage errors without a commit', async () => {
+    const s = await fixture(true), a = await asUser('bob'), outsider = await asUser('quick-outsider');
+    const req = { roomId: s.roomId, channel: 'role', command: { type: 'use-base-role', roleId: 'ROLE-03', mode: 'strategy', strategyChoice: { kind: 'cycle-facility', cardId: s.state.facilities!.supply.supply[0] }, gameId: s.state.gameId, expectedVersion: s.state.stateVersion } };
+    expect(await call(a.socket, 'room:quick-preview', { ...req, playerId: 'p2' })).toMatchObject({ error: { code: 'INVALID_MESSAGE' } });
+    expect(await call(a.socket, 'room:quick-preview', { ...req, channel: 'round' })).toMatchObject({ error: { code: 'INVALID_MESSAGE' } });
+    expect(await call(outsider.socket, 'room:quick-preview', req)).toEqual(await call(outsider.socket, 'room:quick-preview', { ...req, roomId: 'missing' }));
+    expect((await call(a.socket, 'room:quick-preview', { ...req, command: { ...req.command, expectedVersion: 0 } })).options).toBeNull();
+    vi.spyOn(gatewayStore, 'read').mockRejectedValueOnce(Error('PRIVATE_SQL'));
+    expect(await call(a.socket, 'room:quick-preview', req)).toEqual({ status: 'unavailable', error: { code: 'STORAGE_UNAVAILABLE' } }); expect(await store.read(s.roomId)).toEqual(s);
+  });
+  it('drops quick previews when a credential is revoked during the query', async () => {
+    const s = await fixture(true), a = await asUser('bob'), blocked = deferred(), release = deferred(), service = app.get(RoomService), original = service.readQuickPreview.bind(service);
+    vi.spyOn(service, 'readQuickPreview').mockImplementationOnce(async (...args) => { const result = await original(...args); blocked.resolve(); await release.promise; return result; });
+    let acknowledged = false; const invalidated = event(a.socket, 'session:invalidated');
+    a.socket.emit('room:quick-preview', { roomId: s.roomId, channel: 'role', command: { gameId: s.state.gameId, expectedVersion: s.state.stateVersion, type: 'use-base-role', roleId: 'ROLE-05', mode: 'strategy', strategyChoice: { kind: 'tin-point' } } }, () => { acknowledged = true; });
+    await blocked.promise; await sessions.revoke(a.token); release.resolve(); await invalidated; expect(acknowledged).toBe(false);
+  });
+
   it('previews and persists construction before resolving warehouse influence through the original entry channel', async () => {
     let s = await fixture(true);
     // Actual additive legacy upgrades, each persisted as its own version; no fabricated balances or panels.

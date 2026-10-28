@@ -12,6 +12,8 @@ import { getTravelOptions } from './travel-options.js';
 import type { TravelOptions } from './travel-options.js';
 import { getConstructionOptions } from './construction-options.js';
 import type { ConstructionOptions } from './construction-options.js';
+import { getQuickOptions } from './quick-options.js';
+import type { QuickOptions } from './quick-options.js';
 export type { ActionPermission } from './action-permission.js';
 export interface ActionOptions {
   readonly actorId: string;
@@ -23,6 +25,8 @@ export interface ActionOptions {
     readonly deploymentSlotIds: readonly string[];
     readonly dispatches: readonly { readonly sourceSlotId: string; readonly targetSlotIds: readonly string[] }[];
   } | null;
+  readonly quick: QuickOptions;
+  readonly finishPattern: ActionPermission;
   readonly construction: ConstructionOptions | null;
   readonly travel: TravelOptions | null;
   readonly cancelPreparation: ActionPermission;
@@ -40,7 +44,7 @@ export function getRoomActionOptions(snapshot: RoomSnapshot, playerId: string): 
   const { state, definition } = snapshot;
   const pending = automaticProgress(snapshot)?.status === 'pending';
   let options: ActionOptions | null = null;
-  if (!pending && state.roundFlow?.stage === 'player-actions' && getRoundTurn(state, definition).actorId === playerId) {
+  if (!pending && state.roundFlow && ['player-actions', 'cleanup'].includes(state.roundFlow.stage) && getRoundTurn(state, definition).actorId === playerId) {
     const action = state.phase === 'influence-action' ? state.influenceAction : null;
     let deploymentSlotIds: readonly string[] = [], dispatches: NonNullable<ActionOptions['influence']>['dispatches'] = [];
     if (action?.kind === 'deploy') {
@@ -57,10 +61,12 @@ export function getRoomActionOptions(snapshot: RoomSnapshot, playerId: string): 
     }
     options = {
       actorId: playerId,
-      actions: (['deploy', 'dispatch', 'explore', 'city-move', 'construct'] as const).map(action => ({ action,
+      actions: state.roundFlow.stage === 'cleanup' ? [] : (['deploy', 'dispatch', 'explore', 'city-move', 'construct'] as const).map(action => ({ action,
         ...permission(snapshot, playerId, 'round', { type: 'choose-major-action', action }) })),
       influence: action ? { kind: action.kind, status: action.status, operationsCompleted: action.operationsCompleted,
         deploymentSlotIds, dispatches } : null,
+      quick: getQuickOptions(snapshot, playerId),
+      finishPattern: permission(snapshot, playerId, 'round', { type: 'finish-pattern-action' }),
       construction: getConstructionOptions(snapshot, playerId),
       travel: getTravelOptions(snapshot, playerId),
       cancelPreparation: permission(snapshot, playerId, 'round', { type: 'cancel-major-preparation' }),

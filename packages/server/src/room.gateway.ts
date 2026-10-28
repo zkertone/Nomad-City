@@ -21,6 +21,8 @@ import { explorationRouteRequestSchema } from './travel-options.js';
 import type { ExplorationRouteResult } from './travel-options.js';
 import { constructionPreviewRequestSchema } from './construction-options.js';
 import type { ConstructionPreviewResult } from './construction-options.js';
+import { quickPreviewRequestSchema } from './quick-options.js';
+import type { QuickPreviewResult } from './quick-options.js';
 import type { AutomaticProgress } from './automatic-lifecycle.js';
 import { ROOM_SOCKET_OPTIONS, SOCKET_PROTOCOL_VERSION, socketAuthSchema, socketCommandSchema, socketRoomSchema, socketEmptySchema } from './socket-protocol.js';
 import type { RoomSocketOptions, SessionInfo, SessionLogoutResult, SocketFailure } from './socket-protocol.js';
@@ -285,6 +287,17 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       try {
         const principal = await this.authenticate(socket); if ('status' in principal) return principal;
         const result = await this.rooms.readConstructionPreview(checked.data, principal);
+        const current = await this.authenticate(socket); return 'status' in current ? current : result;
+      } catch { return failure('SERVER_UNAVAILABLE'); }
+    });
+  }
+  @SubscribeMessage('room:quick-preview')
+  async quickPreview(@ConnectedSocket() socket: Socket, @MessageBody() payload: unknown): Promise<QuickPreviewResult | SocketFailure> {
+    const checked = quickPreviewRequestSchema.safeParse(payload); if (!checked.success) return failure('INVALID_MESSAGE');
+    return this.queue.run(checked.data.roomId, async () => {
+      try {
+        const principal = await this.authenticate(socket); if ('status' in principal) return principal;
+        const result = await this.rooms.readQuickPreview(checked.data, principal);
         const current = await this.authenticate(socket); return 'status' in current ? current : result;
       } catch { return failure('SERVER_UNAVAILABLE'); }
     });

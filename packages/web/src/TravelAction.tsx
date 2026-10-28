@@ -49,6 +49,7 @@ export function TravelAction({ travel, disabled, preview, onExplore, onMove }: {
   const move = travel.moves.find(m => `${m.routeId}|${m.nodeId}` === moveId);
   return <div className="travel-action">
     <h3>{travel.kind === 'explore' ? '探索' : '城市移动'}{travel.targetNodeId ? ` · ${travel.targetNodeId}` : ''}</h3>
+    {travel.remainingMoves !== null && <p>当前样式移城剩余 {travel.remainingMoves} 次（含当前步骤）。</p>}
     {travel.status === 'ready' && travel.kind === 'explore' && <>
       <p>逐段选择航道及到达点，最后停在未探索资源点；重复经过同一航道仅收费一次。</p>
       <ol className="travel-path">{path.map((step, i) => <li key={i}>{step.routeId} → {step.toNodeId}</li>)}</ol>

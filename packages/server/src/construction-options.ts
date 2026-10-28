@@ -3,7 +3,7 @@ import {
   deepFreeze, gameEntityIdSchema, constructionPlayerCommandSchema, nestedFacilityEntryCommandSchema, warehouseEntryPlayerCommandSchema,
   getConstructionQuote, getFacilityConstructionQuote, FacilityConstructionError,
   FOUNDERS_FACILITY_PANEL, getFacilityPhysicalCard, getFacilityExecutionFace, getFacilityEffectText,
-  getEmptyFacilityPanelCells, getNestedFacilityEntryOptions, getRoundTurn,
+  getEmptyFacilityPanelCells, getNestedFacilityEntryOptions, getRoundTurn, getCityPatternContinuationOptions,
 } from '@nomad-city-online/game-core';
 import type { ConstructionPlayerCommand } from '@nomad-city-online/game-core';
 import type { RoomSnapshot } from './room-state.js';
@@ -22,6 +22,7 @@ export function facilityCardView(cardId: string) {
     points: face.printedScore, effect: getFacilityEffectText(card.facilityId), printedCost: face.constructionCost };
 }
 export interface ConstructionOptions {
+  readonly source: 'supply' | 'authorized-deck-search';
   readonly status: 'ready' | 'entry-pending' | 'complete';
   readonly cells: readonly { readonly id: string; readonly row: number; readonly column: number;
     readonly card: ReturnType<typeof facilityCardView> | null }[];
@@ -40,10 +41,14 @@ export interface ConstructionOptions {
 }
 export function getConstructionOptions(snapshot: RoomSnapshot, actorId: string): ConstructionOptions | null {
   const { state, definition } = snapshot, action = state.construction;
-  if (state.phase !== 'construction' || action?.actorId !== actorId || state.cityPatternContinuation) return null;
+  if (state.phase !== 'construction' || action?.actorId !== actorId) return null;
   const panel = state.facilities!.panels.find(p => p.playerId === actorId)!;
   const nested = action.status === 'entry-pending' && action.entryStack?.length
     ? getNestedFacilityEntryOptions(state, definition, actorId) : null;
+  const pattern = state.cityPatternContinuation && state.cityPatternContinuation.kind !== 'city-move'
+    ? getCityPatternContinuationOptions(state, definition, actorId) : null;
+  const patternBuild = pattern && 'constructionOptions' in pattern ? pattern.constructionOptions : null;
+  const deckSearch = state.cityPatternContinuation?.kind === 'deck-build' && action.status === 'ready';
   const buildChannel = action.status === 'ready' ? 'construction' : nested?.kind === 'extra-construction' ? 'facility-entry' : null;
   const entry = nested ? { kind: nested.kind, channel: 'facility-entry' as const, source: facilityCardView(nested.sourceCardId),
     copyCards: ('copyCardIds' in nested ? nested.copyCardIds : []).map(facilityCardView), extensionCards: ('extensionCardIds' in nested ? nested.extensionCardIds : []).map(facilityCardView),
@@ -51,11 +56,11 @@ export function getConstructionOptions(snapshot: RoomSnapshot, actorId: string):
       ? { kind: action.warehouseEntry.kind === 'warehouse-choice' ? 'warehouse' : 'exploration', channel: 'warehouse-entry' as const,
         source: action.builtCardId ? facilityCardView(action.builtCardId) : null, copyCards: [], extensionCards: [], routeSlotIds: [],
         skipExploration: action.warehouseEntry.kind === 'warehouse-choice' ? actionPermission(snapshot, actorId, 'warehouse-entry', { type: 'choose-warehouse-entry', entryChoice: { kind: 'warehouse-explore' } }) : null } : null;
-  return { status: action.status, emptyCellIds: getEmptyFacilityPanelCells(panel, state.facilities!.supply).map(c => c.id),
+  return { source: deckSearch ? 'authorized-deck-search' : 'supply', status: action.status, emptyCellIds: getEmptyFacilityPanelCells(panel, state.facilities!.supply).map(c => c.id),
     cells: FOUNDERS_FACILITY_PANEL.cells.map(cell => ({ id: cell.id, row: cell.row, column: cell.column,
       card: panel.placements.find(p => p.cellId === cell.id) ? facilityCardView(panel.placements.find(p => p.cellId === cell.id)!.cardId) : null })),
-    supply: state.facilities!.supply.supply.map(facilityCardView), buildChannel,
-    buildChoices: buildChannel === 'construction' ? state.facilities!.supply.supply.flatMap(cardId =>
+    supply: (deckSearch ? [...new Set(patternBuild?.choices.map(c => c.cardId) ?? [])].sort() : state.facilities!.supply.supply).map(facilityCardView), buildChannel,
+    buildChoices: patternBuild ? [...patternBuild.choices].sort((a, b) => a.cardId.localeCompare(b.cardId) || a.paymentMode.localeCompare(b.paymentMode)) : buildChannel === 'construction' ? state.facilities!.supply.supply.flatMap(cardId =>
       (['resources', 'vouchers'] as const).map(paymentMode => ({ cardId, paymentMode })))
       : nested && 'constructionOptions' in nested ? nested.constructionOptions.choices : [], entry };
 }
@@ -75,7 +80,7 @@ export function getRoomConstructionPreview(snapshot: RoomSnapshot, actorId: stri
   let options: Extract<ConstructionPreviewResult, { status: 'ready' }>['options'] = null;
   if (request.command.gameId === state.gameId && request.command.expectedVersion === state.stateVersion &&
       automaticProgress(snapshot)?.status !== 'pending' && state.roundFlow?.stage === 'player-actions' &&
-      getRoundTurn(state, definition).actorId === actorId && state.phase === 'construction' && !state.cityPatternContinuation) {
+      getRoundTurn(state, definition).actorId === actorId && state.phase === 'construction') {
     const { gameId: _game, expectedVersion: _version, ...body } = request.command;
     const execution = actionPermission(snapshot, actorId, request.channel, body);
     let quote: Quote | null = null;

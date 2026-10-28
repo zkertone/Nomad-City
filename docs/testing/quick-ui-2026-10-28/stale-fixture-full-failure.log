@@ -1,0 +1,39 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> nomad-city-online@0.2.0 verify
+> npm run typecheck && npm test && npm run build
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> nomad-city-online@0.2.0 typecheck
+> tsc --noEmit && tsc -p packages/web/tsconfig.json
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> nomad-city-online@0.2.0 test
+> vitest run
+
+
+ RUN  v5.0.4 /workspace/scratch/d9545625f110/Nomad-City-Restored
+
+ ❯ packages/server/src/quick-options.test.ts (55 tests | 1 failed) 40932ms
+   ❯ authoritative role and pattern presentation (55)
+     × returns to public supply for nested extra construction after an authorized deck build 5668ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/server/src/quick-options.test.ts > authoritative role and pattern presentation > returns to public supply for nested extra construction after an authorized deck build
+AssertionError: expected undefined to be defined
+ ❯ packages/server/src/quick-options.test.ts:299:19
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 39 passed (40)
+      Tests  1 failed | 2653 passed (2654)
+   Start at  15:12:38
+   Duration  142.27s (tests 97%, import 2%)
+
+
+COMMAND_EXIT=1

@@ -664,3 +664,8 @@
 ## 2026-10-28 · 建设与设施入场界面
 
 基准main0174f7f；新增server/construction-options、web/ConstructionPanel／selection-key、scripts/check-construction-web，原action-options／permission／travel／服务／网关／导出与前端控制器／面板／样式和测试扩展，根package新增检查命令。game-core仅将原quoteExplorationStep公开导出，函数实现／规则和数据／存档／依赖不变。新增Construction-UI、construction-ui-validation及11份原始日志，更新README／Local-Run／上一批历史提示／DevLog。最终2593/2593、strict／三包构建及最终web检查通过，三项编译流程均PASS；新增六场经实际角色收入建设，108玩家写入／60自动初始化、4次整体重开／24保存局面检查点。无浏览器点击／视觉证明，不含node_modules、dist、凭证、原图、临时数据库或部署；按既有授权保存main。
+
+
+## 2026-10-28 · 角色与城市样式界面
+
+基准mainc4032a9；新增server/quick-options及55项候选／续接测试，web/RoleAction／PatternAction／QuickActions／QuickConfirmation／ChoiceControls，scripts/check-quick-web。原action-options／permission／construction／travel／服务／网关／导出、控制器／主面板／页面／样式扩展，网络及客户端各增3项，根package增加check:quick-web。新增Role-Pattern-UI、quick-ui-validation与原始成功／失败日志，更新README／Local-Run／上一批历史提示及DevLog。最终40文件2654/2654、strict／三包构建退出0；四编译流程PASS，新三场66玩家／30自动写入、实际收入／建设／宣告／特殊行动与三次整体重启、9恢复局面／27个人视图。原核心／资料／摘要／存档／ADR／依赖锁不变，不含node_modules、dist、凭证、原图、临时数据库或部署。无浏览器点击／视觉证明；采集／终局及2.5D后续，按既有授权保存main。

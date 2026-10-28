@@ -1,0 +1,30 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+ RUN  v5.0.4 /workspace/scratch/d9545625f110/Nomad-City-Restored
+
+ ❯ packages/server/src/quick-options.test.ts (54 tests | 1 failed) 39023ms
+   ❯ authoritative role and pattern presentation (54)
+     × respects nonstarting both-mode authority, special-role conflicts, charges and per-round cooldown 666ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/server/src/quick-options.test.ts > authoritative role and pattern presentation > respects nonstarting both-mode authority, special-role conflicts, charges and per-round cooldown
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ packages/server/src/quick-options.test.ts:336:102
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 123 passed (124)
+   Start at  15:02:49
+   Duration  52.97s (tests 99%, import 1%, transform 1%)
+

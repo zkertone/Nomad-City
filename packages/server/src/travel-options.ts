@@ -24,6 +24,7 @@ export interface TravelOptions {
   readonly kind: 'explore' | 'city-move';
   readonly channel: 'exploration' | 'city-move' | 'facility-entry' | 'warehouse-entry';
   readonly cityMoveCost: 0 | 3;
+  readonly remainingMoves: number | null;
   readonly status: 'ready' | 'event-choice' | 'final-influence' | 'complete';
   readonly targetNodeId: string | null;
   readonly moves: readonly (ActionPermission & { readonly nodeId: string; readonly routeId: string })[];
@@ -33,7 +34,6 @@ export interface TravelOptions {
 /** Current authoritative travel owner, including persisted construction children. */
 export function getTravelContext(snapshot: RoomSnapshot, actorId: string) {
   const { state, definition } = snapshot;
-  if (state.cityPatternContinuation) return null;
   if (state.phase === 'exploration' && state.exploration?.actorId === actorId)
     return { kind: 'explore' as const, channel: 'exploration' as const, progress: state.exploration,
       moves: [], finals: getExplorationFinalSlotIds(state, definition, actorId), requirements: getPendingExplorationChoiceRequirements };
@@ -88,7 +88,7 @@ export function getTravelOptions(snapshot: RoomSnapshot, actorId: string): Trave
       }) };
   }
   const finals = context.finals;
-  return { kind, channel, cityMoveCost: channel === 'facility-entry' ? 0 : 3, status: progress.status, targetNodeId: progress.targetNodeId, event,
+  return { kind, channel, remainingMoves: state.cityPatternContinuation?.kind === 'city-move' ? state.cityPatternContinuation.remainingMoves : null, cityMoveCost: channel === 'facility-entry' || state.cityPatternContinuation?.kind === 'city-move' ? 0 : 3, status: progress.status, targetNodeId: progress.targetNodeId, event,
     moves: kind === 'city-move' ? context.moves.map(move => ({ ...move,
       ...actionPermission(snapshot, actorId, channel, { type: 'move-city', ...move }) })) : [],
     finalSlotIds: finals.filter(slotId => actionPermission(snapshot, actorId, channel, { type: finalType, slotId }).legal) };

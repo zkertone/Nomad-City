@@ -3,7 +3,7 @@ import type { Socket } from "socket.io-client";
 import type { GamePlayerView } from "@nomad-city-online/game-core";
 import type { LobbyView } from "@nomad-city-online/server";
 import { selectionKey } from "./selection-key.js";
-import type { ConstructionDraft } from "@nomad-city-online/server";
+import type { ConstructionDraft, QuickDraft } from "@nomad-city-online/server";
 import { CityClient, errorMessage, newerGame, newerLobby } from "./client.js";
 
 const lobby = (version: number, lobbyId = "lobby-a"): LobbyView => ({
@@ -99,6 +99,53 @@ async function fixture() {
   return { client, socket, values };
 }
 describe("browser session and confirmed-view controller", () => {
+  it("sends original role, pattern, cleanup and continuation commands with current confirmed versions", async () => {
+    const f = await fixture(), original = f.socket.request.getMockImplementation()!;
+    f.socket.request.mockImplementation(async (event, body) => {
+      if (event === "room:subscribe") return { status: "ready", view: game(1) };
+      if (event === "room:quick-preview") return { status: "ready", roomId: "room-a", gameId: "game-a", stateVersion: f.client.getSnapshot().game!.public.stateVersion, options: null };
+      if (event === "room:command") return { status: "committed", reply: { stateVersion: 2 }, view: game(f.client.getSnapshot().game!.public.stateVersion + 2) };
+      return original(event, body);
+    });
+    await f.client.openRoom("room-a");
+    const draft: QuickDraft = { channel: "role", command: { type: "use-base-role", roleId: "ROLE-05", mode: "strategy", strategyChoice: { kind: "tin-point" } } };
+    await f.client.quickPreview(draft); expect(f.socket.request).toHaveBeenCalledWith("room:quick-preview", { roomId: "room-a", channel: "role", command: { gameId: "game-a", expectedVersion: 1, ...draft.command } });
+    await f.client.quickCommand(draft);
+    await f.client.quickCommand({ channel: "city-pattern", command: { type: "use-pattern-special", patternId: "PAT-005", markerId: "own-marker", effect: { kind: "military", slotIds: [] } } });
+    await f.client.quickCommand({ channel: "pattern-continuation", command: { type: "place-pattern-route-influence", slotId: "route:R-route-01:slot:1" } });
+    await f.client.quickCommand({ channel: "role-cleanup", command: { type: "resolve-role-cleanup", slotId: "route:R-route-01:slot:1" } });
+    await f.client.majorActionCommand({ type: "finish-pattern-action" });
+    const writes = f.socket.request.mock.calls.filter(([e]) => e === "room:command");
+    expect(writes.map(([, b]) => (b as { request: { channel: string } }).request.channel)).toEqual(["role", "city-pattern", "pattern-continuation", "role-cleanup", "round"]);
+    expect(writes.map(([, b]) => (b as { request: { command: { expectedVersion: number } } }).request.command.expectedVersion)).toEqual([1, 3, 5, 7, 9]);
+    f.client.dispose();
+  });
+  it("discards stale quick previews after new views, changed rooms and session invalidation", async () => {
+    const f = await fixture(), original = f.socket.request.getMockImplementation()!;
+    f.socket.request.mockImplementation(async (event, body) => event === "room:subscribe" ? { status: "ready", view: game(1) } : original(event, body));
+    await f.client.openRoom("room-a");
+    const draft: QuickDraft = { channel: "role", command: { type: "use-base-role", roleId: "ROLE-05", mode: "strategy", strategyChoice: { kind: "tin-point" } } };
+    const first = gate<unknown>(); f.socket.request.mockImplementationOnce(() => first.promise);
+    const old = f.client.quickPreview(draft); f.socket.emit("room:state", { roomId: "room-a", view: game(2) });
+    first.resolve({ status: "ready", roomId: "room-a", gameId: "game-a", stateVersion: 1, options: { draft } }); expect(await old).toBeNull();
+    const second = gate<unknown>(); f.socket.request.mockImplementationOnce(() => second.promise);
+    const previousRoom = f.client.quickPreview(draft); await f.client.openRoom("room-b");
+    second.resolve({ status: "ready", roomId: "room-a", gameId: "game-a", stateVersion: 2, options: { draft } }); expect(await previousRoom).toBeNull();
+    const third = gate<unknown>(); f.socket.request.mockImplementationOnce(() => third.promise);
+    const pending = f.client.quickPreview(draft), denied = expect(pending).rejects.toThrow("AUTH_REQUIRED");
+    f.socket.emit("session:invalidated"); third.resolve({ status: "ready", roomId: "room-b", gameId: "game-a", stateVersion: 1, options: { draft } }); await denied; f.client.dispose();
+  });
+  it("queries actor options during cleanup and does not retry failed quick writes or accept candidate views", async () => {
+    const f = await fixture(), original = f.socket.request.getMockImplementation()!;
+    const cleanup = { ...game(1), public: { ...game(1).public, round: { stage: "cleanup" } } } as GamePlayerView;
+    f.socket.request.mockImplementation(async (event, body) => event === "room:subscribe" ? { status: "ready", view: cleanup } : original(event, body));
+    await f.client.openRoom("room-a"); expect(f.client.getSnapshot().actionOptions?.stateVersion).toBe(1);
+    const draft: QuickDraft = { channel: "role-cleanup", command: { type: "resolve-role-cleanup", slotId: "route:R-route-01:slot:1" } };
+    f.socket.request.mockResolvedValueOnce({ status: "rejected", reply: { error: { code: "STALE_VERSION" } }, view: game(99) }); await f.client.run(() => f.client.quickCommand(draft));
+    f.socket.request.mockRejectedValueOnce(Error("PRIVATE_SQL")); await f.client.run(() => f.client.quickCommand(draft));
+    expect(f.client.getSnapshot().game?.public.stateVersion).toBe(1); expect(f.socket.request.mock.calls.filter(([e]) => e === "room:command")).toHaveLength(2); f.client.dispose();
+  });
+
   it("matches construction drafts despite strict-schema object field reordering, while preserving changed choices and ordered removals", () => {
     const draft = { channel: "construction", command: { type: "construct-facility", cardId: "card", cellId: "CP-2-2", paymentMode: "vouchers", entryChoice: { kind: "deferred-entry" } } };
     const echo = { command: { cardId: "card", cellId: "CP-2-2", paymentMode: "vouchers", entryChoice: { kind: "deferred-entry" }, type: "construct-facility" }, channel: "construction" };

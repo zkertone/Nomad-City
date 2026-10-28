@@ -1,0 +1,43 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+ RUN  v5.0.4 /workspace/scratch/d9545625f110/Nomad-City-Restored
+
+ ❯ packages/server/src/quick-options.test.ts (51 tests | 2 failed) 36404ms
+   ❯ authoritative role and pattern presentation (51)
+     × lets Elysium both obtain minimum iron before its scheme after a real exploration and target placement 639ms
+     × exposes the original declaration-build continuation and completes it through ordinary construction 1014ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  packages/server/src/quick-options.test.ts > authoritative role and pattern presentation > lets Elysium both obtain minimum iron before its scheme after a real exploration and target placement
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ packages/server/src/quick-options.test.ts:229:59
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  packages/server/src/quick-options.test.ts > authoritative role and pattern presentation > exposes the original declaration-build continuation and completes it through ordinary construction
+TypeError: Cannot read properties of undefined (reading 'cardId')
+ ❯ packages/server/src/quick-options.test.ts:307:85
+    305|     expect(choice.buildChoices.length).toBeGreaterThan(0);
+    306|     const c = choice.buildChoices.find(c => ['gain', 'none'].includes(…
+    307|     const next = send(room, 'construction', { type: 'construct-facilit…
+       |                                                                                     ^
+    308|     expect(next.state.cityPatternContinuation).toBeNull(); expect(core…
+    309|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 49 passed (51)
+   Start at  15:01:11
+   Duration  37.63s (tests 97%, transform 2%, import 1%)
+

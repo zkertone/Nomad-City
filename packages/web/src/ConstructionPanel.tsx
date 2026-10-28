@@ -74,8 +74,8 @@ export function ConstructionPanel({ view, options, disabled, preview, onCommand 
       <small>{cell.id}</small><strong>{cell.card?.name ?? '空格'}</strong>{cell.card && <span>{colors[cell.card.color]}色 · {cell.card.points}分</span>}
     </button>)}</div>
     {options.buildChannel && <>
-      <p>选择公开供应设施、付款方式和上方面板空格。确认后支付、补牌、摆放与计分，再继续入场效果。</p>
-      <label>供应设施<select disabled={disabled} value={cardId} onChange={e => { setResult(null); setCard(e.target.value); setPayment(''); }}>
+      <p>{options.source === 'authorized-deck-search' ? '从本次允许检索的设施中选择，指定付款方式和空格。' : '选择公开供应设施、付款方式和上方面板空格。'}确认后支付、摆放与计分，再继续入场效果。</p>
+      <label>{options.source === 'authorized-deck-search' ? '本次可检索设施' : '供应设施'}<select disabled={disabled} value={cardId} onChange={e => { setResult(null); setCard(e.target.value); setPayment(''); }}>
         <option value="">请选择设施</option>{options.supply.filter(c => options.buildChoices.some(b => b.cardId === c.cardId)).map(c => <option key={c.cardId} value={c.cardId}>{c.name} · {colors[c.color]}色 · {c.points}分 · {c.cardId}</option>)}
       </select></label>
       {selected && <p>{selected.effect}</p>}
