@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 import type { Socket } from "socket.io-client";
 import type { GamePlayerView } from "@nomad-city-online/game-core";
 import type { LobbyView } from "@nomad-city-online/server";
+import { selectionKey } from "./selection-key.js";
+import type { ConstructionDraft } from "@nomad-city-online/server";
 import { CityClient, errorMessage, newerGame, newerLobby } from "./client.js";
 
 const lobby = (version: number, lobbyId = "lobby-a"): LobbyView => ({
@@ -97,6 +99,68 @@ async function fixture() {
   return { client, socket, values };
 }
 describe("browser session and confirmed-view controller", () => {
+  it("matches construction drafts despite strict-schema object field reordering, while preserving changed choices and ordered removals", () => {
+    const draft = { channel: "construction", command: { type: "construct-facility", cardId: "card", cellId: "CP-2-2", paymentMode: "vouchers", entryChoice: { kind: "deferred-entry" } } };
+    const echo = { command: { cardId: "card", cellId: "CP-2-2", paymentMode: "vouchers", entryChoice: { kind: "deferred-entry" }, type: "construct-facility" }, channel: "construction" };
+    expect(JSON.stringify(draft)).not.toBe(JSON.stringify(echo));
+    expect(selectionKey(draft)).toBe(selectionKey(echo));
+    expect(selectionKey(draft)).not.toBe(selectionKey({ ...draft, command: { ...draft.command, cellId: "CP-1-1" } }));
+    expect(selectionKey({ slotIds: ["first", "second"] })).not.toBe(selectionKey({ slotIds: ["second", "first"] }));
+  });
+  it("uses original construction, facility-entry and warehouse channels, and previews the current confirmed version", async () => {
+    const f = await fixture(), original = f.socket.request.getMockImplementation()!;
+    f.socket.request.mockImplementation(async (event, body) => {
+      if (event === "room:subscribe") return { status: "ready", view: game(1) };
+      if (event === "room:construction-preview") return { status: "ready", roomId: "room-a", gameId: "game-a", stateVersion: f.client.getSnapshot().game!.public.stateVersion, options: null };
+      if (event === "room:command") return { status: "committed", reply: { stateVersion: 2 }, view: game(f.client.getSnapshot().game!.public.stateVersion + 2) };
+      return original(event, body);
+    });
+    await f.client.openRoom("room-a");
+    const draft: ConstructionDraft = { channel: "construction", command: { type: "construct-facility", cardId: "card", cellId: "CP-2-2", paymentMode: "vouchers", entryChoice: { kind: "deferred-entry" } } };
+    await f.client.constructionPreview(draft);
+    expect(f.socket.request).toHaveBeenCalledWith("room:construction-preview", { roomId: "room-a", channel: "construction", command: { gameId: "game-a", expectedVersion: 1, ...draft.command } });
+    await f.client.constructionCommand(draft);
+    await f.client.constructionCommand({ channel: "facility-entry", command: { type: "resolve-facility-entry", entryChoice: { kind: "warehouse-explore" } } });
+    await f.client.constructionCommand({ channel: "warehouse-entry", command: { type: "choose-exploration-event", choice: { choiceId: "Y01:1" } } });
+    const writes = f.socket.request.mock.calls.filter(([e]) => e === "room:command");
+    expect(writes.map(([, b]) => (b as { request: { channel: string } }).request.channel)).toEqual(["construction", "facility-entry", "warehouse-entry"]);
+    expect(writes.map(([, b]) => (b as { request: { command: { expectedVersion: number } } }).request.command.expectedVersion)).toEqual([1, 3, 5]);
+    f.client.dispose();
+  });
+  it("drops delayed construction quotes after new views or room changes, and rejects old-session replies", async () => {
+    const f = await fixture(), original = f.socket.request.getMockImplementation()!;
+    f.socket.request.mockImplementation(async (event, body) => event === "room:subscribe" ? { status: "ready", view: game(1) } : original(event, body));
+    await f.client.openRoom("room-a");
+    const draft: ConstructionDraft = { channel: "facility-entry", command: { type: "build-logistics-extension", placement: null } };
+    const pending = gate<unknown>(); f.socket.request.mockImplementationOnce(() => pending.promise);
+    const preview = f.client.constructionPreview(draft);
+    f.socket.emit("room:state", { roomId: "room-a", view: game(2) });
+    pending.resolve({ status: "ready", roomId: "room-a", gameId: "game-a", stateVersion: 1, options: { draft } });
+    expect(await preview).toBeNull();
+    const later = gate<unknown>(); f.socket.request.mockImplementationOnce(() => later.promise);
+    const old = f.client.constructionPreview(draft);
+    await f.client.openRoom("room-b");
+    later.resolve({ status: "ready", roomId: "room-a", gameId: "game-a", stateVersion: 2, options: { draft } });
+    expect(await old).toBeNull();
+    const revoked = gate<unknown>(); f.socket.request.mockImplementationOnce(() => revoked.promise);
+    const request = f.client.constructionPreview(draft), rejected = expect(request).rejects.toThrow("AUTH_REQUIRED");
+    f.socket.emit("session:invalidated"); revoked.resolve({ status: "ready", roomId: "room-b", gameId: "game-a", stateVersion: 1, options: { draft } });
+    await rejected; f.client.dispose();
+  });
+  it("does not retry rejected or timed-out construction mutations or accept their candidate views", async () => {
+    const f = await fixture(), original = f.socket.request.getMockImplementation()!;
+    f.socket.request.mockImplementation(async (event, body) => event === "room:subscribe" ? { status: "ready", view: game(1) } : original(event, body));
+    await f.client.openRoom("room-a");
+    const draft: ConstructionDraft = { channel: "facility-entry", command: { type: "build-logistics-extension", placement: null } };
+    f.socket.request.mockResolvedValueOnce({ status: "rejected", reply: { error: { code: "STALE_VERSION" } }, view: game(99) });
+    await f.client.run(() => f.client.constructionCommand(draft));
+    f.socket.request.mockRejectedValueOnce(Error("PRIVATE_SQL"));
+    await f.client.run(() => f.client.constructionCommand(draft));
+    expect(f.client.getSnapshot().game?.public.stateVersion).toBe(1);
+    expect(f.socket.request.mock.calls.filter(([e]) => e === "room:command")).toHaveLength(2);
+    f.client.dispose();
+  });
+
   it("uses original exploration and city-move channels and queries routes against the latest confirmed view", async () => {
     const f = await fixture(), original = f.socket.request.getMockImplementation()!;
     f.socket.request.mockImplementation(async (event, body) => {

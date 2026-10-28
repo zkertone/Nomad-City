@@ -83,7 +83,7 @@ export function TravelAction({ travel, disabled, preview, onExplore, onMove }: {
         onClick={() => { if (route?.execution.legal) onExplore({ type: 'explore', nodeId: route.currentNodeId, path }); }}>确认路径、支付路费并探索 →</button>
     </>}
     {travel.status === 'ready' && travel.kind === 'city-move' && <>
-      <p>支付 3 源石，沿一条航道移动城邦；按原规则清除选定航道及目标点的对手影响力。</p>
+      <p>{travel.cityMoveCost === 0 ? '本次免费' : '支付 3 源石'}，沿一条航道移动城邦；按原规则清除选定航道及目标点的对手影响力。</p>
       <label>航道与目标点<select disabled={disabled} value={moveId} onChange={e => setMoveId(e.target.value)}>
         <option value="">请选择航道和目标</option>
         {travel.moves.map(m => <option key={`${m.routeId}|${m.nodeId}`} value={`${m.routeId}|${m.nodeId}`} disabled={!m.legal}>
@@ -91,7 +91,7 @@ export function TravelAction({ travel, disabled, preview, onExplore, onMove }: {
       </select></label>
       {!travel.moves.length && <p>目前没有可执行目标；请检查资源，或取消尚未执行的准备。</p>}
       <button className="primary" disabled={disabled || !move?.legal}
-        onClick={() => { if (move?.legal) onMove({ type: 'move-city', nodeId: move.nodeId, routeId: move.routeId }); }}>确认支付并移城 →</button>
+        onClick={() => { if (move?.legal) onMove({ type: 'move-city', nodeId: move.nodeId, routeId: move.routeId }); }}>{travel.cityMoveCost === 0 ? '确认免费移城' : '确认支付并移城'} →</button>
     </>}
     {travel.event && <>
       <h3>{travel.event.title}</h3><p className="event-story">{travel.event.description}</p>

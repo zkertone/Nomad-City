@@ -5,6 +5,7 @@ import type {
   EventEffect,
   ExplorationPathStep,
 } from "@nomad-city-online/game-core";
+import type { ConstructionDraft } from "@nomad-city-online/server";
 import { CityClient } from "./client.js";
 import "./style.css";
 import { BoardRenderer } from "./renderers/BoardRenderer.js";
@@ -12,6 +13,7 @@ import { RoundPreparation } from "./RoundPreparation.js";
 import { MajorActionPanel } from "./MajorActionPanel.js";
 
 const client = new CityClient(sessionStorage);
+const previewConstruction = (draft: ConstructionDraft) => client.constructionPreview(draft);
 const previewExploration = (path: readonly ExplorationPathStep[]) => client.explorationPreview(path);
 const assets: Record<string, string> = {
   orirock: "源岩",
@@ -705,6 +707,8 @@ function App() {
                   onExplore={command => run(() => client.explorationCommand(command))}
                   onMove={command => run(() => client.cityMoveCommand(command))}
                   preview={previewExploration}
+                  onConstruction={draft => run(() => client.constructionCommand(draft))}
+                  previewConstruction={previewConstruction}
                   onResetSource={() => { setSourceSlot(""); setActionSlot(""); }}
                 /> : <section className="card decision">
                   <div className="eyebrow">YOUR DECISION / 玩家决策</div>
@@ -835,7 +839,7 @@ function App() {
                       </p>
                       {!game.public.entry && (
                         <small>
-                          当前已接通入场、回合准备、部署、调度、探索与移城；其余操作界面待接入。
+                          当前已接通入场、回合准备、五种普通主要行动；其余操作界面待接入。
                         </small>
                       )}
                     </div>

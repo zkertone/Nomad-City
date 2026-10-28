@@ -2,11 +2,12 @@ import { z } from 'zod';
 import {
   deepFreeze, gameEntityIdSchema, explorationPathStepSchema, getRoundTurn,
   loadFoundersBoard, getFoundersMapSide, getRoutesForNode, getNodesForRoute, areNodesDirectlyConnected,
-  getExplorationTollQuote, ExplorationCommandError,
+  quoteExplorationStep, ExplorationCommandError,
+  getNestedFacilityEntryOptions, getPendingFacilityEventRequirements, getPendingWarehouseEventRequirements, getWarehouseEntryFinalSlotIds,
   getCityMoveOptions, getCityMoveFinalSlotIds, getExplorationFinalSlotIds,
   getPendingExplorationChoiceRequirements, getPendingCityMoveChoiceRequirements, getFoundersEventCard,
 } from '@nomad-city-online/game-core';
-import type { EventChoice, EventSettlementChoice, ExplorationTollQuote } from '@nomad-city-online/game-core';
+import type { EventChoice, EventSettlementChoice, ExplorationTollQuote, ExplorationProgress } from '@nomad-city-online/game-core';
 import type { RoomSnapshot } from './room-state.js';
 import { automaticProgress } from './automatic-lifecycle.js';
 import { actionPermission } from './action-permission.js';
@@ -21,19 +22,51 @@ export interface TravelEvent {
 }
 export interface TravelOptions {
   readonly kind: 'explore' | 'city-move';
+  readonly channel: 'exploration' | 'city-move' | 'facility-entry' | 'warehouse-entry';
+  readonly cityMoveCost: 0 | 3;
   readonly status: 'ready' | 'event-choice' | 'final-influence' | 'complete';
   readonly targetNodeId: string | null;
   readonly moves: readonly (ActionPermission & { readonly nodeId: string; readonly routeId: string })[];
   readonly finalSlotIds: readonly string[];
   readonly event: TravelEvent | null;
 }
+/** Current authoritative travel owner, including persisted construction children. */
+export function getTravelContext(snapshot: RoomSnapshot, actorId: string) {
+  const { state, definition } = snapshot;
+  if (state.cityPatternContinuation) return null;
+  if (state.phase === 'exploration' && state.exploration?.actorId === actorId)
+    return { kind: 'explore' as const, channel: 'exploration' as const, progress: state.exploration,
+      moves: [], finals: getExplorationFinalSlotIds(state, definition, actorId), requirements: getPendingExplorationChoiceRequirements };
+  if (state.phase === 'city-move' && state.cityMove?.actorId === actorId)
+    return { kind: 'city-move' as const, channel: 'city-move' as const, progress: state.cityMove,
+      moves: getCityMoveOptions(state, definition, actorId), finals: getCityMoveFinalSlotIds(state, definition, actorId), requirements: getPendingCityMoveChoiceRequirements };
+  const action = state.construction;
+  if (state.phase !== 'construction' || action?.actorId !== actorId || action.status !== 'entry-pending') return null;
+  const frame = action.entryStack?.at(-1);
+  if (frame && frame.kind !== 'entry') {
+    const options = getNestedFacilityEntryOptions(state, definition, actorId);
+    return { kind: frame.kind === 'exploration' ? 'explore' as const : 'city-move' as const,
+      channel: 'facility-entry' as const, progress: frame.progress,
+      moves: 'moveOptions' in options ? options.moveOptions : [], finals: 'finalSlotIds' in options ? options.finalSlotIds : [], requirements: getPendingFacilityEventRequirements };
+  }
+  const warehouse = action.warehouseEntry;
+  if (!warehouse || warehouse.status === 'skipped') return null;
+  const progress: ExplorationProgress = { actorId, roundNumber: action.roundNumber,
+    status: warehouse.status === 'branch-choice' ? 'ready' : warehouse.status,
+    targetNodeId: warehouse.targetNodeId, cardId: warehouse.cardId, resolvedChoiceId: warehouse.resolvedChoiceId };
+  return { kind: 'explore' as const, channel: 'warehouse-entry' as const, progress,
+    moves: [], finals: warehouse.status === 'final-influence' ? getWarehouseEntryFinalSlotIds(state, definition, actorId) : [], requirements: getPendingWarehouseEventRequirements };
+}
+export function travelExplorationCommand(channel: NonNullable<ReturnType<typeof getTravelContext>>['channel'], nodeId: string, path: ExplorationRouteRequest['path']) {
+  return channel === 'warehouse-entry'
+    ? { type: 'choose-warehouse-entry', entryChoice: { kind: 'warehouse-explore' }, warehouseExploration: { nodeId, path } }
+    : { type: 'explore', nodeId, path };
+}
 /** Only the currently revealed card; executable variants use original settlement semantics. */
 export function getTravelOptions(snapshot: RoomSnapshot, actorId: string): TravelOptions | null {
-  const { state, definition } = snapshot;
-  const kind = state.phase === 'exploration' ? 'explore' : state.phase === 'city-move' ? 'city-move' : null;
-  const progress = kind === 'explore' ? state.exploration : kind === 'city-move' ? state.cityMove : null;
-  if (!kind || !progress || progress.actorId !== actorId || state.cityPatternContinuation) return null;
-  const channel = kind === 'explore' ? 'exploration' : 'city-move';
+  const { state, definition } = snapshot, context = getTravelContext(snapshot, actorId);
+  if (!context) return null;
+  const { kind, channel, progress } = context;
   const eventType = kind === 'explore' ? 'choose-exploration-event' : 'choose-city-move-event';
   const finalType = kind === 'explore' ? 'place-exploration-influence' : 'place-city-move-influence';
   let event: TravelEvent | null = null;
@@ -41,7 +74,7 @@ export function getTravelOptions(snapshot: RoomSnapshot, actorId: string): Trave
     const card = getFoundersEventCard(progress.cardId!);
     event = { cardId: card.id, title: card.title, description: card.description,
       choices: card.choices.map(choice => {
-        const req = (kind === 'explore' ? getPendingExplorationChoiceRequirements : getPendingCityMoveChoiceRequirements)(
+        const req = context.requirements(
           state, definition, actorId, choice.id);
         const payments: EventSettlementChoice[] = req.legalInfluenceSlotIds.length
           ? req.legalInfluenceSlotIds.map(influenceSlotId => ({ choiceId: choice.id, influenceSlotId,
@@ -54,9 +87,9 @@ export function getTravelOptions(snapshot: RoomSnapshot, actorId: string): Trave
             ...actionPermission(snapshot, actorId, channel, { type: eventType, choice: payment }) })) };
       }) };
   }
-  const finals = (kind === 'explore' ? getExplorationFinalSlotIds : getCityMoveFinalSlotIds)(state, definition, actorId);
-  return { kind, status: progress.status, targetNodeId: progress.targetNodeId, event,
-    moves: kind === 'city-move' ? getCityMoveOptions(state, definition, actorId).map(move => ({ ...move,
+  const finals = context.finals;
+  return { kind, channel, cityMoveCost: channel === 'facility-entry' ? 0 : 3, status: progress.status, targetNodeId: progress.targetNodeId, event,
+    moves: kind === 'city-move' ? context.moves.map(move => ({ ...move,
       ...actionPermission(snapshot, actorId, channel, { type: 'move-city', ...move }) })) : [],
     finalSlotIds: finals.filter(slotId => actionPermission(snapshot, actorId, channel, { type: finalType, slotId }).legal) };
 }
@@ -80,10 +113,11 @@ export type ExplorationRouteResult =
 /** Draft geometry is navigation only. The original quote/reducer owns target, fee and execution legality. */
 export function getRoomExplorationRoute(snapshot: RoomSnapshot, actorId: string, request: ExplorationRouteRequest): ExplorationRouteResult {
   const { state, definition } = snapshot;
+  const context = getTravelContext(snapshot, actorId);
   let options: Extract<ExplorationRouteResult, { status: 'ready' }>['options'] = null;
   if (request.gameId === state.gameId && request.expectedVersion === state.stateVersion &&
       automaticProgress(snapshot)?.status !== 'pending' && state.roundFlow?.stage === 'player-actions' &&
-      getRoundTurn(state, definition).actorId === actorId && !state.cityPatternContinuation && state.phase === 'exploration' && state.exploration?.status === 'ready') {
+      getRoundTurn(state, definition).actorId === actorId && context?.kind === 'explore' && context.progress.status === 'ready') {
     const board = loadFoundersBoard(getFoundersMapSide(definition.players.length));
     let current = state.board.cityNodeByPlayer[actorId]!, connected = true;
     for (const step of request.path) {
@@ -94,8 +128,8 @@ export function getRoomExplorationRoute(snapshot: RoomSnapshot, actorId: string,
     let execution: ActionPermission = { legal: false, blockedBy: connected ? 'PATH_REQUIRED' : 'PATH_CONNECTION' };
     if (connected && request.path.length) {
       try {
-        quote = getExplorationTollQuote(state, definition, actorId, current, request.path);
-        execution = actionPermission(snapshot, actorId, 'exploration', { type: 'explore', nodeId: current, path: request.path });
+        quote = quoteExplorationStep(state, definition, context.progress, current, request.path, (code, message): never => { throw new ExplorationCommandError(code, message); });
+        execution = actionPermission(snapshot, actorId, context.channel, travelExplorationCommand(context.channel, current, request.path));
       } catch (error) {
         if (!(error instanceof ExplorationCommandError)) throw error;
         execution = { legal: false, blockedBy: error.code };

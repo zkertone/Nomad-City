@@ -1,0 +1,16 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> @nomad-city-online/web@0.2.0 build
+> vite build
+
+vite v8.3.5 building client environment for production...
+transforming...
+✓ 52 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.47 kB │ gzip:  0.32 kB
+dist/assets/index-D9cAZfOR.css   15.21 kB │ gzip:  4.26 kB
+dist/assets/index-D4b0wfxY.js   316.98 kB │ gzip: 97.53 kB
+
+✓ built in 308ms

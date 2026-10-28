@@ -133,6 +133,58 @@ describe('durable opaque sessions', () => {
 });
 
 describe('real loopback Socket.IO session, membership and recovery boundary', () => {
+  it('previews and persists construction before resolving warehouse influence through the original entry channel', async () => {
+    let s = await fixture(true);
+    // Actual additive legacy upgrades, each persisted as its own version; no fabricated balances or panels.
+    for (const upgrade of [core.enableBaseRoleEffects, core.enableLiskarmEffects, core.enableRemainingBaseRoleEffects, core.enableWarehouseEntries, core.enableNestedFacilityEntries]) {
+      const next = upgrade(s.state, s.definition, { expectedVersion: s.state.stateVersion });
+      expect(await store.compareAndSwap(s.roomId, s.state.stateVersion, next)).toBe(true);
+      s = parseRoomSnapshot({ ...s, state: next });
+    }
+    const a = await asUser('bob'), b = await asUser('alice');
+    let current = (await call(a.socket, 'room:subscribe', { roomId: s.roomId })).view;
+    const send = async (channel: string, command: Record<string, unknown>) => {
+      const reply = await call(a.socket, 'room:command', { roomId: s.roomId, request: { apiVersion: '1.0.0', requestId: 'construction-step', channel,
+        command: { gameId: current.public.gameId, expectedVersion: current.public.stateVersion, ...command } } });
+      expect(reply.status).toBe('committed'); current = reply.view;
+    };
+    await send('round', { type: 'choose-major-action', action: 'construct' });
+    const choices = (await call(a.socket, 'room:action-options', { roomId: s.roomId })).options.construction;
+    const card = choices.supply.find((c: { facilityId: string }) => c.facilityId === 'FAC-001'); expect(card).toBeDefined();
+    const body = { type: 'construct-facility', cardId: card.cardId, cellId: 'CP-2-2', paymentMode: 'vouchers', entryChoice: { kind: 'deferred-entry' } };
+    const req = { roomId: s.roomId, channel: 'construction', command: { gameId: current.public.gameId, expectedVersion: current.public.stateVersion, ...body } };
+    const saved = await store.read(s.roomId), preview = await call(a.socket, 'room:construction-preview', req);
+    expect(preview.options.execution.legal).toBe(true); expect(preview.options.quote.costs).toEqual([{ asset: 'columbia-voucher', amount: 9 }]);
+    expect((await call(b.socket, 'room:construction-preview', req)).options).toBeNull(); expect(await store.read(s.roomId)).toEqual(saved);
+    expect(JSON.stringify(preview)).not.toMatch(/drawPile|DeckOrder|members|markerId|refilledCardIds/);
+    await send('construction', body);
+    expect(current.public.construction.status).toBe('entry-pending');
+    expect((await call(a.socket, 'room:construction-preview', req)).options).toBeNull();
+    await send('facility-entry', { type: 'resolve-facility-entry', entryChoice: { kind: 'warehouse-influence', placeSlotId: 'node:A-01:slot:1', move: { sourceSlotId: 'node:A-01:slot:1', targetSlotId: 'route:R-route-01:slot:1' } } });
+    expect(current.public.construction.status).toBe('complete');
+    expect(current.public.board.influenceBySlot['route:R-route-01:slot:1'].ownerPlayerId).toBe('p1');
+    await send('round', { type: 'finish-player-turn' }); expect(current.public.round.actorId).toBe('p2');
+  });
+  it('rejects construction preview identity/channel injection and normalizes denied rooms and storage failures without writes', async () => {
+    const s = await fixture(true), a = await asUser('bob'), outsider = await asUser('construction-outsider');
+    const command = { type: 'build-logistics-extension', placement: null, gameId: s.state.gameId, expectedVersion: s.state.stateVersion };
+    const req = { roomId: s.roomId, channel: 'facility-entry', command };
+    expect(await call(a.socket, 'room:construction-preview', { ...req, actorId: 'p2' })).toMatchObject({ error: { code: 'INVALID_MESSAGE' } });
+    expect(await call(a.socket, 'room:construction-preview', { ...req, channel: 'round' })).toMatchObject({ error: { code: 'INVALID_MESSAGE' } });
+    expect(await call(outsider.socket, 'room:construction-preview', req)).toEqual(await call(outsider.socket, 'room:construction-preview', { ...req, roomId: 'missing' }));
+    vi.spyOn(gatewayStore, 'read').mockRejectedValueOnce(Error('PRIVATE_SQL'));
+    expect(await call(a.socket, 'room:construction-preview', req)).toEqual({ status: 'unavailable', error: { code: 'STORAGE_UNAVAILABLE' } });
+    expect(await store.read(s.roomId)).toEqual(s);
+  });
+  it('discards construction quotes after a credential is revoked during the read', async () => {
+    const s = await fixture(true), a = await asUser('bob'), blocked = deferred(), release = deferred();
+    const service = app.get(RoomService), original = service.readConstructionPreview.bind(service);
+    vi.spyOn(service, 'readConstructionPreview').mockImplementationOnce(async (...args) => { const result = await original(...args); blocked.resolve(); await release.promise; return result; });
+    let acknowledged = false; const invalidated = event(a.socket, 'session:invalidated');
+    a.socket.emit('room:construction-preview', { roomId: s.roomId, channel: 'facility-entry', command: { type: 'build-logistics-extension', placement: null, gameId: s.state.gameId, expectedVersion: s.state.stateVersion } }, () => { acknowledged = true; });
+    await blocked.promise; await sessions.revoke(a.token); release.resolve(); await invalidated; expect(acknowledged).toBe(false);
+  });
+
   it('previews exploration without drawing, resolves the actual revealed event and final influence, then explicitly ends the turn', async () => {
     const s = await fixture(true), a = await asUser('bob'), b = await asUser('alice');
     let current = (await call(a.socket, 'room:subscribe', { roomId: s.roomId })).view;

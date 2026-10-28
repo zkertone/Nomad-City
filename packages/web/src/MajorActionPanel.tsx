@@ -1,14 +1,17 @@
 import type { GamePlayerView, ExplorationPathStep } from '@nomad-city-online/game-core';
-import type { ActionOptionsResult, ExplorationRouteResult } from '@nomad-city-online/server';
+import type { ActionOptionsResult, ExplorationRouteResult, ConstructionDraft, ConstructionPreviewResult } from '@nomad-city-online/server';
+import { ConstructionPanel } from './ConstructionPanel.js';
 import { TravelAction } from './TravelAction.js';
 import type { InfluenceCommand, MajorActionCommand, ExplorationCommand, CityMoveCommand } from './client.js';
 
-export function MajorActionPanel({ view, result, selectedSlotId, sourceSlotId, disabled, onRound, onInfluence, onResetSource, onExplore, onMove, preview }: {
+export function MajorActionPanel({ view, result, selectedSlotId, sourceSlotId, disabled, onRound, onInfluence, onResetSource, onExplore, onMove, preview, onConstruction, previewConstruction }: {
   readonly view: GamePlayerView;
   readonly result: Extract<ActionOptionsResult, { status: 'ready' }> | null;
   readonly selectedSlotId: string;
   readonly sourceSlotId: string;
   readonly disabled: boolean;
+  readonly onConstruction: (draft: ConstructionDraft) => void;
+  readonly previewConstruction: (draft: ConstructionDraft) => Promise<Extract<ConstructionPreviewResult, { status: 'ready' }> | null>;
   readonly onRound: (command: MajorActionCommand) => void;
   readonly onInfluence: (command: InfluenceCommand) => void;
   readonly onExplore: (command: ExplorationCommand) => void;
@@ -33,7 +36,7 @@ export function MajorActionPanel({ view, result, selectedSlotId, sourceSlotId, d
         {options.actions.map(choice => <button key={choice.action} className="secondary"
           disabled={disabled || !choice.legal}
           onClick={() => onRound({ type: 'choose-major-action', action: choice.action })}>
-          {{ deploy: '部署', dispatch: '调度', explore: '探索', 'city-move': '移城' }[choice.action]}
+          {{ deploy: '部署', dispatch: '调度', explore: '探索', 'city-move': '移城', construct: '建设' }[choice.action]}
         </button>)}
       </div>
       {influence?.status === 'ready' && <>
@@ -53,7 +56,17 @@ export function MajorActionPanel({ view, result, selectedSlotId, sourceSlotId, d
           }}>确认{influence.kind === 'deploy' ? '部署' : '调度'} →</button>
       </>}
       {options.travel && <TravelAction key={`${view.public.gameId}:${view.public.stateVersion}`}
-        travel={options.travel} disabled={disabled} preview={preview} onExplore={onExplore} onMove={onMove} />}
+        travel={options.travel} disabled={disabled} preview={preview} onExplore={command => {
+          if (options.travel?.channel === 'facility-entry') onConstruction({ channel: 'facility-entry', command });
+          else if (options.travel?.channel === 'warehouse-entry') onConstruction({ channel: 'warehouse-entry', command: command.type === 'explore'
+            ? { type: 'choose-warehouse-entry', entryChoice: { kind: 'warehouse-explore' }, warehouseExploration: { nodeId: command.nodeId, path: command.path } } : command });
+          else onExplore(command);
+        }} onMove={command => {
+          if (options.travel?.channel === 'facility-entry') onConstruction({ channel: 'facility-entry', command });
+          else onMove(command);
+        }} />}
+      {options.construction && <ConstructionPanel key={`${view.public.gameId}:${view.public.stateVersion}`}
+        view={view} options={options.construction} disabled={disabled} preview={previewConstruction} onCommand={onConstruction} />}
       {options.cancelPreparation.legal && <button className="secondary" disabled={disabled}
         onClick={() => onRound({ type: 'cancel-major-preparation' })}>取消尚未执行的行动准备</button>}
       {options.finishDispatch.legal && <button className="secondary" disabled={disabled}
@@ -63,8 +76,8 @@ export function MajorActionPanel({ view, result, selectedSlotId, sourceSlotId, d
         <button className="primary" disabled={disabled}
           onClick={() => onRound({ type: 'finish-player-turn' })}>确认结束我的行动轮 →</button>
       </>}
-      {turn?.majorActionStatus === 'pending' && !influence && !options.travel && <p>当前行动的后续界面尚待接入。</p>}
+      {turn?.majorActionStatus === 'pending' && !influence && !options.travel && !options.construction && <p>当前行动的后续界面尚待接入。</p>}
     </>}
-    <small className="muted">已接通部署、调度、探索与移城；建设、角色和城市样式操作继续接入中。</small>
+    <small className="muted">已接通五种普通主要行动；角色和城市样式操作继续接入中。</small>
   </section>;
 }

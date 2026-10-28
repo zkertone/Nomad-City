@@ -3,6 +3,8 @@ import * as core from "@nomad-city-online/game-core";
 import { createAutomaticBaseRoomSnapshot } from "./base-room-factory.js";
 import { baseSetupIds } from "./automatic-base-plan.js";
 import { getRoomExplorationRoute, explorationRouteRequestSchema } from "./travel-options.js";
+import { getRoomConstructionPreview, constructionPreviewRequestSchema } from "./construction-options.js";
+import type { ConstructionDraft } from "./construction-options.js";
 import { getRoomActionOptions } from "./action-options.js";
 import { parseRoomSnapshot } from "./room-state.js";
 import type { RoomSnapshot, RoomStore } from "./room-state.js";
@@ -97,8 +99,8 @@ beforeAll(async () => {
   }
 });
 
-function send(room: RoomSnapshot, channel: "round" | "influence" | "exploration" | "city-move", command: Record<string, unknown>): RoomSnapshot {
-  return parseRoomSnapshot({ ...room, state: ({ round: core.applyRoundCommand, influence: core.applyInfluenceCommand, exploration: core.applyExplorationCommand, "city-move": core.applyCityMoveCommand }[channel])(
+function send(room: RoomSnapshot, channel: "round" | "influence" | "exploration" | "city-move" | ConstructionDraft["channel"], command: Record<string, unknown>): RoomSnapshot {
+  return parseRoomSnapshot({ ...room, state: ({ round: core.applyRoundCommand, influence: core.applyInfluenceCommand, exploration: core.applyExplorationCommand, "city-move": core.applyCityMoveCommand, construction: core.applyConstructionCommand, "facility-entry": core.applyNestedFacilityEntryCommand, "warehouse-entry": core.applyWarehouseEntryCommand }[channel])(
     room.state, room.definition, { authenticatedPlayerId: core.getRoundTurn(room.state, room.definition).actorId! },
     { gameId: room.state.gameId, expectedVersion: room.state.stateVersion, ...command },
   ) });
@@ -108,7 +110,7 @@ function options(room: RoomSnapshot, playerId = "p1") {
   if (result.status !== "ready") throw Error("Expected ready");
   return result;
 }
-function choose(room: RoomSnapshot, action: "deploy" | "dispatch" | "explore" | "city-move") {
+function choose(room: RoomSnapshot, action: "deploy" | "dispatch" | "explore" | "city-move" | "construct") {
   return send(room, "round", { type: "choose-major-action", action });
 }
 describe("actor-only ordinary action options from existing reducers", () => {
@@ -117,6 +119,7 @@ describe("actor-only ordinary action options from existing reducers", () => {
     expect(result.options?.actions).toEqual([
       { action: "deploy", legal: true, blockedBy: null }, { action: "dispatch", legal: true, blockedBy: null },
       { action: "explore", legal: true, blockedBy: null }, { action: "city-move", legal: true, blockedBy: null },
+      { action: "construct", legal: true, blockedBy: null },
     ]);
     expect(options(room, "p2").options).toBeNull();
     expect(result.options?.finishTurn.legal).toBe(false);
@@ -390,6 +393,218 @@ describe('read-only travel options and original event execution', () => {
     expect(await service.readExplorationRoute({ ...req, playerId: 'p2' }, { authenticatedUserId: 'user-p1' })).toMatchObject({ error: { code: 'INVALID_MESSAGE' } });
     read.mockRejectedValueOnce(Error('PRIVATE_SQL'));
     expect(await service.readExplorationRoute(req, { authenticatedUserId: 'user-p1' })).toEqual({ status: 'unavailable', error: { code: 'STORAGE_UNAVAILABLE' } });
+    expect(compareAndSwap).not.toHaveBeenCalled();
+  });
+});
+
+function fund(room: RoomSnapshot) {
+  const state = core.gameStateSchema.parse(room.state);
+  for (const asset of Object.keys(state.players.p1!.balances) as (keyof core.GameState['players'][string]['balances'])[]) state.players.p1!.balances[asset] = 1000;
+  return parseRoomSnapshot({ ...room, state });
+}
+function supplyCard(room: RoomSnapshot, facilityId: string, exclude?: string) {
+  const state = core.gameStateSchema.parse(room.state), supply = state.facilities!.supply;
+  const card = [...supply.supply, ...supply.drawPile].find(id => id !== exclude && core.getFacilityPhysicalCard(id).facilityId === facilityId)!;
+  if (!card) throw Error(`Missing fixture ${facilityId}`);
+  if (!supply.supply.includes(card)) {
+    const index = supply.drawPile.indexOf(card), old = supply.supply[0]!;
+    supply.drawPile[index] = old; supply.supply[0] = card;
+  }
+  return { room: parseRoomSnapshot({ ...room, state }), cardId: card };
+}
+function buildDraft(cardId: string, cellId = 'CP-2-2', paymentMode: 'resources' | 'vouchers' = 'vouchers'): ConstructionDraft {
+  return { channel: 'construction', command: { type: 'construct-facility', cardId, cellId, paymentMode, entryChoice: { kind: 'deferred-entry' } } };
+}
+function constructionPreview(room: RoomSnapshot, draft: ConstructionDraft, actor = 'p1') {
+  const parsed = constructionPreviewRequestSchema.parse({ roomId: room.roomId, channel: draft.channel,
+    command: { gameId: room.state.gameId, expectedVersion: room.state.stateVersion, ...draft.command } });
+  const result = getRoomConstructionPreview(room, actor, parsed);
+  if (result.status !== 'ready') throw Error('Expected construction preview');
+  return result;
+}
+function constructFixture(facilityId: string, count = 4) {
+  const { room, cardId } = supplyCard(fund(snapshots.get(count)!), facilityId);
+  return { room: choose(room, 'construct'), cardId };
+}
+function built(facilityId: string, count = 4) {
+  const { room, cardId } = constructFixture(facilityId, count);
+  return send(room, 'construction', buildDraft(cardId).command);
+}
+function nextOwnTurn(room: RoomSnapshot) {
+  room = send(room, 'round', { type: 'finish-player-turn' });
+  while (core.getRoundTurn(room.state, room.definition).actorId !== 'p1') {
+    room = choose(room, 'dispatch');
+    room = send(room, 'round', { type: 'finish-player-turn' });
+  }
+  return room;
+}
+function entrySend(room: RoomSnapshot, entryChoice: Record<string, unknown>) {
+  return send(room, 'facility-entry', { type: 'resolve-facility-entry', entryChoice });
+}
+describe('construction and persisted facility-entry presentation', () => {
+  it.each([2, 3, 4])('offers %i-player public supply and own logical grid, and quotes without changing any saved facts', count => {
+    const { room, cardId } = constructFixture('FAC-010', count), before = JSON.stringify(room), choices = options(room).options!.construction!;
+    expect(choices.cells).toHaveLength(12); expect(choices.emptyCellIds).toHaveLength(11);
+    expect(choices.cells.find(c => c.id === 'CP-3-2')?.card?.color).toBe('rainbow');
+    expect(choices.supply.map(c => c.cardId)).toEqual(room.state.facilities!.supply.supply);
+    expect(options(room, 'p2').options).toBeNull();
+    const preview = constructionPreview(room, buildDraft(cardId)).options!;
+    expect(preview.execution.legal).toBe(true);
+    const quote = core.getConstructionQuote(room.state, room.definition, { authenticatedPlayerId: 'p1' }, {
+      gameId: room.state.gameId, expectedVersion: room.state.stateVersion, ...buildDraft(cardId).command });
+    expect(preview.quote?.costs).toEqual(quote.costs);
+    expect(JSON.stringify(preview)).not.toMatch(/drawPile|DeckOrder|members|placedRole|markerId|refilledCardIds/);
+    expect(JSON.stringify(room)).toBe(before);
+  });
+  it.each(Array.from({ length: 17 }, (_, i) => `FAC-${String(i + 1).padStart(3, '0')}`))('constructs %s with original payment, refill, grid and score before projecting its real entry state', facilityId => {
+    const { room, cardId } = constructFixture(facilityId), draft = buildDraft(cardId);
+    expect(constructionPreview(room, draft).options?.execution.legal).toBe(true);
+    const next = send(room, 'construction', draft.command), result = options(next).options!.construction!;
+    expect(next.state.stateVersion).toBe(room.state.stateVersion + 1);
+    expect(next.state.facilities!.supply.supply).toHaveLength(6);
+    expect(next.state.facilities!.supply.supply).not.toContain(cardId);
+    expect(next.state.facilities!.panels[0]!.placements).toContainEqual({ cardId, cellId: 'CP-2-2' });
+    expect(next.state.players.p1!.score).toBe(room.state.players.p1!.score + core.getFacilityExecutionFace(facilityId).printedScore);
+    expect(result.status).toBe(next.state.construction!.status);
+    expect(next.state.roundFlow!.turnIndex).toBe(room.state.roundFlow!.turnIndex);
+  });
+  it('refuses to fund construction from future entry gains and preserves unresolved refill and version limits', () => {
+    const { room, cardId } = constructFixture('FAC-010'), state = core.gameStateSchema.parse(room.state);
+    for (const key of Object.keys(state.players.p1!.balances) as (keyof core.GameState['players'][string]['balances'])[]) state.players.p1!.balances[key] = 0;
+    const poor = parseRoomSnapshot({ ...room, state });
+    expect(constructionPreview(poor, buildDraft(cardId, 'CP-2-2', 'resources')).options?.execution.blockedBy).toBe('CANNOT_PAY');
+    const exhausted = core.gameStateSchema.parse(room.state);
+    exhausted.facilities!.supply.returnedToBox.push(...exhausted.facilities!.supply.drawPile); exhausted.facilities!.supply.drawPile = [];
+    expect(constructionPreview(parseRoomSnapshot({ ...room, state: exhausted }), buildDraft(cardId)).options?.execution.blockedBy).toBe('REFILL_RULE_UNRESOLVED');
+    expect(constructionPreview(parseRoomSnapshot({ ...room, state: { ...room.state, stateVersion: Number.MAX_SAFE_INTEGER } }), buildDraft(cardId)).options?.execution.blockedBy).toBe('VERSION_OVERFLOW');
+  });
+  it('keeps unique-facility rejection and physical-card conservation through a second actual action cycle', () => {
+    const first = built('FAC-017'), original = first.state.construction!.builtCardId!, staged = supplyCard(nextOwnTurn(first), 'FAC-017', original);
+    const opened = choose(staged.room, 'construct'), before = JSON.stringify(opened);
+    expect(constructionPreview(opened, buildDraft(staged.cardId, 'CP-2-1')).options?.execution.blockedBy).toBe('UNIQUE_FACILITY');
+    expect(JSON.stringify(opened)).toBe(before);
+  });
+  it('completes warehouse placement then moves the same newly placed marker, with no new major action', () => {
+    const room = built('FAC-001'), placeSlotId = 'node:A-01:slot:1', targetSlotId = 'route:R-route-01:slot:1';
+    const draft: ConstructionDraft = { channel: 'facility-entry', command: { type: 'resolve-facility-entry', entryChoice: {
+      kind: 'warehouse-influence', placeSlotId, move: { sourceSlotId: placeSlotId, targetSlotId } } } };
+    expect(constructionPreview(room, draft).options?.execution.legal).toBe(true);
+    const markerId = room.state.markerSupplyByPlayer.p1![0]!, next = send(room, draft.channel, draft.command);
+    expect(next.state.board.influenceBySlot[placeSlotId]).toBeNull();
+    expect(next.state.board.influenceBySlot[targetSlotId]).toEqual({ markerId, ownerPlayerId: 'p1' });
+    expect(next.state.construction!.status).toBe('complete'); expect(options(next).options?.finishTurn.legal).toBe(true);
+  });
+  it('resumes nested warehouse exploration using the original route quote, event and final placement', () => {
+    let room = entrySend(built('FAC-001'), { kind: 'warehouse-explore' });
+    expect(options(room).options!.travel).toMatchObject({ kind: 'explore', channel: 'facility-entry', status: 'ready' });
+    expect(route(room, directPath).options?.quote).toEqual({ total: 2, legs: [{ routeId: 'R-route-01', amount: 2, recipientPlayerIds: [], toSupply: true }] });
+    expect(route(room, directPath).options?.execution.legal).toBe(true);
+    room = send(room, 'facility-entry', { type: 'explore', nodeId: 'D-01', path: directPath });
+    const event = options(room).options!.travel!.event!, variant = event.choices.flatMap(c => c.variants).find(v => v.legal)!;
+    room = send(room, 'facility-entry', { type: 'choose-exploration-event', choice: variant.choice });
+    const finals = options(room).options!.travel!.finalSlotIds;
+    if (finals.length) room = send(room, 'facility-entry', { type: 'place-exploration-influence', slotId: finals[0] });
+    expect(room.state.construction!.status).toBe('complete'); expect(room.state.construction!.constructionsCompleted).toBe(1);
+    expect(room.state.phase).toBe('construction'); expect(room.state.roundFlow!.turnIndex).toBe(0);
+  });
+  it('supports the saved legacy warehouse branch without restarting construction', () => {
+    const { room, cardId } = constructFixture('FAC-001');
+    let next = send(room, 'construction', { ...buildDraft(cardId).command, entryChoice: { kind: 'warehouse-entry' } });
+    expect(options(next).options!.travel?.channel).toBe('warehouse-entry');
+    expect(route(next, directPath).options?.execution.legal).toBe(true);
+    next = send(next, 'warehouse-entry', { type: 'choose-warehouse-entry', entryChoice: { kind: 'warehouse-explore' }, warehouseExploration: { nodeId: 'D-01', path: directPath } });
+    const variant = options(next).options!.travel!.event!.choices.flatMap(c => c.variants).find(v => v.legal)!;
+    next = send(next, 'warehouse-entry', { type: 'choose-exploration-event', choice: variant.choice });
+    const finals = options(next).options!.travel!.finalSlotIds;
+    if (finals.length) next = send(next, 'warehouse-entry', { type: 'place-exploration-influence', slotId: finals[0] });
+    expect(next.state.construction!.status).toBe('complete');
+  });
+  it('restores an impossible legacy warehouse exploration without forcing a fictitious path', () => {
+    const { room, cardId } = constructFixture('FAC-001');
+    const built = send(room, 'construction', { ...buildDraft(cardId).command, entryChoice: { kind: 'warehouse-entry' } });
+    const state = core.gameStateSchema.parse(built.state); state.players.p1!.balances['columbia-voucher'] = 0;
+    const pending = parseRoomSnapshot({ ...built, state });
+    expect(options(pending).options!.construction!.entry!.skipExploration?.legal).toBe(true);
+    const next = send(pending, 'warehouse-entry', { type: 'choose-warehouse-entry', entryChoice: { kind: 'warehouse-explore' } });
+    expect(next.state.construction!.status).toBe('complete');
+    expect(next.state.construction!.warehouseEntry?.status).toBe('skipped');
+  });
+  it('keeps free city movement, its event, final node influence and additional route influence distinct', () => {
+    let room = built('FAC-007');
+    const travel = options(room).options!.travel!;
+    expect(travel.cityMoveCost).toBe(0); expect(travel.channel).toBe('facility-entry');
+    const move = travel.moves.find(m => m.legal && m.nodeId === 'D-01')!, oldFunds = room.state.players.p1!.balances.originium;
+    room = send(room, 'facility-entry', { type: 'move-city', nodeId: move.nodeId, routeId: move.routeId });
+    expect(room.state.players.p1!.balances.originium).toBe(oldFunds);
+    const variant = options(room).options!.travel!.event!.choices.flatMap(c => c.variants).find(v => v.legal)!;
+    room = send(room, 'facility-entry', { type: 'choose-city-move-event', choice: variant.choice });
+    room = send(room, 'facility-entry', { type: 'place-city-move-influence', slotId: options(room).options!.travel!.finalSlotIds[0] });
+    const routeSlot = options(room).options!.construction!.entry!.routeSlotIds[0]!;
+    expect(routeSlot).toBeDefined(); expect(options(room).options?.finishTurn.legal).toBe(false);
+    room = send(room, 'facility-entry', { type: 'place-entry-route-influence', slotId: routeSlot });
+    expect(room.state.construction!.status).toBe('complete'); expect(options(room).options?.finishTurn.legal).toBe(true);
+  });
+  it('quotes and performs a paid extra construction within the same major-action grant', () => {
+    let room = built('FAC-016'), target = supplyCard(room, 'FAC-010'); room = target.room;
+    expect(options(room).options!.construction!.buildChannel).toBe('facility-entry');
+    const draft: ConstructionDraft = { channel: 'facility-entry', command: { type: 'construct-entry-facility', cardId: target.cardId, cellId: 'CP-2-1', paymentMode: 'vouchers', entryChoice: { kind: 'deferred-entry' } } };
+    const preview = constructionPreview(room, draft).options!; expect(preview.execution.legal).toBe(true); expect(preview.quote?.costs.length).toBeGreaterThan(0);
+    const next = send(room, draft.channel, draft.command);
+    expect(next.state.facilities!.panels[0]!.placements).toHaveLength(3); expect(next.state.roundFlow!.turnIndex).toBe(0);
+    expect(next.state.construction!.status).toBe('complete');
+  });
+  it('copies only an original adjacent non-rainbow entry and does not repeat printed points or construction costs', () => {
+    const first = built('FAC-010'), target = supplyCard(nextOwnTurn(first), 'FAC-014');
+    let room = send(choose(target.room, 'construct'), 'construction', buildDraft(target.cardId, 'CP-2-1').command);
+    const entry = options(room).options!.construction!.entry!, sourceId = first.state.construction!.builtCardId!;
+    expect(entry.copyCards.map(c => c.cardId)).toContain(sourceId);
+    const old = room.state.players.p1!, oldCount = room.state.facilities!.panels[0]!.placements.length;
+    room = send(room, 'facility-entry', { type: 'copy-facility-entry', targetCardId: sourceId });
+    expect(room.state.players.p1!.balances.iron).toBe(old.balances.iron + 4); expect(room.state.players.p1!.score).toBe(old.score);
+    expect(room.state.players.p1!.balances['columbia-voucher']).toBe(old.balances['columbia-voucher']);
+    expect(room.state.facilities!.panels[0]!.placements).toHaveLength(oldCount);
+  });
+  it('places a reserve-only logistics extension for free and permits explicit decline', () => {
+    const room = built('FAC-004'), cardId = options(room).options!.construction!.entry!.extensionCards[0]!.cardId;
+    const draft: ConstructionDraft = { channel: 'facility-entry', command: { type: 'build-logistics-extension', placement: { cardId, cellId: 'CP-2-1' } } };
+    expect(constructionPreview(room, draft).options?.execution.legal).toBe(true);
+    const next = send(room, draft.channel, draft.command);
+    expect(next.state.facilities!.supply.extensionReserve).not.toContain(cardId);
+    expect(next.state.players.p1!.balances).toEqual(room.state.players.p1!.balances);
+    expect(send(room, 'facility-entry', { type: 'build-logistics-extension', placement: null }).state.construction!.status).toBe('complete');
+  });
+  it('resolves resource allocation, mandatory removal, mercenary replacement and optional sales through original effects', () => {
+    let room = built('FAC-008'), previous = room.state.players.p1!.balances;
+    room = entrySend(room, { kind: 'resource-allocation', gains: { orirock: 1, originium: 2, iron: 2 } });
+    expect(room.state.players.p1!.balances.orirock).toBe(previous.orirock + 1);
+    let initial = constructFixture('FAC-002');
+    let marked = putMarker(putMarker(initial.room, 'route:R-route-01:slot:1', 'p2'), 'node:A-01:slot:1', 'p1');
+    marked = send(marked, 'construction', buildDraft(initial.cardId).command);
+    const partial: ConstructionDraft = { channel: 'facility-entry', command: { type: 'resolve-facility-entry', entryChoice: { kind: 'remove-influence', slotIds: ['node:A-01:slot:1'] } } };
+    expect(constructionPreview(marked, partial).options?.execution.legal).toBe(false);
+    room = entrySend(marked, { kind: 'remove-influence', slotIds: ['node:A-01:slot:1', 'route:R-route-01:slot:1'] });
+    expect(Object.values(room.state.board.influenceBySlot).every(m => m === null)).toBe(true);
+    initial = constructFixture('FAC-003'); marked = putMarker(initial.room, 'node:A-02:slot:1', 'p2');
+    marked = send(marked, 'construction', buildDraft(initial.cardId).command);
+    room = entrySend(marked, { kind: 'mercenary-influence', effect: 'replace', slotId: 'node:A-02:slot:1' });
+    expect(room.state.board.influenceBySlot['node:A-02:slot:1']).toBeNull();
+    const sales = built('FAC-006'), oldVouchers = sales.state.players.p1!.balances['columbia-voucher'];
+    room = entrySend(sales, { kind: 'sell-resources', amounts: { orirock: 1, originium: 2, iron: 1, 'pure-originium': 1 } });
+    expect(room.state.players.p1!.balances['columbia-voucher']).toBe(oldVouchers + 28);
+  });
+  it('rejects stale, other-game and nonactor drafts, unsafe channels, injection and failed storage without committing', async () => {
+    const { room, cardId } = constructFixture('FAC-010'), draft = buildDraft(cardId);
+    const req = constructionPreviewRequestSchema.parse({ roomId: room.roomId, channel: draft.channel, command: { gameId: room.state.gameId, expectedVersion: room.state.stateVersion, ...draft.command } });
+    expect(constructionPreview(room, draft, 'p2').options).toBeNull();
+    expect(getRoomConstructionPreview(room, 'p1', constructionPreviewRequestSchema.parse({ ...req, command: { ...req.command, expectedVersion: 0 } }))).toMatchObject({ options: null });
+    expect(getRoomConstructionPreview(room, 'p1', constructionPreviewRequestSchema.parse({ ...req, command: { ...req.command, gameId: 'different-game' } }))).toMatchObject({ options: null });
+    expect(constructionPreviewRequestSchema.safeParse({ ...req, actorId: 'p2' }).success).toBe(false);
+    const compareAndSwap = vi.fn(), read = vi.fn(async (id: string) => id === room.roomId ? room : null), service = new RoomService({ create: async () => false, read, compareAndSwap });
+    const denied = await service.readConstructionPreview(req, { authenticatedUserId: 'outsider' });
+    expect(await service.readConstructionPreview({ ...req, roomId: 'missing-room' }, { authenticatedUserId: 'outsider' })).toEqual(denied);
+    expect(await service.readConstructionPreview({ ...req, channel: 'round' }, { authenticatedUserId: 'user-p1' })).toMatchObject({ error: { code: 'INVALID_MESSAGE' } });
+    read.mockRejectedValueOnce(Error('PRIVATE_SQL'));
+    expect(await service.readConstructionPreview(req, { authenticatedUserId: 'user-p1' })).toMatchObject({ error: { code: 'STORAGE_UNAVAILABLE' } });
     expect(compareAndSwap).not.toHaveBeenCalled();
   });
 });

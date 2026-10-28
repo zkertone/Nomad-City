@@ -5,6 +5,7 @@ import type {
   EntryOptionsResult,
   ActionOptionsResult,
   ExplorationRouteResult,
+  ConstructionDraft, ConstructionPreviewResult,
   LobbyView,
   RoomSummary,
   RoundSetupOptionsResult,
@@ -15,7 +16,7 @@ export type RoundPreparationCommand =
   | { readonly type: "place-round-role"; readonly roleId: string };
 
 export type MajorActionCommand =
-  | { readonly type: "choose-major-action"; readonly action: "deploy" | "dispatch" | "explore" | "city-move" }
+  | { readonly type: "choose-major-action"; readonly action: "deploy" | "dispatch" | "explore" | "city-move" | "construct" }
   | { readonly type: "cancel-major-preparation" | "finish-player-turn" };
 export type InfluenceCommand =
   | { readonly type: "deploy-influence"; readonly slotId: string }
@@ -453,8 +454,20 @@ export class CityClient {
     return this.state.roomId === result.roomId && this.state.game?.public.gameId === result.gameId &&
       this.state.game.public.stateVersion === result.stateVersion && result.stateVersion === game.public.stateVersion ? result : null;
   }
+  async constructionCommand(draft: ConstructionDraft) {
+    return this.playerCommand(draft.channel, draft.command);
+  }
+  async constructionPreview(draft: ConstructionDraft): Promise<Extract<ConstructionPreviewResult, { status: "ready" }> | null> {
+    const { game, roomId } = this.state;
+    if (!game || !roomId) return null;
+    const result = await this.rpc<Extract<ConstructionPreviewResult, { status: "ready" }>>("room:construction-preview", {
+      roomId, channel: draft.channel, command: { gameId: game.public.gameId, expectedVersion: game.public.stateVersion, ...draft.command },
+    });
+    return this.state.roomId === result.roomId && this.state.game?.public.gameId === result.gameId &&
+      this.state.game.public.stateVersion === result.stateVersion && result.stateVersion === game.public.stateVersion ? result : null;
+  }
   private async playerCommand(
-    channel: "entry" | "round" | "influence" | "exploration" | "city-move",
+    channel: "entry" | "round" | "influence" | "exploration" | "city-move" | ConstructionDraft["channel"],
     command: Record<string, unknown>,
   ) {
     const { game, roomId } = this.state;

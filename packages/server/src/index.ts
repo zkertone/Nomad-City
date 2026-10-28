@@ -17,3 +17,5 @@ export * from './travel-options.js';
 export * from './base-room-factory.js';
 export type { AutomaticBasePlan } from './automatic-base-plan.js';
 export type { AutomaticProgress, AutomaticIssue } from './automatic-lifecycle.js';
+
+export * from './construction-options.js';

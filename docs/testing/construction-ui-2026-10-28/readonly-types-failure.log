@@ -1,0 +1,15 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> nomad-city-online@0.2.0 typecheck
+> tsc --noEmit && tsc -p packages/web/tsconfig.json
+
+packages/web/src/ConstructionPanel.tsx(33,80): error TS2322: Type 'EntryChoice' is not assignable to type '{ kind: "resource-allocation"; gains: { orirock: number; originium: number; iron: number; }; } | { kind: "deferred-entry"; } | { kind: "warehouse-entry"; } | { kind: "warehouse-explore"; } | { kind: "warehouse-influence"; placeSlotId?: string | undefined; move?: { ...; } | undefined; } | { ...; } | { ...; } | { ...; }'.
+  Type '{ readonly kind: "remove-influence"; readonly slotIds: readonly string[]; }' is not assignable to type '{ kind: "resource-allocation"; gains: { orirock: number; originium: number; iron: number; }; } | { kind: "deferred-entry"; } | { kind: "warehouse-entry"; } | { kind: "warehouse-explore"; } | { kind: "warehouse-influence"; placeSlotId?: string | undefined; move?: { ...; } | undefined; } | { ...; } | { ...; } | { ...; }'.
+    Type '{ readonly kind: "remove-influence"; readonly slotIds: readonly string[]; }' is not assignable to type '{ kind: "remove-influence"; slotIds: string[]; }'.
+      Types of property 'slotIds' are incompatible.
+        The type 'readonly string[]' is 'readonly' and cannot be assigned to the mutable type 'string[]'.
+packages/web/src/ConstructionPanel.tsx(34,79): error TS2322: Type 'EntryChoice' is not assignable to type '{ kind: "resource-allocation"; gains: { orirock: number; originium: number; iron: number; }; } | { kind: "deferred-entry"; } | { kind: "warehouse-entry"; } | { kind: "warehouse-explore"; } | { kind: "warehouse-influence"; placeSlotId?: string | undefined; move?: { ...; } | undefined; } | { ...; } | { ...; } | { ...; }'.
+  Type '{ readonly kind: "remove-influence"; readonly slotIds: readonly string[]; }' is not assignable to type '{ kind: "resource-allocation"; gains: { orirock: number; originium: number; iron: number; }; } | { kind: "deferred-entry"; } | { kind: "warehouse-entry"; } | { kind: "warehouse-explore"; } | { kind: "warehouse-influence"; placeSlotId?: string | undefined; move?: { ...; } | undefined; } | { ...; } | { ...; } | { ...; }'.
+    Type '{ readonly kind: "remove-influence"; readonly slotIds: readonly string[]; }' is not assignable to type '{ kind: "remove-influence"; slotIds: string[]; }'.
+      Types of property 'slotIds' are incompatible.
+        The type 'readonly string[]' is 'readonly' and cannot be assigned to the mutable type 'string[]'.

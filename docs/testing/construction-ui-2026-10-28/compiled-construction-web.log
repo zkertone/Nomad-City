@@ -1,0 +1,1 @@
+{"check":"PASS","games":6,"playerWrites":108,"automaticWrites":60,"constructions":6,"roleUses":6,"warehouseExplorations":3,"freeCityMoves":3,"events":6,"finalPlacements":6,"routePlacements":3,"restarts":4,"restoredSnapshots":24,"actualRoleIncome":true,"trustedDeterministicSetup":true,"database":"PGlite test only"}

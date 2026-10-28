@@ -13,6 +13,8 @@ import { getRoomActionOptions } from './action-options.js';
 import type { ActionOptionsResult } from './action-options.js';
 import { explorationRouteRequestSchema, getRoomExplorationRoute } from './travel-options.js';
 import type { ExplorationRouteResult } from './travel-options.js';
+import { constructionPreviewRequestSchema, getRoomConstructionPreview } from './construction-options.js';
+import type { ConstructionPreviewResult } from './construction-options.js';
 
 type AutomaticAnnotation = { readonly automatic?: AutomaticProgress };
 type Unavailable = { readonly status: 'unavailable'; readonly error: { readonly code: 'ROOM_UNAVAILABLE' | 'STORAGE_UNAVAILABLE' | 'COMMIT_CONFLICT' | 'AUTOMATION_PENDING' } } & AutomaticAnnotation;
@@ -32,6 +34,18 @@ function playerFor(snapshot: RoomSnapshot | null, principal: RoomPrincipal): str
 /** Provider for a future authenticated gateway. Principal comes from its session, never the body. */
 export class RoomService {
   constructor(private readonly store: RoomStore, private readonly queue = new RoomQueue()) {}
+  async readConstructionPreview(payload: unknown, principalInput: RoomPrincipal): Promise<ConstructionPreviewResult> {
+    const request = constructionPreviewRequestSchema.safeParse(payload), principal = roomPrincipalSchema.safeParse(principalInput);
+    if (!request.success) return { status: 'unavailable', error: { code: 'INVALID_MESSAGE' } };
+    if (!principal.success) return entryUnavailable('ROOM_UNAVAILABLE');
+    return this.queue.run(request.data.roomId, async () => {
+      let snapshot: RoomSnapshot | null;
+      try { snapshot = await this.store.read(request.data.roomId); } catch { return entryUnavailable('STORAGE_UNAVAILABLE'); }
+      const playerId = playerFor(snapshot, principal.data);
+      if (!snapshot || !playerId) return entryUnavailable('ROOM_UNAVAILABLE');
+      return getRoomConstructionPreview(snapshot, playerId, request.data);
+    });
+  }
   async readExplorationRoute(payload: unknown, principalInput: RoomPrincipal): Promise<ExplorationRouteResult> {
     const request = explorationRouteRequestSchema.safeParse(payload), principal = roomPrincipalSchema.safeParse(principalInput);
     if (!request.success) return { status: 'unavailable', error: { code: 'INVALID_MESSAGE' } };

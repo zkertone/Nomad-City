@@ -19,6 +19,8 @@ import type { RoundSetupOptionsResult } from './round-setup-options.js';
 import type { ActionOptionsResult } from './action-options.js';
 import { explorationRouteRequestSchema } from './travel-options.js';
 import type { ExplorationRouteResult } from './travel-options.js';
+import { constructionPreviewRequestSchema } from './construction-options.js';
+import type { ConstructionPreviewResult } from './construction-options.js';
 import type { AutomaticProgress } from './automatic-lifecycle.js';
 import { ROOM_SOCKET_OPTIONS, SOCKET_PROTOCOL_VERSION, socketAuthSchema, socketCommandSchema, socketRoomSchema, socketEmptySchema } from './socket-protocol.js';
 import type { RoomSocketOptions, SessionInfo, SessionLogoutResult, SocketFailure } from './socket-protocol.js';
@@ -272,6 +274,17 @@ export class RoomGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
       try {
         const principal = await this.authenticate(socket); if ('status' in principal) return principal;
         const result = await this.rooms.readExplorationRoute(checked.data, principal);
+        const current = await this.authenticate(socket); return 'status' in current ? current : result;
+      } catch { return failure('SERVER_UNAVAILABLE'); }
+    });
+  }
+  @SubscribeMessage('room:construction-preview')
+  async constructionPreview(@ConnectedSocket() socket: Socket, @MessageBody() payload: unknown): Promise<ConstructionPreviewResult | SocketFailure> {
+    const checked = constructionPreviewRequestSchema.safeParse(payload); if (!checked.success) return failure('INVALID_MESSAGE');
+    return this.queue.run(checked.data.roomId, async () => {
+      try {
+        const principal = await this.authenticate(socket); if ('status' in principal) return principal;
+        const result = await this.rooms.readConstructionPreview(checked.data, principal);
         const current = await this.authenticate(socket); return 'status' in current ? current : result;
       } catch { return failure('SERVER_UNAVAILABLE'); }
     });

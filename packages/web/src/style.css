@@ -1090,3 +1090,14 @@ footer {
 .travel-action .selected { outline: 2px solid #3f6956; }
 .travel-path { padding-left: 1.25rem; font-size: .8rem; overflow-wrap: anywhere; }
 .toll-preview { background: #f3f7ec; padding: .75rem; margin-top: .75rem; }
+
+.construction-panel { border-top: 1px solid #d9d3c8; padding-top: .75rem; margin-top: 1rem; }
+.facility-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .4rem; }
+.facility-cell { display: flex; flex-direction: column; gap: .3rem; padding: .5rem; min-height: 75px; overflow-wrap: anywhere; }
+.facility-cell small, .facility-cell span { font-size: .65rem; }
+.facility-cell strong { font-size: .75rem; }
+.facility-cell.selected { outline: 2px solid #3f6956; }
+.construction-panel label { display: block; margin-top: .75rem; }
+.construction-panel select { width: 100%; margin-top: .35rem; }
+.construction-panel input[type=number] { width: 100%; margin-top: .35rem; }
+.construction-quote { background: #f3f7ec; padding: .75rem; }

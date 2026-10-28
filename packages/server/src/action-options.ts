@@ -10,10 +10,12 @@ import { actionPermission as permission } from './action-permission.js';
 import type { ActionPermission } from './action-permission.js';
 import { getTravelOptions } from './travel-options.js';
 import type { TravelOptions } from './travel-options.js';
+import { getConstructionOptions } from './construction-options.js';
+import type { ConstructionOptions } from './construction-options.js';
 export type { ActionPermission } from './action-permission.js';
 export interface ActionOptions {
   readonly actorId: string;
-  readonly actions: readonly (ActionPermission & { readonly action: 'deploy' | 'dispatch' | 'explore' | 'city-move' })[];
+  readonly actions: readonly (ActionPermission & { readonly action: 'deploy' | 'dispatch' | 'explore' | 'city-move' | 'construct' })[];
   readonly influence: {
     readonly kind: 'deploy' | 'dispatch';
     readonly status: 'ready' | 'complete';
@@ -21,6 +23,7 @@ export interface ActionOptions {
     readonly deploymentSlotIds: readonly string[];
     readonly dispatches: readonly { readonly sourceSlotId: string; readonly targetSlotIds: readonly string[] }[];
   } | null;
+  readonly construction: ConstructionOptions | null;
   readonly travel: TravelOptions | null;
   readonly cancelPreparation: ActionPermission;
   readonly finishDispatch: ActionPermission;
@@ -54,10 +57,11 @@ export function getRoomActionOptions(snapshot: RoomSnapshot, playerId: string): 
     }
     options = {
       actorId: playerId,
-      actions: (['deploy', 'dispatch', 'explore', 'city-move'] as const).map(action => ({ action,
+      actions: (['deploy', 'dispatch', 'explore', 'city-move', 'construct'] as const).map(action => ({ action,
         ...permission(snapshot, playerId, 'round', { type: 'choose-major-action', action }) })),
       influence: action ? { kind: action.kind, status: action.status, operationsCompleted: action.operationsCompleted,
         deploymentSlotIds, dispatches } : null,
+      construction: getConstructionOptions(snapshot, playerId),
       travel: getTravelOptions(snapshot, playerId),
       cancelPreparation: permission(snapshot, playerId, 'round', { type: 'cancel-major-preparation' }),
       finishDispatch: permission(snapshot, playerId, 'influence', { type: 'finish-dispatch' }),

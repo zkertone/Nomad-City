@@ -5,6 +5,8 @@ export * from './state.js';
 export * from './entry.js';
 export * from './settlement.js';
 export * from './exploration.js';
+// Trusted read-only quote shared by ordinary and construction-owned exploration.
+export { quoteExplorationStep } from './exploration-engine.js';
 export { CityMoveCommandError, cityMovePlayerCommandSchema, openCityMoveWindow, getCityMoveOptions, getCityMoveFinalSlotIds, getPendingCityMoveChoiceRequirements, applyCityMoveCommand } from './city-move.js';
 export type { OpenCityMoveWindowOptions, CityMovePlayerCommand, CityMoveActorContext, CityMoveOption } from './city-move.js';
 export * from './influence-actions.js';

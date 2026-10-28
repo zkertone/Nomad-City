@@ -659,3 +659,8 @@
 ## 2026-10-28 · 探索、移城与事件界面
 
 基准main454ae97；新增server/action-permission、travel-options、web/TravelAction、scripts/check-travel-web；原action-options／服务／网关／索引、MajorActionPanel／CityClient／页面／样式及测试扩展。根package新增check:travel-web脚本，锁与依赖未变。新增Travel-Action-UI、travel-ui-validation及10份原始日志，更新README、Local-Run、上一批历史提示和DevLog。最终2554/2554、strict／三包构建、最终web复验和两项编译流程通过；原本地流程保留，新三场在探索／移城事件及末尾各重开，48主要行动写入／4整体重启／12恢复检查点。不含node_modules、dist、凭证／原图或临时数据库；规则核心／资料／摘要／存档／ADR不变。没有浏览器点击／视觉证明，原生PostgreSQL／真实账户／部署未完成，按既有授权提交main。
+
+
+## 2026-10-28 · 建设与设施入场界面
+
+基准main0174f7f；新增server/construction-options、web/ConstructionPanel／selection-key、scripts/check-construction-web，原action-options／permission／travel／服务／网关／导出与前端控制器／面板／样式和测试扩展，根package新增检查命令。game-core仅将原quoteExplorationStep公开导出，函数实现／规则和数据／存档／依赖不变。新增Construction-UI、construction-ui-validation及11份原始日志，更新README／Local-Run／上一批历史提示／DevLog。最终2593/2593、strict／三包构建及最终web检查通过，三项编译流程均PASS；新增六场经实际角色收入建设，108玩家写入／60自动初始化、4次整体重开／24保存局面检查点。无浏览器点击／视觉证明，不含node_modules、dist、凭证、原图、临时数据库或部署；按既有授权保存main。
