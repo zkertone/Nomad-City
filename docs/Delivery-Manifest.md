@@ -654,3 +654,8 @@
 ## 2026-10-27 · 部署与调度界面
 
 基准mainc5e21d4；新增server/action-options及11测试、共享MajorActionPanel，原网关／RoomService／包索引接入，网络新增3项，CityClient新增版本缓存与3项，Board2D／类型／页面／样式及编译脚本扩展。新增Influence-Action-UI、influence-ui-validation及六份原始日志（包括一次测试重连夹具失败）；README、Local-Run、上一批准备文档历史提示及DevLog同步。最终2520/2520、strict与三包构建通过；恢复既有行动阶段角色信息展示后web严格检查／构建再通过，最终三场本地编译恢复通过（19入场／30自动初始化／11准备／45主要行动写入、9部署／5调度）。实际在调度中途重开服务与PGlite文件库，不是本批八回合或人工点击整局。浏览器视觉验收仍受此前策略限制；原规则核心／数据／摘要／存档／ADR／依赖不变，不含凭证、node_modules、dist、临时数据库或部署。按既有授权保存main。
+
+
+## 2026-10-28 · 探索、移城与事件界面
+
+基准main454ae97；新增server/action-permission、travel-options、web/TravelAction、scripts/check-travel-web；原action-options／服务／网关／索引、MajorActionPanel／CityClient／页面／样式及测试扩展。根package新增check:travel-web脚本，锁与依赖未变。新增Travel-Action-UI、travel-ui-validation及10份原始日志，更新README、Local-Run、上一批历史提示和DevLog。最终2554/2554、strict／三包构建、最终web复验和两项编译流程通过；原本地流程保留，新三场在探索／移城事件及末尾各重开，48主要行动写入／4整体重启／12恢复检查点。不含node_modules、dist、凭证／原图或临时数据库；规则核心／资料／摘要／存档／ADR不变。没有浏览器点击／视觉证明，原生PostgreSQL／真实账户／部署未完成，按既有授权提交main。

@@ -1,0 +1,21 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> nomad-city-online@0.2.0 typecheck
+> tsc --noEmit && tsc -p packages/web/tsconfig.json
+
+packages/web/src/TravelAction.tsx(75,129): error TS1005: '}' expected.
+packages/web/src/TravelAction.tsx(75,130): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+packages/web/src/TravelAction.tsx(75,131): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+packages/web/src/TravelAction.tsx(78,13): error TS17002: Expected corresponding JSX closing tag for 'label'.
+packages/web/src/TravelAction.tsx(78,20): error TS1005: '}' expected.
+packages/web/src/TravelAction.tsx(78,22): error TS17002: Expected corresponding JSX closing tag for 'div'.
+packages/web/src/TravelAction.tsx(78,28): error TS1005: ',' expected.
+packages/web/src/TravelAction.tsx(79,15): error TS1005: '}' expected.
+packages/web/src/TravelAction.tsx(79,16): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+packages/web/src/TravelAction.tsx(80,9): error TS17015: Expected corresponding closing tag for JSX fragment.
+packages/web/src/TravelAction.tsx(80,12): error TS1382: Unexpected token. Did you mean `{'>'}` or `&gt;`?
+packages/web/src/TravelAction.tsx(80,13): error TS1381: Unexpected token. Did you mean `{'}'}` or `&rbrace;`?
+packages/web/src/TravelAction.tsx(84,7): error TS1003: Identifier expected.
+packages/web/src/TravelAction.tsx(129,3): error TS1128: Declaration or statement expected.
+packages/web/src/TravelAction.tsx(129,9): error TS1109: Expression expected.
+packages/web/src/TravelAction.tsx(130,1): error TS1128: Declaration or statement expected.

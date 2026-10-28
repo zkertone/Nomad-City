@@ -97,6 +97,66 @@ async function fixture() {
   return { client, socket, values };
 }
 describe("browser session and confirmed-view controller", () => {
+  it("uses original exploration and city-move channels and queries routes against the latest confirmed view", async () => {
+    const f = await fixture(), original = f.socket.request.getMockImplementation()!;
+    f.socket.request.mockImplementation(async (event, body) => {
+      if (event === "room:subscribe") return { status: "ready", view: game(1) };
+      if (event === "room:exploration-route") return { status: "ready", roomId: "room-a", gameId: "game-a", stateVersion: f.client.getSnapshot().game!.public.stateVersion, options: null };
+      if (event === "room:command") return { status: "committed", reply: { stateVersion: 2 }, view: game(f.client.getSnapshot().game!.public.stateVersion + 2) };
+      return original(event, body);
+    });
+    await f.client.openRoom("room-a");
+    const path = [{ routeId: "R-route-01", toNodeId: "D-01", payeePlayerId: "p2" }];
+    await f.client.explorationPreview(path);
+    expect(f.socket.request).toHaveBeenCalledWith("room:exploration-route", { roomId: "room-a", gameId: "game-a", expectedVersion: 1, path });
+    await f.client.explorationCommand({ type: "explore", nodeId: "D-01", path });
+    await f.client.explorationCommand({ type: "choose-exploration-event", choice: { choiceId: "Y05:1", costDecision: "pay", influenceSlotId: "node:D-01:slot:1" } });
+    await f.client.cityMoveCommand({ type: "move-city", nodeId: "D-01", routeId: "R-route-01" });
+    await f.client.cityMoveCommand({ type: "place-city-move-influence", slotId: "node:D-01:slot:2" });
+    const writes = f.socket.request.mock.calls.filter(([event]) => event === "room:command");
+    expect(writes.map(([, b]) => (b as { request: { channel: string } }).request.channel)).toEqual(["exploration", "exploration", "city-move", "city-move"]);
+    expect(writes.map(([, b]) => (b as { request: { command: { expectedVersion: number } } }).request.command.expectedVersion)).toEqual([1, 3, 5, 7]);
+    expect(writes[1]![1]).toMatchObject({ request: { command: { choice: { costDecision: "pay", influenceSlotId: "node:D-01:slot:1" } } } });
+    f.client.dispose();
+  });
+  it("discards an old route preview after a newer committed view or room selection", async () => {
+    const f = await fixture(), original = f.socket.request.getMockImplementation()!, pending = gate<unknown>();
+    f.socket.request.mockImplementation(async (event, body) => {
+      if (event === "room:subscribe") return { status: "ready", view: game(1) };
+      if (event === "room:exploration-route") return pending.promise;
+      return original(event, body);
+    });
+    await f.client.openRoom("room-a");
+    const preview = f.client.explorationPreview([]);
+    f.socket.emit("room:state", { roomId: "room-a", view: game(2) });
+    pending.resolve({ status: "ready", roomId: "room-a", gameId: "game-a", stateVersion: 1, options: { path: [] } });
+    expect(await preview).toBeNull();
+    const delayed = gate<unknown>();
+    f.socket.request.mockImplementationOnce(() => delayed.promise);
+    const old = f.client.explorationPreview([]);
+    await f.client.openRoom("room-b");
+    delayed.resolve({ status: "ready", roomId: "room-a", gameId: "game-a", stateVersion: 2, options: { path: [] } });
+    expect(await old).toBeNull();
+    f.client.dispose();
+  });
+  it("drops revoked route responses and never retries a rejected or timed-out travel mutation", async () => {
+    const f = await fixture(), original = f.socket.request.getMockImplementation()!, pending = gate<unknown>();
+    f.socket.request.mockImplementation(async (event, body) => event === "room:subscribe" ? { status: "ready", view: game(1) } : original(event, body));
+    await f.client.openRoom("room-a");
+    f.socket.request.mockResolvedValueOnce({ status: "rejected", reply: { error: { code: "STALE_VERSION" } }, view: game(99) });
+    await f.client.run(() => f.client.cityMoveCommand({ type: "choose-city-move-event", choice: { choiceId: "Y05:1", costDecision: "decline" } }));
+    expect(f.client.getSnapshot().game?.public.stateVersion).toBe(1);
+    f.socket.request.mockRejectedValueOnce(Error("PRIVATE_SQL"));
+    await f.client.run(() => f.client.explorationCommand({ type: "place-exploration-influence", slotId: "node:D-01:slot:1" }));
+    expect(f.socket.request.mock.calls.filter(([event]) => event === "room:command")).toHaveLength(2);
+    f.socket.request.mockImplementationOnce(() => pending.promise);
+    const preview = f.client.explorationPreview([]);
+    const rejected = expect(preview).rejects.toThrow("AUTH_REQUIRED");
+    f.socket.emit("session:invalidated");
+    pending.resolve({ status: "ready", roomId: "room-a", gameId: "game-a", stateVersion: 1, options: null });
+    await rejected; f.client.dispose();
+  });
+
   it("queries actor action options and sends round/influence commands using only confirmed view versions", async () => {
     const f = await fixture(), original = f.socket.request.getMockImplementation()!;
     const actionGame = (v: number) => ({ ...game(v), public: { ...game(v).public, round: { stage: "player-actions" } } }) as GamePlayerView;

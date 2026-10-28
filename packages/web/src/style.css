@@ -1081,3 +1081,12 @@ footer {
 .slot-choice { display: flex; flex-direction: column; gap: .25rem; padding: .5rem; font-size: .75rem; }
 .slot-choice.selected { border-color: #bd582c; background: #f6e4d3; }
 .slot-choice small { font-size: .65rem; }
+
+.travel-action { margin-top: 1rem; border-top: 1px solid #d9d3c8; padding-top: .75rem; }
+.travel-action label { display: block; margin: .75rem 0; }
+.travel-action select { width: 100%; margin-top: .4rem; }
+.travel-action .secondary { margin-top: .5rem; }
+.travel-action .event-choices span, .travel-action .event-choices small { display: block; margin-top: .5rem; }
+.travel-action .selected { outline: 2px solid #3f6956; }
+.travel-path { padding-left: 1.25rem; font-size: .8rem; overflow-wrap: anywhere; }
+.toll-preview { background: #f3f7ec; padding: .75rem; margin-top: .75rem; }

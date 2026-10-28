@@ -55,7 +55,8 @@
     "check:automatic-rooms:postgres": "npm run build && node scripts/check-automatic-rooms.mjs --postgres",
     "check:lobbies": "npm run build && node scripts/check-automatic-rooms.mjs --lobbies",
     "check:lobbies:postgres": "npm run build && node scripts/check-automatic-rooms.mjs --lobbies --postgres",
-    "check:local-web": "npm run build && node scripts/check-local-web.mjs"
+    "check:local-web": "npm run build && node scripts/check-local-web.mjs",
+    "check:travel-web": "npm run build && node scripts/check-travel-web.mjs"
   },
   "dependencies": {
     "zod": "4.6.7"

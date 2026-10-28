@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it, vi } from "vitest";
 import * as core from "@nomad-city-online/game-core";
 import { createAutomaticBaseRoomSnapshot } from "./base-room-factory.js";
 import { baseSetupIds } from "./automatic-base-plan.js";
+import { getRoomExplorationRoute, explorationRouteRequestSchema } from "./travel-options.js";
 import { getRoomActionOptions } from "./action-options.js";
 import { parseRoomSnapshot } from "./room-state.js";
 import type { RoomSnapshot, RoomStore } from "./room-state.js";
@@ -96,8 +97,8 @@ beforeAll(async () => {
   }
 });
 
-function send(room: RoomSnapshot, channel: "round" | "influence", command: Record<string, unknown>): RoomSnapshot {
-  return parseRoomSnapshot({ ...room, state: (channel === "round" ? core.applyRoundCommand : core.applyInfluenceCommand)(
+function send(room: RoomSnapshot, channel: "round" | "influence" | "exploration" | "city-move", command: Record<string, unknown>): RoomSnapshot {
+  return parseRoomSnapshot({ ...room, state: ({ round: core.applyRoundCommand, influence: core.applyInfluenceCommand, exploration: core.applyExplorationCommand, "city-move": core.applyCityMoveCommand }[channel])(
     room.state, room.definition, { authenticatedPlayerId: core.getRoundTurn(room.state, room.definition).actorId! },
     { gameId: room.state.gameId, expectedVersion: room.state.stateVersion, ...command },
   ) });
@@ -107,7 +108,7 @@ function options(room: RoomSnapshot, playerId = "p1") {
   if (result.status !== "ready") throw Error("Expected ready");
   return result;
 }
-function choose(room: RoomSnapshot, action: "deploy" | "dispatch") {
+function choose(room: RoomSnapshot, action: "deploy" | "dispatch" | "explore" | "city-move") {
   return send(room, "round", { type: "choose-major-action", action });
 }
 describe("actor-only ordinary action options from existing reducers", () => {
@@ -115,6 +116,7 @@ describe("actor-only ordinary action options from existing reducers", () => {
     const room = snapshots.get(count)!, before = JSON.stringify(room), result = options(room);
     expect(result.options?.actions).toEqual([
       { action: "deploy", legal: true, blockedBy: null }, { action: "dispatch", legal: true, blockedBy: null },
+      { action: "explore", legal: true, blockedBy: null }, { action: "city-move", legal: true, blockedBy: null },
     ]);
     expect(options(room, "p2").options).toBeNull();
     expect(result.options?.finishTurn.legal).toBe(false);
@@ -233,6 +235,161 @@ describe("actor-only ordinary action options from existing reducers", () => {
     read.mockRejectedValueOnce(Error("PRIVATE_SQL"));
     expect(await service.readActionOptions(room.roomId, { authenticatedUserId: "user-p1" }))
       .toEqual({ status: "unavailable", error: { code: "STORAGE_UNAVAILABLE" } });
+    expect(compareAndSwap).not.toHaveBeenCalled();
+  });
+});
+
+const directPath = [{ routeId: 'R-route-01', toNodeId: 'D-01' }];
+function route(room: RoomSnapshot, path: readonly core.ExplorationPathStep[], actor = 'p1') {
+  const result = getRoomExplorationRoute(room, actor, {
+    roomId: room.roomId, gameId: room.state.gameId, expectedVersion: room.state.stateVersion, path,
+  });
+  if (result.status !== 'ready') throw Error('Expected route preview');
+  return result;
+}
+function walk(room: RoomSnapshot, target: string): core.ExplorationPathStep[] {
+  const board = core.loadFoundersBoard(core.getFoundersMapSide(room.definition.players.length));
+  const queue: [string, core.ExplorationPathStep[]][] = [[room.state.board.cityNodeByPlayer.p1!, []]], seen = new Set<string>();
+  for (let i = 0; i < queue.length; i++) {
+    const [node, path] = queue[i]!;
+    if (node === target) return path;
+    if (seen.has(node)) continue;
+    seen.add(node);
+    for (const r of core.getRoutesForNode(board, node)) for (const n of core.getNodesForRoute(board, r.id))
+      if (!seen.has(n.id)) queue.push([n.id, [...path, { routeId: r.id, toNodeId: n.id }]]);
+  }
+  throw Error('No test path');
+}
+function putMarker(room: RoomSnapshot, slotId: string, owner = 'p2') {
+  const state = core.gameStateSchema.parse(room.state), markerId = state.markerSupplyByPlayer[owner]!.shift()!;
+  if (state.board.influenceBySlot[slotId]) throw Error('Occupied fixture slot');
+  state.board.influenceBySlot[slotId] = { markerId, ownerPlayerId: owner };
+  return parseRoomSnapshot({ ...room, state });
+}
+function eventRoom(cardId: string) {
+  const original = snapshots.get(4)!, state = core.gameStateSchema.parse(original.state), card = core.getFoundersEventCard(cardId);
+  // Isolated allowed round/deck ordering fixture; not seven preceding played rounds.
+  if (card.color === 'red') state.roundFlow!.roundNumber = 8;
+  expect(state.eventDecks![card.color]).toContain(cardId);
+  state.eventDecks![card.color] = [cardId, ...state.eventDecks![card.color].filter(id => id !== cardId)];
+  const room = choose(parseRoomSnapshot({ ...original, state }), 'explore');
+  const board = core.loadFoundersBoard('four-player');
+  const node = Object.values(board.resourceNodes).find(n => n.eventDeckColor === card.color && room.state.board.resourceMarkerByNode[n.id] === null)!;
+  return send(room, 'exploration', { type: 'explore', nodeId: node.id, path: walk(room, node.id) });
+}
+describe('read-only travel options and original event execution', () => {
+  it.each([2, 3, 4])('offers %i-player draft geometry and original complete-path fees without drawing or writing', count => {
+    const room = choose(snapshots.get(count)!, 'explore'), before = JSON.stringify(room), empty = route(room, []);
+    expect(empty.options?.currentNodeId).toBe('A-01');
+    expect(empty.options?.execution).toEqual({ legal: false, blockedBy: 'PATH_REQUIRED' });
+    for (const step of empty.options!.nextSteps) expect(core.areNodesDirectlyConnected(
+      core.loadFoundersBoard(core.getFoundersMapSide(count)), 'A-01', step.toNodeId, step.routeId)).toBe(true);
+    const draft = route(room, directPath);
+    expect(draft.options?.quote).toEqual(core.getExplorationTollQuote(room.state, room.definition, 'p1', 'D-01', directPath));
+    expect(draft.options?.execution.legal).toBe(true);
+    expect(JSON.stringify(draft)).not.toMatch(/cardId|drawPile|DeckOrder|placedRole|markerId|members/);
+    expect(route(room, [], 'p2').options).toBeNull();
+    expect(JSON.stringify(room)).toBe(before);
+  });
+  it('requires explicit recipients for opposing owners and charges repeated routes only once', () => {
+    let room = choose(snapshots.get(4)!, 'explore');
+    const slots = core.loadFoundersBoard('four-player').routes['R-route-01']!.influenceSlotIds;
+    room = putMarker(putMarker(room, slots[0]!, 'p2'), slots[1]!, 'p3');
+    const path = [directPath[0]!, { routeId: 'R-route-01', toNodeId: 'A-01' }, directPath[0]!];
+    const missing = route(room, path).options!;
+    expect(missing.quote?.total).toBe(2); expect(missing.quote?.legs).toHaveLength(1);
+    expect(missing.quote?.legs[0]?.recipientPlayerIds).toEqual(['p2', 'p3']);
+    expect(missing.execution.blockedBy).toBe('TOLL_RECIPIENT');
+    const selected = path.map(step => ({ ...step, payeePlayerId: 'p3' }));
+    expect(route(room, selected).options?.execution.legal).toBe(true);
+    const after = send(room, 'exploration', { type: 'explore', nodeId: 'D-01', path: selected });
+    expect(after.state.players.p3!.balances['columbia-voucher']).toBe(room.state.players.p3!.balances['columbia-voucher'] + 2);
+    expect(after.state.players.p1!.balances['columbia-voucher']).toBe(room.state.players.p1!.balances['columbia-voucher'] - 2);
+    expect(after.state.board.cityNodeByPlayer).toEqual(room.state.board.cityNodeByPlayer);
+    selected[1] = { ...selected[1]!, payeePlayerId: 'p2' };
+    expect(route(room, selected).options?.execution.blockedBy).toBe('TOLL_RECIPIENT');
+  });
+  it('keeps own influence free, rejects unaffordable fees, closed red targets and disconnected paths', () => {
+    const original = choose(snapshots.get(4)!, 'explore'), slot = core.loadFoundersBoard('four-player').routes['R-route-01']!.influenceSlotIds[0]!;
+    expect(route(putMarker(original, slot, 'p1'), directPath).options?.quote?.total).toBe(0);
+    const state = core.gameStateSchema.parse(original.state); state.players.p1!.balances['columbia-voucher'] = 0;
+    expect(route(parseRoomSnapshot({ ...original, state }), directPath).options?.execution.blockedBy).toBe('CANNOT_PAY');
+    const red = Object.values(core.loadFoundersBoard('four-player').resourceNodes).find(n => n.redRestricted)!;
+    expect(route(original, walk(original, red.id)).options?.execution.blockedBy).toBe('RED_CLOSED');
+    expect(route(original, [{ routeId: 'F-route-01', toNodeId: 'D-01' }]).options).toMatchObject({ execution: { blockedBy: 'PATH_CONNECTION' }, nextSteps: [] });
+  });
+  it('does not disclose route data at a stale version, for another game, before exploration or at another player turn', () => {
+    const room = choose(snapshots.get(3)!, 'explore'), req = { roomId: room.roomId, gameId: room.state.gameId, expectedVersion: room.state.stateVersion, path: [] };
+    expect(getRoomExplorationRoute(room, 'p1', { ...req, expectedVersion: req.expectedVersion - 1 })).toMatchObject({ options: null });
+    expect(getRoomExplorationRoute(room, 'p1', { ...req, gameId: 'different-game' })).toMatchObject({ options: null });
+    expect(route(snapshots.get(3)!, []).options).toBeNull();
+    expect(explorationRouteRequestSchema.safeParse({ ...req, path: Array(23).fill(directPath[0]) }).success).toBe(false);
+    expect(explorationRouteRequestSchema.safeParse({ ...req, actorId: 'p2' }).success).toBe(false);
+  });
+  it('matches city movement options and preserves route identity, payment, clearing and separate final placement', () => {
+    let room = choose(snapshots.get(4)!, 'city-move'), result = options(room).options!.travel!;
+    expect(result.moves.map(({ nodeId, routeId }) => ({ nodeId, routeId }))).toEqual(core.getCityMoveOptions(room.state, room.definition, 'p1'));
+    const move = result.moves.find(m => m.legal && m.nodeId === 'D-01')!;
+    expect(move).toBeDefined();
+    const slot = core.loadFoundersBoard('four-player').routes[move.routeId]!.influenceSlotIds[0]!;
+    room = putMarker(room, slot);
+    const oldCount = room.state.markerSupplyByPlayer.p2!.length;
+    const after = send(room, 'city-move', { type: 'move-city', nodeId: move.nodeId, routeId: move.routeId });
+    expect(after.state.players.p1!.balances.originium).toBe(room.state.players.p1!.balances.originium - 3);
+    expect(after.state.board.cityNodeByPlayer.p1).toBe('D-01');
+    expect(after.state.board.influenceBySlot[slot]).toBeNull();
+    expect(after.state.markerSupplyByPlayer.p2).toHaveLength(oldCount + 1);
+    result = options(after).options!.travel!;
+    expect(result.status).toBe('event-choice'); expect(result.event?.cardId).toBe(after.state.cityMove!.cardId);
+    expect(options(after, 'p2').options).toBeNull();
+    expect(options(after).options?.cancelPreparation.legal).toBe(false);
+    const variant = result.event!.choices.flatMap(c => c.variants).find(v => v.legal)!;
+    const settled = send(after, 'city-move', { type: 'choose-city-move-event', choice: variant.choice });
+    const final = options(settled).options!.travel!;
+    expect(final.finalSlotIds).toEqual(core.getCityMoveFinalSlotIds(settled.state, settled.definition, 'p1'));
+    expect(options(settled).options?.finishTurn.legal).toBe(false);
+    const completed = send(settled, 'city-move', { type: 'place-city-move-influence', slotId: final.finalSlotIds[0] });
+    expect(options(completed).options?.finishTurn.legal).toBe(true);
+  });
+  it.each(['G05', 'G06', ...Array.from({ length: 10 }, (_, i) => `Y${String(i + 1).padStart(2, '0')}`),
+    ...Array.from({ length: 6 }, (_, i) => `R${String(i + 1).padStart(2, '0')}`)])('projects revealed %s choices and executable variants without exposing other cards', cardId => {
+    const room = eventRoom(cardId), before = JSON.stringify(room), result = options(room).options!.travel!, card = core.getFoundersEventCard(cardId);
+    expect(result.event).toMatchObject({ cardId, title: card.title, description: card.description });
+    expect(result.event!.choices.map(c => c.id)).toEqual(card.choices.map(c => c.id));
+    expect(JSON.stringify(result)).not.toMatch(/drawPile|DeckOrder|markerId|placedRole|members/);
+    for (const choice of result.event!.choices) {
+      const source = card.choices.find(c => c.id === choice.id)!;
+      expect(choice.narration).toBe(source.narration); expect(choice.effects).toEqual(source.effects); expect(choice.cost).toEqual(source.cost);
+      for (const v of choice.variants) if (v.legal) expect(() => send(room, 'exploration', { type: 'choose-exploration-event', choice: v.choice })).not.toThrow();
+    }
+    expect(Object.isFrozen(result.event!.choices)).toBe(true);
+    expect(JSON.stringify(room)).toBe(before);
+  });
+  it('retains pay/decline and event placement before recomputing final action influence', () => {
+    const room = eventRoom('Y05'), choice = options(room).options!.travel!.event!.choices[0]!;
+    expect(choice.variants.some(v => v.choice.costDecision === 'decline' && v.legal)).toBe(true);
+    const payment = choice.variants.find(v => v.legal && v.choice.costDecision === 'pay')!;
+    const settled = send(room, 'exploration', { type: 'choose-exploration-event', choice: payment.choice });
+    expect(settled.state.players.p1!.balances['columbia-voucher']).toBe(room.state.players.p1!.balances['columbia-voucher'] - 4);
+    expect(settled.state.board.influenceBySlot[payment.choice.influenceSlotId!]?.ownerPlayerId).toBe('p1');
+    expect(options(settled).options!.travel!.finalSlotIds).toEqual(core.getExplorationFinalSlotIds(settled.state, settled.definition, 'p1'));
+    const finalId = options(settled).options!.travel!.finalSlotIds[0]!;
+    const done = send(settled, 'exploration', { type: 'place-exploration-influence', slotId: finalId });
+    expect(options(done).options?.finishTurn.legal).toBe(true);
+    const state = core.gameStateSchema.parse(room.state); state.players.p1!.balances['columbia-voucher'] = 0;
+    const blocked = options(parseRoomSnapshot({ ...room, state })).options!.travel!.event!.choices[0]!;
+    expect(blocked.variants.filter(v => v.choice.costDecision === 'pay').every(v => !v.legal && v.blockedBy === 'CANNOT_PAY')).toBe(true);
+    expect(blocked.variants.find(v => v.choice.costDecision === 'decline')?.legal).toBe(true);
+  });
+  it('normalizes route storage/member failures and never invokes a write or initialization', async () => {
+    const room = choose(snapshots.get(3)!, 'explore'), compareAndSwap = vi.fn(), read = vi.fn(async (id: string) => id === room.roomId ? room : null);
+    const service = new RoomService({ create: async () => false, read, compareAndSwap });
+    const req = { roomId: room.roomId, gameId: room.state.gameId, expectedVersion: room.state.stateVersion, path: directPath };
+    const denied = await service.readExplorationRoute(req, { authenticatedUserId: 'outsider' });
+    expect(await service.readExplorationRoute({ ...req, roomId: 'missing-room' }, { authenticatedUserId: 'outsider' })).toEqual(denied);
+    expect(await service.readExplorationRoute({ ...req, playerId: 'p2' }, { authenticatedUserId: 'user-p1' })).toMatchObject({ error: { code: 'INVALID_MESSAGE' } });
+    read.mockRejectedValueOnce(Error('PRIVATE_SQL'));
+    expect(await service.readExplorationRoute(req, { authenticatedUserId: 'user-p1' })).toEqual({ status: 'unavailable', error: { code: 'STORAGE_UNAVAILABLE' } });
     expect(compareAndSwap).not.toHaveBeenCalled();
   });
 });

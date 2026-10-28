@@ -1,9 +1,10 @@
 import { io } from "socket.io-client";
 import type { Socket } from "socket.io-client";
-import type { GamePlayerView } from "@nomad-city-online/game-core";
+import type { GamePlayerView, ExplorationPlayerCommand, CityMovePlayerCommand, ExplorationPathStep } from "@nomad-city-online/game-core";
 import type {
   EntryOptionsResult,
   ActionOptionsResult,
+  ExplorationRouteResult,
   LobbyView,
   RoomSummary,
   RoundSetupOptionsResult,
@@ -14,12 +15,16 @@ export type RoundPreparationCommand =
   | { readonly type: "place-round-role"; readonly roleId: string };
 
 export type MajorActionCommand =
-  | { readonly type: "choose-major-action"; readonly action: "deploy" | "dispatch" }
+  | { readonly type: "choose-major-action"; readonly action: "deploy" | "dispatch" | "explore" | "city-move" }
   | { readonly type: "cancel-major-preparation" | "finish-player-turn" };
 export type InfluenceCommand =
   | { readonly type: "deploy-influence"; readonly slotId: string }
   | { readonly type: "dispatch-influence"; readonly sourceSlotId: string; readonly targetSlotId: string }
   | { readonly type: "finish-dispatch" };
+
+type WithoutEnvelope<T> = T extends unknown ? Omit<T, "gameId" | "expectedVersion"> : never;
+export type ExplorationCommand = WithoutEnvelope<ExplorationPlayerCommand>;
+export type CityMoveCommand = WithoutEnvelope<CityMovePlayerCommand>;
 
 export type ClientSnapshot = {
   connected: boolean;
@@ -433,8 +438,23 @@ export class CityClient {
   async influenceCommand(command: InfluenceCommand) {
     return this.playerCommand("influence", command);
   }
+  async explorationCommand(command: ExplorationCommand) {
+    return this.playerCommand("exploration", command);
+  }
+  async cityMoveCommand(command: CityMoveCommand) {
+    return this.playerCommand("city-move", command);
+  }
+  async explorationPreview(path: readonly ExplorationPathStep[]): Promise<Extract<ExplorationRouteResult, { status: "ready" }> | null> {
+    const { game, roomId } = this.state;
+    if (!game || !roomId) return null;
+    const result = await this.rpc<Extract<ExplorationRouteResult, { status: "ready" }>>("room:exploration-route", {
+      roomId, gameId: game.public.gameId, expectedVersion: game.public.stateVersion, path,
+    });
+    return this.state.roomId === result.roomId && this.state.game?.public.gameId === result.gameId &&
+      this.state.game.public.stateVersion === result.stateVersion && result.stateVersion === game.public.stateVersion ? result : null;
+  }
   private async playerCommand(
-    channel: "entry" | "round" | "influence",
+    channel: "entry" | "round" | "influence" | "exploration" | "city-move",
     command: Record<string, unknown>,
   ) {
     const { game, roomId } = this.state;

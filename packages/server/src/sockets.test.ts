@@ -133,6 +133,72 @@ describe('durable opaque sessions', () => {
 });
 
 describe('real loopback Socket.IO session, membership and recovery boundary', () => {
+  it('previews exploration without drawing, resolves the actual revealed event and final influence, then explicitly ends the turn', async () => {
+    const s = await fixture(true), a = await asUser('bob'), b = await asUser('alice');
+    let current = (await call(a.socket, 'room:subscribe', { roomId: s.roomId })).view;
+    const send = async (channel: string, command: Record<string, unknown>) => {
+      const reply = await call(a.socket, 'room:command', { roomId: s.roomId, request: { apiVersion: '1.0.0', requestId: 'travel-step', channel,
+        command: { gameId: current.public.gameId, expectedVersion: current.public.stateVersion, ...command } } });
+      expect(reply.status).toBe('committed'); current = reply.view; return reply;
+    };
+    await send('round', { type: 'choose-major-action', action: 'explore' });
+    const before = await store.read(s.roomId), req = { roomId: s.roomId, gameId: current.public.gameId, expectedVersion: current.public.stateVersion,
+      path: [{ routeId: 'R-route-01', toNodeId: 'D-01' }] };
+    const preview = await call(a.socket, 'room:exploration-route', req);
+    expect(preview.options.execution.legal).toBe(true); expect(preview.options.quote.total).toBe(2);
+    expect((await call(b.socket, 'room:exploration-route', req)).options).toBeNull();
+    expect(await store.read(s.roomId)).toEqual(before);
+    expect(JSON.stringify(preview)).not.toMatch(/cardId|eventDecks|drawPile|members|placedRole/);
+    await send('exploration', { type: 'explore', nodeId: 'D-01', path: req.path });
+    let choices = (await call(a.socket, 'room:action-options', { roomId: s.roomId })).options;
+    expect(choices.travel.status).toBe('event-choice'); expect(choices.cancelPreparation.legal).toBe(false);
+    expect((await call(b.socket, 'room:action-options', { roomId: s.roomId })).options).toBeNull();
+    const variant = choices.travel.event.choices.flatMap((c: { variants: { legal: boolean; choice: unknown }[] }) => c.variants).find((v: { legal: boolean }) => v.legal);
+    expect(variant).toBeDefined(); await send('exploration', { type: 'choose-exploration-event', choice: variant.choice });
+    choices = (await call(a.socket, 'room:action-options', { roomId: s.roomId })).options;
+    if (choices.travel.status === 'final-influence') await send('exploration', { type: 'place-exploration-influence', slotId: choices.travel.finalSlotIds[0] });
+    expect(current.public.round.actorId).toBe('p1');
+    await send('round', { type: 'finish-player-turn' }); expect(current.public.round.actorId).toBe('p2');
+  });
+  it('offers exact city route/node pairs, saves payment and event/final-placement stages through the existing channel', async () => {
+    const s = await fixture(true), a = await asUser('bob');
+    let current = (await call(a.socket, 'room:subscribe', { roomId: s.roomId })).view;
+    const send = async (channel: string, command: Record<string, unknown>) => {
+      const reply = await call(a.socket, 'room:command', { roomId: s.roomId, request: { apiVersion: '1.0.0', requestId: 'move-step', channel,
+        command: { gameId: current.public.gameId, expectedVersion: current.public.stateVersion, ...command } } });
+      expect(reply.status).toBe('committed'); current = reply.view;
+    };
+    await send('round', { type: 'choose-major-action', action: 'city-move' });
+    let choices = (await call(a.socket, 'room:action-options', { roomId: s.roomId })).options;
+    const move = choices.travel.moves.find((m: { legal: boolean; nodeId: string }) => m.legal && m.nodeId === 'D-01'); expect(move).toBeDefined();
+    await send('city-move', { type: 'move-city', nodeId: move.nodeId, routeId: move.routeId });
+    expect(current.public.board.cityNodeByPlayer.p1).toBe('D-01'); expect(current.public.players[0].balances.originium).toBe(0);
+    choices = (await call(a.socket, 'room:action-options', { roomId: s.roomId })).options;
+    const variant = choices.travel.event.choices.flatMap((c: { variants: { legal: boolean; choice: unknown }[] }) => c.variants).find((v: { legal: boolean }) => v.legal);
+    await send('city-move', { type: 'choose-city-move-event', choice: variant.choice });
+    choices = (await call(a.socket, 'room:action-options', { roomId: s.roomId })).options;
+    if (choices.travel.status === 'final-influence') await send('city-move', { type: 'place-city-move-influence', slotId: choices.travel.finalSlotIds[0] });
+    expect((await call(a.socket, 'room:action-options', { roomId: s.roomId })).options.finishTurn.legal).toBe(true);
+  });
+  it('rejects route schema/identity injection, bounds path length and normalizes denied rooms and storage without writes', async () => {
+    const s = await fixture(true), a = await asUser('bob'), outsider = await asUser('route-outsider');
+    const req = { roomId: s.roomId, gameId: s.state.gameId, expectedVersion: s.state.stateVersion, path: [] };
+    expect(await call(a.socket, 'room:exploration-route', { ...req, actorId: 'p2' })).toMatchObject({ error: { code: 'INVALID_MESSAGE' } });
+    expect(await call(a.socket, 'room:exploration-route', { ...req, path: Array(23).fill({ routeId: 'R-route-01', toNodeId: 'D-01' }) })).toMatchObject({ error: { code: 'INVALID_MESSAGE' } });
+    expect(await call(outsider.socket, 'room:exploration-route', req)).toEqual(await call(outsider.socket, 'room:exploration-route', { ...req, roomId: 'missing' }));
+    vi.spyOn(gatewayStore, 'read').mockRejectedValueOnce(Error('PRIVATE_SQL'));
+    expect(await call(a.socket, 'room:exploration-route', req)).toEqual({ status: 'unavailable', error: { code: 'STORAGE_UNAVAILABLE' } });
+    expect(await store.read(s.roomId)).toEqual(s);
+  });
+  it('discards route previews if the credential is revoked during the query', async () => {
+    const s = await fixture(true), a = await asUser('bob'), blocked = deferred(), release = deferred();
+    const service = app.get(RoomService), original = service.readExplorationRoute.bind(service);
+    vi.spyOn(service, 'readExplorationRoute').mockImplementationOnce(async (...args) => { const result = await original(...args); blocked.resolve(); await release.promise; return result; });
+    let acknowledged = false; const invalidated = event(a.socket, 'session:invalidated');
+    a.socket.emit('room:exploration-route', { roomId: s.roomId, gameId: s.state.gameId, expectedVersion: s.state.stateVersion, path: [] }, () => { acknowledged = true; });
+    await blocked.promise; await sessions.revoke(a.token); release.resolve(); await invalidated; expect(acknowledged).toBe(false);
+  });
+
   it('reads actor-only action choices and commits deployment, cancel, dispatch, early finish and turn handoff through existing channels', async () => {
     const s = await fixture(true), a = await asUser('bob'), b = await asUser('alice'), outsider = await asUser('action-outsider');
     const pushed: core.GamePlayerView[] = []; b.socket.on('room:state', (event: { view: core.GamePlayerView }) => pushed.push(event.view));
